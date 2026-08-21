@@ -81,10 +81,12 @@ and hint on one line with no shrink protection — fine in English at 390pt, col
 **Check narrow widths in the longest locale, not the default one.** Every phone frame is
 verified at 360pt as well as 390pt.
 
-⚠️ Open: accented letters. ITU Morse defines `Ç` (`-.-..`) and `Ñ` (`--.--`) but has no
-code for `Ã Õ Â Ê Ô Á Í Ó Ú`. Strip diacritics to the base letter, or map only the few
-with real codes? A `core/domain` decision — and it changes what the round-trip invariant
-`decode(encode(text))` can claim.
+**Accented letters — decided.** `Ç` (`-.-..`), `É` (`..-..`) and `Ñ` (`--.--`) have real
+ITU codes and are supported; every other diacritic is sent as its base letter. `Ñ` and
+`Ç` are distinct letters rather than decoration (`año` ≠ `ano`), and the rest have no
+standard code, so inventing one would be unreadable to any other operator. All three
+appear in the Learn alphabet, with a footnote stating the rule. See `FOUNDATION.md`
+§Localisation for what this does to the round-trip invariant.
 
 ## Not yet designed
 

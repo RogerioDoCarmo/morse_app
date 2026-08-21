@@ -97,9 +97,9 @@
           <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad;">THE ALPHABET</span>
           <span style="font-size: 13px; font-weight: 500; color: #9aa3ad;">Tap any letter to hear it</span>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px;">
+        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 9px;">
           <sc-for list="{{ alphabet }}" as="ltr" hint-placeholder-count="18">
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; min-height: 62px; padding: 10px 4px; background: #f5f6f8; border-radius: 16px;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 8px 4px; background: #f5f6f8; border-radius: 16px;">
               <div style="display: flex; gap: 3px; align-items: center; height: 8px;">
                 <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
                   <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
@@ -130,6 +130,7 @@ class Component extends DCLogic {
       H: '....', I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.',
       O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-',
       V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..',
+      'Ç': '-.-..', 'É': '..-..', 'Ñ': '--.--',
       1: '.----', 2: '..---', 3: '...--', 4: '....-', 5: '.....',
       6: '-....', 7: '--...', 8: '---..', 9: '----.', 0: '-----',
     };
@@ -138,7 +139,7 @@ class Component extends DCLogic {
   renderVals() {
     const t = this.table();
     return {
-      alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'.split('').map((ch) => ({
+      alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÇÉÑ1234567890'.split('').map((ch) => ({
         char: ch,
         marks: t[ch].split('').map((m) => ({ dot: m === '.', dash: m === '-' })),
       })),

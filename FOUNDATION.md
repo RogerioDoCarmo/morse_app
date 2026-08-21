@@ -296,11 +296,33 @@ afterthought:
   390pt and collided at 360pt in Portuguese. Check narrow widths in the longest locale,
   not just the default one
 
-⚠️ **Accented letters are an open domain decision.** ITU Morse defines `Ç` (`-.-..`) and
-`Ñ` (`--.--`), but has no code for `Ã Õ Â Ê Ô Á Í Ó Ú`. The encoder must either strip
-diacritics to the base letter or map only the few with real codes — decide it in
-`core/domain`, and make `decode(encode(text))` state the chosen rule explicitly, because
-the round-trip invariant cannot hold verbatim once diacritics are stripped.
+### Accented letters (decided 2026-08-21)
+
+**Support the three ITU-coded letters these locales actually need; strip every other
+diacritic to its base letter.**
+
+| Input | Sent as | Why |
+| --- | --- | --- |
+| `Ç` | `-.-..` | ITU-coded, and Portuguese needs it |
+| `É` | `..-..` | ITU-coded, common in both pt and es |
+| `Ñ` | `--.--` | ITU-coded, and `año` ≠ `ano` |
+| `Ã Õ Â Ê Ô Á Í Ó Ú Ü À` … | base letter | ITU defines no distinct code |
+
+Stripping `Ñ` would be wrong — it is a distinct letter in Spanish, not an accent — and
+`Ç` likewise in Portuguese. The rest have no standard code, so inventing one would make
+the output unreadable to any other Morse operator.
+
+This makes the round-trip invariant **conditional**, and the test must say so:
+
+```ts
+decode(encode(text)) === normaliseForMorse(text).toUpperCase();
+```
+
+where `normaliseForMorse` keeps `Ç É Ñ` and folds all other diacritics
+(NFD, drop combining marks). Do **not** write the test as
+`decode(encode(text)) === text.toUpperCase()` — it passes only for ASCII input and
+silently misrepresents what the encoder does. `normaliseForMorse` is itself a pure
+`core/domain` function and deserves its own property tests.
 
 ### Decoding: Morse → text (decided 2026-08-21)
 

@@ -66,7 +66,7 @@
       "x": 470,
       "y": 1000,
       "w": 390,
-      "h": 1630
+      "h": 1790
     },
     {
       "file": "Tips.dc.html",
@@ -154,7 +154,7 @@
       "x": 0,
       "y": -300,
       "w": 1330,
-      "text": "THREE UI LANGUAGES — English, Português (Brasil), Español\n\nThe whole interface translates, not just the input. These two are the same artboard as the English Translator with only the strings swapped, so any layout difference is purely string length.\n\nWhat that surfaced: the Morse card's header row put its label and its hint on one line with no shrink protection. It fit in English at 390pt and would have collided at 360pt in Portuguese. Both now shrink and wrap; every phone frame was re-checked at 360pt.\n\nStill to decide: accented letters. ITU Morse defines Ç (-.-..) and Ñ (--.--), but not Ã, Õ, Â, Ê, Ô, Á, Í, Ó, Ú. The encoder has to either strip diacritics to the base letter or map the few that have codes — a core/domain decision, not a UI one."
+      "text": "THREE UI LANGUAGES — English, Português (Brasil), Español\n\nThe whole interface translates, not just the input. These two are the same artboard as the English Translator with only the strings swapped, so any layout difference is purely string length.\n\nWhat that surfaced: the Morse card's header row put its label and its hint on one line with no shrink protection. It fit in English at 390pt and would have collided at 360pt in Portuguese. Both now shrink and wrap; every phone frame was re-checked at 360pt.\n\nAccented letters — decided: Ç (-.-..), É (..-..) and Ñ (--.--) have real ITU codes and are supported; every other diacritic is sent as its base letter. Ñ and Ç are distinct letters, not decoration (año ≠ ano), and the rest have no standard code. All three are in the Learn alphabet with the rule stated underneath."
     }
   ],
   "launch": {
