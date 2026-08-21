@@ -57,6 +57,7 @@ src/
 | --- | --- | --- |
 | `ITorchPort` | camera/torch API | flash output is the riskiest hardware dependency — mock it in tests |
 | `ISpeechRecognitionPort` | speech-to-text | swappable, and unavailable in test/CI environments |
+| `ITextToSpeechPort` | `expo-speech` (or equivalent) | reads decoded text aloud; output-only, needs **no** permission |
 | `ILocalePort` | `expo-localization` | same pattern as Miroji |
 | `IPermissionPort` | camera + microphone permission | two permissions here, unlike Miroji's one |
 
@@ -270,8 +271,11 @@ grantable to other apps, and **must not be stripped** (doing so weakens security
 1. **Typed text → Morse** — visual dots/dashes rendered on screen
 2. **Speech → Morse** — device speech-to-text, then encode
 3. **Flash output** — play the Morse pattern on the device torch
-4. **Informational pages** — what Morse code is, its history and structure
-5. **Learning tips** — how to memorise and practise Morse
+4. **Morse → text** — via **tap input** (press duration = dot/dash), with a
+   **user-configurable** dot/dash threshold; plus typed-Morse decoding
+5. **Text-to-speech** — the decoded text is read aloud (output-only, no permission)
+6. **Informational pages** — what Morse code is, its history and structure
+7. **Learning tips** — how to memorise and practise Morse
 
 ### Localisation
 
@@ -282,11 +286,55 @@ first-class requirement, not an afterthought:
 - The i18n `TranslationMap` type makes missing keys a build error
 - E2E tests must not assert on localised strings
 
+### Decoding: Morse → text (decided 2026-08-21)
+
+Both directions are in scope. Decoding is harder than encoding because **Morse is not
+self-delimiting** — `...---...` with spacing stripped could read as `SOS` or `EEETTTEEE`.
+The gaps carry as much information as the symbols:
+
+| Gap | Length | Means |
+| --- | --- | --- |
+| Intra-character | 1 unit | next symbol, same letter |
+| Inter-character | 3 units | letter boundary |
+| Word | 7 units | space |
+
+**Input method: tap input.** A single button; press *duration* distinguishes dot from dash,
+and the *gaps between* presses reconstruct letter and word boundaries.
+
+⚠️ **The dot/dash threshold must be user-configurable.** "Long" is relative to the
+operator's speed, so a hardcoded millisecond cutoff will fit nobody. Expose it as a
+setting (and consider deriving a sensible default from a short calibration, or adapting
+from a rolling window of recent presses). Treat the threshold as **domain state**, not UI
+state — it belongs in `core/`, injected into the decoder, so it is testable without a UI.
+
+This doubles as a **practice feature**, which pairs naturally with the learning-tips pages.
+
+**Typed-Morse decoding is nearly free** and worth having too: split on whitespace,
+reverse-lookup each group. Same purity as the encoder — a `core/domain` function with no
+I/O, and it makes the round-trip invariant real:
+`decode(encode(text)) === text.toUpperCase()`.
+
+**Explicitly out of scope:** audio (microphone FFT) and light (camera) detection of Morse
+signals. Real signal processing, fragile in the real world, and it would push toward
+native modules that undermine the hexagonal boundaries.
+
+### Text-to-speech output (decided 2026-08-21)
+
+Decoded text is **read aloud** by the app. Note this is the *opposite* direction from the
+speech-to-text input feature and must not be confused with it:
+
+| | Direction | Permission |
+| --- | --- | --- |
+| Speech recognition (input) | voice → text → Morse | **microphone required** |
+| Text-to-speech (output) | Morse → text → voice | **none** |
+
+TTS is output-only, so it adds **no** permission. It must respect the EN/pt-BR locale
+setting — read Portuguese text with a Portuguese voice.
+
 ### Open design questions (resolve during the design phase)
 
 - App name / brand (the repo is deliberately named generically)
-- Morse → text (decoding) as well as text → Morse?
-- Audio output (beeps) in addition to visual and flash?
-- Adjustable playback speed (WPM)?
+- Audio output (beeps) for the *encode* direction, alongside visual and flash?
+- Adjustable playback speed (WPM) for flash/audio output?
 - Offline-only, or any network features? *(Offline-only keeps the permission and privacy
   story clean — worth defending.)*
