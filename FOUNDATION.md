@@ -279,12 +279,50 @@ grantable to other apps, and **must not be stripped** (doing so weakens security
 
 ### Localisation
 
-**English (default) and Portuguese**, for **both typed and spoken input**. This is a
-first-class requirement, not an afterthought:
+**English (default), Brazilian Portuguese and Spanish** (decided 2026-08-21). This
+covers the **entire UI**, not only input — every user-facing string is translated, and
+typed *and* spoken input are supported in all three. First-class requirement, not an
+afterthought:
 
-- Speech recognition must be configured per-locale
-- The i18n `TranslationMap` type makes missing keys a build error
+- Speech recognition must be configured per-locale, and the recognition locale is
+  **separate from the interface locale** — it follows the interface by default but can
+  be overridden (a device may not have every recogniser installed)
+- The i18n `TranslationMap` type makes missing keys a build error. With three locales
+  this matters more, not less: a missing `es` key must fail the build, never fall back
+  silently to English
 - E2E tests must not assert on localised strings
+- **Layouts must survive the longest locale.** pt-BR and es strings run noticeably
+  longer than English; the design phase already caught one row that fit in English at
+  390pt and collided at 360pt in Portuguese. Check narrow widths in the longest locale,
+  not just the default one
+
+### Accented letters (decided 2026-08-21)
+
+**Support the three ITU-coded letters these locales actually need; strip every other
+diacritic to its base letter.**
+
+| Input | Sent as | Why |
+| --- | --- | --- |
+| `Ç` | `-.-..` | ITU-coded, and Portuguese needs it |
+| `É` | `..-..` | ITU-coded, common in both pt and es |
+| `Ñ` | `--.--` | ITU-coded, and `año` ≠ `ano` |
+| `Ã Õ Â Ê Ô Á Í Ó Ú Ü À` … | base letter | ITU defines no distinct code |
+
+Stripping `Ñ` would be wrong — it is a distinct letter in Spanish, not an accent — and
+`Ç` likewise in Portuguese. The rest have no standard code, so inventing one would make
+the output unreadable to any other Morse operator.
+
+This makes the round-trip invariant **conditional**, and the test must say so:
+
+```ts
+decode(encode(text)) === normaliseForMorse(text).toUpperCase();
+```
+
+where `normaliseForMorse` keeps `Ç É Ñ` and folds all other diacritics
+(NFD, drop combining marks). Do **not** write the test as
+`decode(encode(text)) === text.toUpperCase()` — it passes only for ASCII input and
+silently misrepresents what the encoder does. `normaliseForMorse` is itself a pure
+`core/domain` function and deserves its own property tests.
 
 ### Decoding: Morse → text (decided 2026-08-21)
 

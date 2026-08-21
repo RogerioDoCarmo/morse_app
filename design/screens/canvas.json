@@ -1,0 +1,164 @@
+{
+  "pages": [
+    {
+      "id": "phone",
+      "name": "Phone"
+    },
+    {
+      "id": "tablet",
+      "name": "Tablet"
+    },
+    {
+      "id": "languages",
+      "name": "Languages"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Translator",
+      "page": "phone",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Speech.dc.html",
+      "title": "Speech input",
+      "page": "phone",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "TapDecode.dc.html",
+      "title": "Tap decode",
+      "page": "phone",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Permissions.dc.html",
+      "title": "Permission gates",
+      "page": "phone",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Settings.dc.html",
+      "title": "Settings",
+      "page": "phone",
+      "x": 0,
+      "y": 1000,
+      "w": 390,
+      "h": 1080
+    },
+    {
+      "file": "Learn.dc.html",
+      "title": "Learn",
+      "page": "phone",
+      "x": 470,
+      "y": 1000,
+      "w": 390,
+      "h": 1790
+    },
+    {
+      "file": "Tips.dc.html",
+      "title": "Tips",
+      "page": "phone",
+      "x": 940,
+      "y": 1000,
+      "w": 390,
+      "h": 1250
+    },
+    {
+      "file": "TabletTranslator.dc.html",
+      "title": "Translator · tablet",
+      "page": "tablet",
+      "x": 0,
+      "y": 0,
+      "w": 1180,
+      "h": 820
+    },
+    {
+      "file": "TabletLearn.dc.html",
+      "title": "Learn · tablet",
+      "page": "tablet",
+      "x": 1260,
+      "y": 0,
+      "w": 1180,
+      "h": 820
+    },
+    {
+      "file": "Language.dc.html",
+      "title": "Language picker",
+      "page": "languages",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "TranslatorPtBr.dc.html",
+      "title": "Translator · pt-BR",
+      "page": "languages",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "TranslatorEs.dc.html",
+      "title": "Translator · Español",
+      "page": "languages",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    }
+  ],
+  "annotations": [
+    {
+      "id": "phone-set",
+      "page": "phone",
+      "x": 0,
+      "y": -260,
+      "w": 820,
+      "text": "Direction D, executed modern — Plus Jakarta Sans, near-black ink on a cool off-white, one vivid teal, 22px cards on soft shadow.\n\nWorking controls, not pictures:\n• Translator — the text ⇄ Morse toggle flips; tapping a letter chip selects it\n• Speech — the mic cycles idle → listening → result, and the EN/PT switch changes the recognised copy\n• Tap decode — press DURATION is measured for real. Tap for a dot, hold for a dash; 3 units of silence closes the letter, 7 closes the word. The cut-off stepper retunes it live.\n• Settings — the threshold slider, speed and toggles all work\n• Permission gates — the four states switch from the row at the bottom\n\nApp name is still open; \"Morse\" is a placeholder wordmark."
+    },
+    {
+      "id": "phone-scroll-note",
+      "page": "phone",
+      "x": 0,
+      "y": 2130,
+      "w": 390,
+      "text": "Settings, Learn and Tips scroll on a real phone. They are drawn here at full content height so the whole page can be reviewed at once — not as 844pt screens."
+    },
+    {
+      "id": "tablet-strategy",
+      "page": "tablet",
+      "x": 0,
+      "y": -300,
+      "w": 900,
+      "text": "TABLET — 1180×820 landscape\n\nOne rule, two consequences:\n• The bottom tab bar becomes a left rail. Same four destinations, same icons, settings drops to the bottom of the rail.\n• Anything the phone stacks vertically splits into panes. Translator becomes input | output side by side; Learn puts the reading matter beside the reference grid, which reflows from 4 columns to 6.\n\nNothing here is a new screen — each is the phone layout above a width breakpoint, which is why it is worth settling now rather than retrofitting."
+    },
+    {
+      "id": "languages-note",
+      "page": "languages",
+      "x": 0,
+      "y": -300,
+      "w": 1330,
+      "text": "THREE UI LANGUAGES — English, Português (Brasil), Español\n\nThe whole interface translates, not just the input. These two are the same artboard as the English Translator with only the strings swapped, so any layout difference is purely string length.\n\nWhat that surfaced: the Morse card's header row put its label and its hint on one line with no shrink protection. It fit in English at 390pt and would have collided at 360pt in Portuguese. Both now shrink and wrap; every phone frame was re-checked at 360pt.\n\nAccented letters — decided: Ç (-.-..), É (..-..) and Ñ (--.--) have real ITU codes and are supported; every other diacritic is sent as its base letter. Ñ and Ç are distinct letters, not decoration (año ≠ ano), and the rest have no standard code. All three are in the Learn alphabet with the rule stated underneath."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "phone"
+  }
+}

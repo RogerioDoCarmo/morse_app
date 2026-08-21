@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #a8762f; text-decoration: none; }
+    a:hover { color: #7d5620; }
+    button { font: inherit; border: 0; background: none; cursor: pointer; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #f7f0e4; color: #221e18; font-family: 'Zilla Slab', Georgia, 'Times New Roman', serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="height: 54px; flex-shrink: 0;"></div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 44px; flex-shrink: 0;">
+    <div style="display: flex; align-items: baseline; gap: 8px;">
+      <span style="font-size: 21px; font-weight: 700; letter-spacing: 0.16em;">MORSE</span>
+      <span style="font-size: 11px; color: #8a7e6d; letter-spacing: 0.1em;">EN</span>
+    </div>
+    <button style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #6b6155; margin-right: -12px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+  </div>
+
+  <div style="padding: 12px 20px 0; flex-shrink: 0;">
+    <div style="display: flex; border: 1.5px solid #221e18; border-radius: 3px; overflow: hidden;">
+      <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ setToMorse }}" style="flex-grow: 1; height: 44px; background: #221e18; color: #f7f0e4; font-size: 13px; font-weight: 600; letter-spacing: 0.09em;">TEXT → MORSE</button>
+        <button onClick="{{ setToText }}" style="flex-grow: 1; height: 44px; background: transparent; color: #6b6155; font-size: 13px; font-weight: 500; letter-spacing: 0.09em;">MORSE → TEXT</button>
+      </sc-if>
+      <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ setToMorse }}" style="flex-grow: 1; height: 44px; background: transparent; color: #6b6155; font-size: 13px; font-weight: 500; letter-spacing: 0.09em;">TEXT → MORSE</button>
+        <button onClick="{{ setToText }}" style="flex-grow: 1; height: 44px; background: #221e18; color: #f7f0e4; font-size: 13px; font-weight: 600; letter-spacing: 0.09em;">MORSE → TEXT</button>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="padding: 16px 20px 0; flex-shrink: 0;">
+    <div style="font-size: 10px; letter-spacing: 0.14em; color: #8a7e6d; margin-bottom: 6px;">{{ sourceLabel }}</div>
+    <div style="background: #fffaf0; border: 1px solid #ddd0ba; border-radius: 3px; padding: 14px 16px; min-height: 92px; display: flex; flex-direction: column; justify-content: space-between;">
+      <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size: 24px; font-weight: 500; line-height: 1.3;">HELLO WORLD</div>
+      </sc-if>
+      <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family: 'Courier Prime', 'Courier New', monospace; font-size: 17px; line-height: 1.6; word-break: break-all;">{{ morseString }}</div>
+      </sc-if>
+      <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 12px;">
+        <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
+          <button style="display: flex; align-items: center; gap: 7px; height: 44px; padding: 0 13px; border: 1px solid #a8762f; border-radius: 2px; color: #7d5620; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+            SPEAK
+          </button>
+        </sc-if>
+        <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
+          <button style="display: flex; align-items: center; gap: 7px; height: 44px; padding: 0 13px; border: 1px solid #a8762f; border-radius: 2px; color: #7d5620; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><path d="M7.05 16.95a7 7 0 0 1 0-9.9"></path><path d="M16.95 7.05a7 7 0 0 1 0 9.9"></path></svg>
+            TAP IT IN
+          </button>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px 0; flex-shrink: 0;">
+    <div style="flex-grow: 1; height: 1px; background: #ddd0ba;"></div>
+    <button onClick="{{ swap }}" style="width: 44px; height: 44px; border: 1px solid #ddd0ba; border-radius: 50%; background: #fffaf0; color: #6b6155; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v13"></path><path d="M4 14l3 3 3-3"></path><path d="M17 20V7"></path><path d="M20 10l-3-3-3 3"></path></svg>
+    </button>
+    <div style="flex-grow: 1; height: 1px; background: #ddd0ba;"></div>
+  </div>
+
+  <div style="padding: 14px 20px 0; flex-shrink: 0;">
+    <div style="font-size: 10px; letter-spacing: 0.14em; color: #8a7e6d; margin-bottom: 6px;">{{ targetLabel }}</div>
+    <div style="background: #fffaf0; border: 1px solid #ddd0ba; border-radius: 3px; padding: 4px 0 0;">
+
+      <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
+        <div style="padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 22px;">
+          <sc-for list="{{ words }}" as="word" hint-placeholder-count="2">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+              <sc-for list="{{ word.letters }}" as="ltr" hint-placeholder-count="5">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                  <div style="display: flex; gap: 3px; align-items: center; height: 8px;">
+                    <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
+                      <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #221e18;"></div>
+                      </sc-if>
+                      <sc-if value="{{ mark.dash }}" hint-placeholder-val="{{ false }}">
+                        <div style="width: 20px; height: 8px; border-radius: 1px; background: #221e18;"></div>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                  <div style="font-family: 'Courier Prime', 'Courier New', monospace; font-size: 10px; color: #a8998a;">{{ ltr.char }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top: 1px dashed #ddd0ba; padding: 10px 16px; font-family: 'Courier Prime', 'Courier New', monospace; font-size: 13px; color: #6b6155; word-break: break-all;">{{ morseString }}</div>
+      </sc-if>
+
+      <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 20px 16px 16px;">
+          <div style="font-size: 30px; font-weight: 600; letter-spacing: 0.02em;">HELLO WORLD</div>
+        </div>
+        <div style="border-top: 1px dashed #ddd0ba; padding: 10px 16px; font-size: 12px; color: #6b6155;">Read aloud in the selected language</div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <div style="flex-grow: 1;"></div>
+
+  <div style="display: flex; gap: 10px; padding: 0 20px 16px; flex-shrink: 0;">
+    <button style="flex-grow: 1; height: 48px; background: #221e18; color: #f7f0e4; border-radius: 3px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      FLASH
+    </button>
+    <button style="width: 48px; height: 48px; border: 1.5px solid #221e18; border-radius: 3px; color: #221e18; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a7 7 0 0 1 0 14.14"></path></svg>
+    </button>
+    <button style="width: 48px; height: 48px; border: 1.5px solid #221e18; border-radius: 3px; color: #221e18; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+    </button>
+  </div>
+
+  <div style="display: flex; border-top: 1.5px solid #221e18; background: #f2e9d9; padding: 8px 0 22px; flex-shrink: 0;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #221e18; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><path d="M9 4v3c0 4-2 7-5 8"></path><path d="M8 12c1 3 3 5 6 6"></path><path d="M13 20l4-9 4 9"></path><path d="M14.5 17h5"></path></svg>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em;">TRANSLATE</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #a8998a; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+      <span style="font-size: 10px; font-weight: 500; letter-spacing: 0.08em;">SPEAK</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #a8998a; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><path d="M7.05 16.95a7 7 0 0 1 0-9.9"></path><path d="M16.95 7.05a7 7 0 0 1 0 9.9"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; letter-spacing: 0.08em;">TAP</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #a8998a; padding: 6px 0;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; letter-spacing: 0.08em;">LEARN</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { toMorse: true };
+  }
+
+  table() {
+    return {
+      A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.',
+      H: '....', I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.',
+      O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-',
+      V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..',
+    };
+  }
+
+  encode(text) {
+    const t = this.table();
+    return text.split(' ').map((w) => ({
+      letters: w.split('').map((ch) => {
+        const code = t[ch] || '';
+        return {
+          char: ch,
+          code: code,
+          marks: code.split('').map((m) => ({ dot: m === '.', dash: m === '-' })),
+        };
+      }),
+    }));
+  }
+
+  renderVals() {
+    const toMorse = this.state.toMorse;
+    const words = this.encode('HELLO WORLD');
+    return {
+      toMorse: toMorse,
+      toText: !toMorse,
+      setToMorse: () => this.setState({ toMorse: true }),
+      setToText: () => this.setState({ toMorse: false }),
+      swap: () => this.setState({ toMorse: !this.state.toMorse }),
+      sourceLabel: toMorse ? 'ENGLISH' : 'MORSE',
+      targetLabel: toMorse ? 'MORSE' : 'ENGLISH',
+      words: words,
+      morseString: words.map((w) => w.letters.map((l) => l.code).join(' ')).join('   '),
+    };
+  }
+}
+</script>
+</body>
+</html>

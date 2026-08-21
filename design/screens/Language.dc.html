@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #12a594; text-decoration: none; }
+    a:hover { color: #0d7d70; }
+    button { font: inherit; border: 0; background: none; cursor: pointer; text-align: left; }
+    .lrow + .lrow { border-top: 1px solid #eef0f3; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="height: 54px; flex-shrink: 0;"></div>
+
+  <div style="display: flex; align-items: center; gap: 4px; padding: 0 20px; height: 48px; flex-shrink: 0;">
+    <button style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #101820; margin-left: -12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.025em;">{{ title }}</div>
+  </div>
+
+  <div style="padding: 8px 20px 0; display: flex; flex-direction: column; gap: 22px;">
+
+    <div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; padding: 0 4px 8px;">{{ interfaceLabel }}</div>
+      <div style="background: #ffffff; border-radius: 22px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05); overflow: hidden;">
+        <sc-for list="{{ languages }}" as="lang" hint-placeholder-count="3">
+          <button class="lrow" onClick="{{ lang.pick }}" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 64px; padding: 12px 18px;">
+            <span>
+              <span style="display: block; font-size: 16px; font-weight: 600;">{{ lang.native }}</span>
+              <span style="display: block; font-size: 13px; font-weight: 500; color: #6a7480; margin-top: 1px;">{{ lang.english }}</span>
+            </span>
+            <sc-if value="{{ lang.on }}" hint-placeholder-val="{{ false }}">
+              <span style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #12a594; display: flex; align-items: center; justify-content: center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+            </sc-if>
+            <sc-if value="{{ lang.off }}" hint-placeholder-val="{{ true }}">
+              <span style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #dfe3e8;"></span>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; padding: 0 4px 8px;">{{ speechLabel }}</div>
+      <div style="background: #ffffff; border-radius: 22px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05); overflow: hidden;">
+        <button onClick="{{ flipFollow }}" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 64px; padding: 12px 18px;">
+          <span>
+            <span style="display: block; font-size: 15px; font-weight: 600;">{{ followTitle }}</span>
+            <span style="display: block; font-size: 13px; font-weight: 500; color: #6a7480; margin-top: 2px;">{{ followHint }}</span>
+          </span>
+          <sc-if value="{{ follows }}" hint-placeholder-val="{{ true }}">
+            <span style="flex-shrink: 0; width: 50px; height: 30px; border-radius: 999px; background: #12a594; display: flex; align-items: center; justify-content: flex-end; padding: 3px; box-sizing: border-box;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(16, 24, 32, 0.25);"></span>
+            </span>
+          </sc-if>
+          <sc-if value="{{ notFollows }}" hint-placeholder-val="{{ false }}">
+            <span style="flex-shrink: 0; width: 50px; height: 30px; border-radius: 999px; background: #d8dde3; display: flex; align-items: center; justify-content: flex-start; padding: 3px; box-sizing: border-box;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(16, 24, 32, 0.25);"></span>
+            </span>
+          </sc-if>
+        </button>
+        <sc-if value="{{ notFollows }}" hint-placeholder-val="{{ false }}">
+          <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 12px 18px; border-top: 1px solid #eef0f3;">
+            <span style="font-size: 15px; font-weight: 600;">{{ recogniserLabel }}</span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: #6a7480;">
+              {{ recogniserValue }}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b3bac2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </span>
+          </button>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; background: #eef0f3; border-radius: 16px;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6a7480" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      <span style="font-size: 13px; font-weight: 500; color: #6a7480; line-height: 1.45;">{{ footnote }}</span>
+    </div>
+
+  </div>
+
+  <div style="flex-grow: 1;"></div>
+
+  <div style="height: 26px; flex-shrink: 0;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { locale: 'en', follows: true };
+  }
+
+  copy() {
+    return {
+      en: {
+        title: 'Language',
+        interfaceLabel: 'INTERFACE',
+        speechLabel: 'SPEECH RECOGNITION',
+        followTitle: 'Match the interface',
+        followHint: 'Recognise speech in English',
+        recogniserLabel: 'Recognise speech in',
+        recogniserValue: 'English (US)',
+        footnote: 'Which languages the microphone can recognise depends on what your device has installed. The interface itself is fully translated either way.',
+      },
+      pt: {
+        title: 'Idioma',
+        interfaceLabel: 'INTERFACE',
+        speechLabel: 'RECONHECIMENTO DE FALA',
+        followTitle: 'Acompanhar a interface',
+        followHint: 'Reconhecer fala em português',
+        recogniserLabel: 'Reconhecer fala em',
+        recogniserValue: 'Português (Brasil)',
+        footnote: 'Os idiomas que o microfone reconhece dependem do que está instalado no seu aparelho. A interface é totalmente traduzida de qualquer forma.',
+      },
+      es: {
+        title: 'Idioma',
+        interfaceLabel: 'INTERFAZ',
+        speechLabel: 'RECONOCIMIENTO DE VOZ',
+        followTitle: 'Seguir la interfaz',
+        followHint: 'Reconocer la voz en español',
+        recogniserLabel: 'Reconocer la voz en',
+        recogniserValue: 'Español (España)',
+        footnote: 'Los idiomas que el micrófono reconoce dependen de lo que tenga instalado tu dispositivo. La interfaz está totalmente traducida en cualquier caso.',
+      },
+    }[this.state.locale];
+  }
+
+  renderVals() {
+    const c = this.copy();
+    const here = this.state.locale;
+    const defs = [
+      { key: 'en', native: 'English', english: { en: 'English', pt: 'Inglês', es: 'Inglés' } },
+      { key: 'pt', native: 'Português (Brasil)', english: { en: 'Brazilian Portuguese', pt: 'Português do Brasil', es: 'Portugués de Brasil' } },
+      { key: 'es', native: 'Español', english: { en: 'Spanish', pt: 'Espanhol', es: 'Español' } },
+    ];
+    return {
+      title: c.title,
+      interfaceLabel: c.interfaceLabel,
+      speechLabel: c.speechLabel,
+      followTitle: c.followTitle,
+      followHint: c.followHint,
+      recogniserLabel: c.recogniserLabel,
+      recogniserValue: c.recogniserValue,
+      footnote: c.footnote,
+      follows: this.state.follows,
+      notFollows: !this.state.follows,
+      flipFollow: () => this.setState({ follows: !this.state.follows }),
+      languages: defs.map((d) => ({
+        native: d.native,
+        english: d.english[here],
+        on: d.key === here,
+        off: d.key !== here,
+        pick: () => this.setState({ locale: d.key }),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>
