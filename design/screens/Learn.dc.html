@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #12a594; text-decoration: none; }
+    a:hover { color: #0d7d70; }
+    button { font: inherit; border: 0; background: none; cursor: pointer; text-align: left; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 1630px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="height: 54px; flex-shrink: 0;"></div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 48px; flex-shrink: 0;">
+    <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.025em;">Learn</div>
+    <button style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #6a7480; margin-right: -10px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+  </div>
+
+  <div style="padding: 8px 20px 0; display: flex; flex-direction: column; gap: 22px;">
+
+    <div style="background: #101820; color: #ffffff; border-radius: 24px; padding: 22px;">
+      <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 14px;">
+        <div style="width: 9px; height: 9px; border-radius: 50%; background: #12a594;"></div>
+        <div style="width: 24px; height: 9px; border-radius: 5px; background: #12a594;"></div>
+        <div style="width: 9px; height: 9px; border-radius: 50%; background: #ffffff;"></div>
+        <div style="width: 24px; height: 9px; border-radius: 5px; background: #ffffff;"></div>
+      </div>
+      <div style="font-size: 24px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.2;">What Morse code is</div>
+      <div style="font-size: 15px; font-weight: 500; line-height: 1.55; color: #b7c0c9; margin-top: 10px;">A way of sending text as two signal lengths — a short one and a long one. Samuel Morse and Alfred Vail worked it out in the 1830s for the electric telegraph, and it is still readable by ear, by lamp, or by a single finger on a key.</div>
+    </div>
+
+    <div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; padding: 0 4px 8px;">THE ALPHABET</div>
+      <div style="background: #ffffff; border-radius: 22px; padding: 16px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05);">
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;">
+          <sc-for list="{{ alphabet }}" as="ltr" hint-placeholder-count="12">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-height: 52px; padding: 8px 4px; background: #f5f6f8; border-radius: 12px;">
+              <div style="display: flex; gap: 2px; align-items: center; height: 6px;">
+                <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
+                  <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
+                    <div style="width: 6px; height: 6px; border-radius: 50%; background: #12a594;"></div>
+                  </sc-if>
+                  <sc-if value="{{ mark.dash }}" hint-placeholder-val="{{ false }}">
+                    <div style="width: 11px; height: 6px; border-radius: 3px; background: #12a594;"></div>
+                  </sc-if>
+                </sc-for>
+              </div>
+              <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 12px; font-weight: 500; color: #101820;">{{ ltr.char }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; padding: 0 4px 8px;">THE SILENCE COUNTS TOO</div>
+      <div style="background: #ffffff; border-radius: 22px; padding: 18px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05);">
+        <div style="font-size: 14px; font-weight: 500; line-height: 1.55; color: #6a7480; margin-bottom: 16px;">Everything is measured in one unit — the length of a dot. A dash is three. The gaps are what tell letters and words apart, which is why <span style="font-weight: 700; color: #101820;">···---···</span> with the spacing stripped out could be read as SOS or as EEETTTEEE.</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <sc-for list="{{ gaps }}" as="g" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 3px; width: 76px; flex-shrink: 0;">
+                <sc-for list="{{ g.units }}" as="u" hint-placeholder-count="3">
+                  <div style="width: 7px; height: 18px; border-radius: 2px; background: #dfe3e8;"></div>
+                </sc-for>
+              </div>
+              <div style="flex-grow: 1;">
+                <div style="font-size: 14px; font-weight: 700;">{{ g.name }}</div>
+                <div style="font-size: 13px; font-weight: 500; color: #6a7480;">{{ g.means }}</div>
+              </div>
+              <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 13px; color: #12a594; flex-shrink: 0;">{{ g.len }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <button style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 68px; padding: 16px 18px; background: #e7f6f3; border-radius: 22px;">
+      <span>
+        <span style="display: block; font-size: 16px; font-weight: 700; color: #0d7d70;">How to actually memorise it</span>
+        <span style="display: block; font-size: 13px; font-weight: 500; color: #3f8d84; margin-top: 2px;">Five things that work, and one that doesn't</span>
+      </span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d7d70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+
+  </div>
+
+  <div style="flex-grow: 1;"></div>
+
+  <div style="display: flex; gap: 4px; background: #ffffff; padding: 8px 12px 26px; flex-shrink: 0; border-top: 1px solid #eef0f3;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; color: #9aa3ad;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><path d="M9 4v3c0 4-2 7-5 8"></path><path d="M8 12c1 3 3 5 6 6"></path><path d="M13 20l4-9 4 9"></path><path d="M14.5 17h5"></path></svg>
+      <span style="font-size: 11px; font-weight: 600;">Translate</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; color: #9aa3ad;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+      <span style="font-size: 11px; font-weight: 600;">Speak</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; color: #9aa3ad;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><path d="M7.05 16.95a7 7 0 0 1 0-9.9"></path><path d="M16.95 7.05a7 7 0 0 1 0 9.9"></path></svg>
+      <span style="font-size: 11px; font-weight: 600;">Tap</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; background: #e7f6f3; border-radius: 14px; color: #0d7d70;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <span style="font-size: 11px; font-weight: 700;">Learn</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1630}}'>
+class Component extends DCLogic {
+  table() {
+    return {
+      A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.',
+      H: '....', I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.',
+      O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-',
+      V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..',
+      1: '.----', 2: '..---', 3: '...--', 4: '....-', 5: '.....',
+      6: '-....', 7: '--...', 8: '---..', 9: '----.', 0: '-----',
+    };
+  }
+
+  renderVals() {
+    const t = this.table();
+    const order = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'.split('');
+    return {
+      alphabet: order.map((ch) => ({
+        char: ch,
+        marks: t[ch].split('').map((m) => ({ dot: m === '.', dash: m === '-' })),
+      })),
+      gaps: [
+        { name: 'Between marks', means: 'Same letter carries on', len: '1 unit', units: [1] },
+        { name: 'Between letters', means: 'That letter is finished', len: '3 units', units: [1, 2, 3] },
+        { name: 'Between words', means: 'Start a new word', len: '7 units', units: [1, 2, 3, 4, 5, 6, 7] },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
