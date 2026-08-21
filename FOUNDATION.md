@@ -279,12 +279,28 @@ grantable to other apps, and **must not be stripped** (doing so weakens security
 
 ### Localisation
 
-**English (default) and Portuguese**, for **both typed and spoken input**. This is a
-first-class requirement, not an afterthought:
+**English (default), Brazilian Portuguese and Spanish** (decided 2026-08-21). This
+covers the **entire UI**, not only input — every user-facing string is translated, and
+typed *and* spoken input are supported in all three. First-class requirement, not an
+afterthought:
 
-- Speech recognition must be configured per-locale
-- The i18n `TranslationMap` type makes missing keys a build error
+- Speech recognition must be configured per-locale, and the recognition locale is
+  **separate from the interface locale** — it follows the interface by default but can
+  be overridden (a device may not have every recogniser installed)
+- The i18n `TranslationMap` type makes missing keys a build error. With three locales
+  this matters more, not less: a missing `es` key must fail the build, never fall back
+  silently to English
 - E2E tests must not assert on localised strings
+- **Layouts must survive the longest locale.** pt-BR and es strings run noticeably
+  longer than English; the design phase already caught one row that fit in English at
+  390pt and collided at 360pt in Portuguese. Check narrow widths in the longest locale,
+  not just the default one
+
+⚠️ **Accented letters are an open domain decision.** ITU Morse defines `Ç` (`-.-..`) and
+`Ñ` (`--.--`), but has no code for `Ã Õ Â Ê Ô Á Í Ó Ú`. The encoder must either strip
+diacritics to the base letter or map only the few with real codes — decide it in
+`core/domain`, and make `decode(encode(text))` state the chosen rule explicitly, because
+the round-trip invariant cannot hold verbatim once diacritics are stripped.
 
 ### Decoding: Morse → text (decided 2026-08-21)
 

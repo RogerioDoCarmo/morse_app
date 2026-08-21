@@ -30,14 +30,14 @@
 
   <div style="padding: 10px 20px 0; flex-shrink: 0;">
     <div style="display: flex; gap: 4px; background: #e8ebef; border-radius: 16px; padding: 4px;">
-      <sc-if value="{{ isEn }}" hint-placeholder-val="{{ true }}">
-        <button onClick="{{ setEn }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 14px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">English</button>
-        <button onClick="{{ setPt }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 14px; font-weight: 600; text-align: center;">Português</button>
-      </sc-if>
-      <sc-if value="{{ isPt }}" hint-placeholder-val="{{ false }}">
-        <button onClick="{{ setEn }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 14px; font-weight: 600; text-align: center;">English</button>
-        <button onClick="{{ setPt }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 14px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">Português</button>
-      </sc-if>
+      <sc-for list="{{ locales }}" as="loc" hint-placeholder-count="3">
+        <sc-if value="{{ loc.on }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ loc.pick }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 13px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">{{ loc.label }}</button>
+        </sc-if>
+        <sc-if value="{{ loc.off }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ loc.pick }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 13px; font-weight: 600; text-align: center;">{{ loc.label }}</button>
+        </sc-if>
+      </sc-for>
     </div>
   </div>
 
@@ -158,35 +158,26 @@ class Component extends DCLogic {
     };
   }
 
-  copy() {
-    const en = {
-      heard: 'Hello world',
-      idleTitle: 'Tap to speak',
-      idleHint: 'Say a word or a short sentence — it becomes Morse.',
-      liveTitle: 'Listening…',
-      liveHint: 'Tap again when you are done.',
-      doneTitle: 'Got it',
-      doneHint: 'Tap the mic to record again.',
-    };
-    const pt = {
-      heard: 'Olá mundo',
-      idleTitle: 'Toque para falar',
-      idleHint: 'Diga uma palavra ou uma frase curta — vira Morse.',
-      liveTitle: 'Ouvindo…',
-      liveHint: 'Toque de novo quando terminar.',
-      doneTitle: 'Entendido',
-      doneHint: 'Toque no microfone para gravar de novo.',
-    };
-    return this.state.locale === 'pt' ? pt : en;
+  heardFor(locale) {
+    // What the recogniser returned, in the language being spoken. The surrounding
+    // UI stays in the interface language — recognition locale and interface locale
+    // are separate settings (see Language.dc.html).
+    return { en: 'Hello world', pt: 'Boa noite', es: 'Hola mundo' }[locale];
   }
 
   renderVals() {
     const phase = this.state.phase;
-    const c = this.copy();
+    const locale = this.state.locale;
     const t = this.table();
-    const heard = c.heard.toUpperCase().replace(/[^A-Z ]/g, '');
+    const heard = this.heardFor(locale);
+    const plain = heard.toUpperCase().replace(/[^A-Z ]/g, '');
     const order = { idle: 'listening', listening: 'done', done: 'idle' };
     const heights = [14, 26, 44, 32, 52, 30, 40, 22, 16];
+    const defs = [
+      { key: 'en', label: 'English' },
+      { key: 'pt', label: 'Português' },
+      { key: 'es', label: 'Español' },
+    ];
     return {
       listening: phase === 'listening',
       quiet: phase !== 'listening',
@@ -194,16 +185,22 @@ class Component extends DCLogic {
       notDone: phase !== 'done',
       live: phase === 'listening',
       still: phase !== 'listening',
-      isEn: this.state.locale === 'en',
-      isPt: this.state.locale === 'pt',
-      setEn: () => this.setState({ locale: 'en' }),
-      setPt: () => this.setState({ locale: 'pt' }),
       next: () => this.setState({ phase: order[phase] }),
-      statusTitle: phase === 'listening' ? c.liveTitle : phase === 'done' ? c.doneTitle : c.idleTitle,
-      statusHint: phase === 'listening' ? c.liveHint : phase === 'done' ? c.doneHint : c.idleHint,
-      heard: c.heard,
+      statusTitle: phase === 'listening' ? 'Listening…' : phase === 'done' ? 'Got it' : 'Tap to speak',
+      statusHint: phase === 'listening'
+        ? 'Tap again when you are done.'
+        : phase === 'done'
+          ? 'Tap the mic to record again.'
+          : 'Say a word or a short sentence — it becomes Morse.',
+      heard: heard,
       bars: heights.map((h, i) => ({ h: h, d: i * 110 })),
-      words: heard.split(' ').filter((w) => w).map((w) => ({
+      locales: defs.map((d) => ({
+        label: d.label,
+        on: d.key === locale,
+        off: d.key !== locale,
+        pick: () => this.setState({ locale: d.key }),
+      })),
+      words: plain.split(' ').filter((w) => w).map((w) => ({
         letters: w.split('').map((ch) => ({
           char: ch,
           marks: (t[ch] || '').split('').map((m) => ({ dot: m === '.', dash: m === '-' })),

@@ -60,8 +60,31 @@ output.
 - Text ⇄ Morse toggle lives on the Translator screen; both directions in scope
 - Phone **and** tablet layouts
 - Clickable prototype, not static mockups — press *duration* on the tap key is real
-- Bilingual EN / pt-BR surfaces on Speech (recognition locale) and Settings
+- **Trilingual UI** — English, Português (Brasil), Español. The whole interface
+  translates, not just the input
 - App name still open — "Morse" is a placeholder wordmark, not a proposal
+
+## Localisation
+
+Three interface languages: **English** (default), **Português (Brasil)**, **Español**.
+
+`Language.dc.html` is the picker. Interface locale and speech-recognition locale are
+**separate settings** — recognition follows the interface by default but can be
+overridden, because a device may not have every recogniser installed.
+
+`TranslatorPtBr.dc.html` and `TranslatorEs.dc.html` are the English Translator with only
+the strings swapped, so any layout difference between them is purely string length.
+That comparison earns its keep: it caught the Morse card's header row putting its label
+and hint on one line with no shrink protection — fine in English at 390pt, colliding at
+360pt in Portuguese. Both now shrink and wrap.
+
+**Check narrow widths in the longest locale, not the default one.** Every phone frame is
+verified at 360pt as well as 390pt.
+
+⚠️ Open: accented letters. ITU Morse defines `Ç` (`-.-..`) and `Ñ` (`--.--`) but has no
+code for `Ã Õ Â Ê Ô Á Í Ó Ú`. Strip diacritics to the base letter, or map only the few
+with real codes? A `core/domain` decision — and it changes what the round-trip invariant
+`decode(encode(text))` can claim.
 
 ## Not yet designed
 

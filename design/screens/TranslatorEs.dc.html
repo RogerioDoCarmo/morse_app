@@ -23,7 +23,7 @@
     <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.025em;">Morse</div>
     <div style="display: flex; align-items: center; gap: 6px;">
       <button style="display: flex; align-items: center; gap: 5px; height: 44px; padding: 0 12px; color: #6a7480; font-size: 13px; font-weight: 600;">
-        EN
+        ES
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
       <button style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #6a7480; margin-right: -10px;">
@@ -35,12 +35,12 @@
   <div style="padding: 10px 20px 0; flex-shrink: 0;">
     <div style="display: flex; gap: 4px; background: #e8ebef; border-radius: 16px; padding: 4px;">
       <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
-        <button onClick="{{ setToMorse }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 14px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">Text → Morse</button>
-        <button onClick="{{ setToText }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 14px; font-weight: 600; text-align: center;">Morse → Text</button>
+        <button onClick="{{ setToMorse }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 14px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">Texto → Morse</button>
+        <button onClick="{{ setToText }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 14px; font-weight: 600; text-align: center;">Morse → Texto</button>
       </sc-if>
       <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
-        <button onClick="{{ setToMorse }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 14px; font-weight: 600; text-align: center;">Text → Morse</button>
-        <button onClick="{{ setToText }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 14px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">Morse → Text</button>
+        <button onClick="{{ setToMorse }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: transparent; color: #6a7480; font-size: 14px; font-weight: 600; text-align: center;">Texto → Morse</button>
+        <button onClick="{{ setToText }}" style="flex-grow: 1; height: 44px; border-radius: 12px; background: #ffffff; color: #101820; font-size: 14px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 4px 10px rgba(16, 24, 32, 0.06);">Morse → Texto</button>
       </sc-if>
     </div>
   </div>
@@ -52,18 +52,18 @@
         <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
           <button style="display: flex; align-items: center; gap: 7px; height: 44px; padding: 0 14px; margin: -6px -6px -6px 0; border-radius: 999px; color: #12a594; font-size: 13px; font-weight: 700;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
-            Speak
+            Hablar
           </button>
         </sc-if>
         <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
           <button style="display: flex; align-items: center; gap: 7px; height: 44px; padding: 0 14px; margin: -6px -6px -6px 0; border-radius: 999px; color: #12a594; font-size: 13px; font-weight: 700;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><path d="M7.05 16.95a7 7 0 0 1 0-9.9"></path><path d="M16.95 7.05a7 7 0 0 1 0 9.9"></path></svg>
-            Tap it in
+            Pulsar
           </button>
         </sc-if>
       </div>
       <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
-        <div style="font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -0.02em;">Hello world</div>
+        <div style="font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -0.02em;">Hola mundo</div>
       </sc-if>
       <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
         <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 16px; line-height: 1.75; color: #12a594; word-break: break-all;">{{ morseString }}</div>
@@ -76,7 +76,7 @@
       <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
         <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; flex-shrink: 0;">{{ targetLabel }}</span>
         <sc-if value="{{ toMorse }}" hint-placeholder-val="{{ true }}">
-          <span style="font-size: 12px; font-weight: 500; color: #9aa3ad; min-width: 0; text-align: right;">Tap a letter to hear it</span>
+          <span style="font-size: 12px; font-weight: 500; color: #9aa3ad; min-width: 0; text-align: right;">Toca una letra para oírla</span>
         </sc-if>
       </div>
 
@@ -125,10 +125,10 @@
 
       <sc-if value="{{ toText }}" hint-placeholder-val="{{ false }}">
         <div style="display: flex; flex-direction: column; gap: 20px; flex-grow: 1; justify-content: center;">
-          <div style="font-size: 32px; font-weight: 700; line-height: 1.2; letter-spacing: -0.025em;">Hello world</div>
+          <div style="font-size: 32px; font-weight: 700; line-height: 1.2; letter-spacing: -0.025em;">Hola mundo</div>
           <button style="align-self: flex-start; display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 20px; background: #e7f6f3; color: #0d7d70; border-radius: 999px; font-size: 14px; font-weight: 700;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a7 7 0 0 1 0 14.14"></path></svg>
-            Read aloud
+            Leer en voz alta
           </button>
         </div>
       </sc-if>
@@ -139,7 +139,7 @@
   <div style="display: flex; gap: 10px; padding: 14px 20px 12px; flex-shrink: 0;">
     <button style="flex-grow: 1; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-      Flash it
+      Destellar
     </button>
     <button style="width: 54px; height: 54px; background: #ffffff; border-radius: 16px; color: #101820; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
@@ -152,19 +152,19 @@
   <div style="display: flex; gap: 4px; background: #ffffff; padding: 8px 12px 26px; flex-shrink: 0; border-top: 1px solid #eef0f3;">
     <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; background: #e7f6f3; border-radius: 14px; color: #0d7d70;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><path d="M9 4v3c0 4-2 7-5 8"></path><path d="M8 12c1 3 3 5 6 6"></path><path d="M13 20l4-9 4 9"></path><path d="M14.5 17h5"></path></svg>
-      <span style="font-size: 11px; font-weight: 700;">Translate</span>
+      <span style="font-size: 11px; font-weight: 700;">Traducir</span>
     </div>
     <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; color: #9aa3ad;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
-      <span style="font-size: 11px; font-weight: 600;">Speak</span>
+      <span style="font-size: 11px; font-weight: 600;">Hablar</span>
     </div>
     <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; color: #9aa3ad;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"></circle><path d="M7.05 16.95a7 7 0 0 1 0-9.9"></path><path d="M16.95 7.05a7 7 0 0 1 0 9.9"></path></svg>
-      <span style="font-size: 11px; font-weight: 600;">Tap</span>
+      <span style="font-size: 11px; font-weight: 600;">Pulsar</span>
     </div>
     <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 48px; padding: 6px 0; color: #9aa3ad;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-      <span style="font-size: 11px; font-weight: 600;">Learn</span>
+      <span style="font-size: 11px; font-weight: 600;">Aprender</span>
     </div>
   </div>
 
@@ -208,14 +208,14 @@ class Component extends DCLogic {
 
   renderVals() {
     const toMorse = this.state.toMorse;
-    const words = this.encode('Hello world');
+    const words = this.encode('Hola mundo');
     return {
       toMorse: toMorse,
       toText: !toMorse,
       setToMorse: () => this.setState({ toMorse: true }),
       setToText: () => this.setState({ toMorse: false }),
-      sourceLabel: toMorse ? 'English' : 'Morse',
-      targetLabel: toMorse ? 'Morse' : 'English',
+      sourceLabel: toMorse ? 'Español' : 'Morse',
+      targetLabel: toMorse ? 'Morse' : 'Español',
       words: words,
       morseString: words.map((w) => w.letters.map((l) => l.code).join(' ')).join('   '),
     };
