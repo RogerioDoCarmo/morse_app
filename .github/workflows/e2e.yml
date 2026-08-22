@@ -1,0 +1,145 @@
+name: E2E
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Maestro on Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Without KVM the emulator is software-rendered and glacial: boot took
+      # 10.7 minutes on the first run here, and Maestro's driver then timed out
+      # before it could attach. This is the fix, not a longer timeout.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prebuild Android
+        run: pnpm expo prebuild --platform android --no-install
+
+      # Release, not debug: a debug APK fetches its JS bundle from the Metro dev
+      # server, which is not running in CI, so the app launches to an error
+      # screen and every flow fails on "screen is visible". A release build
+      # embeds the bundle. Expo's generated release buildType signs with the
+      # debug keystore, so this needs no secrets.
+      - name: Build release APK
+        run: ./gradlew assembleRelease
+        working-directory: android
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run flows on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # The driver install is the slow part even with KVM; the default is
+          # not generous enough on a shared runner.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 180000
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          emulator-options: >-
+            -no-window -no-snapshot -noaudio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            maestro test .maestro/flows/
+
+      - name: Upload Maestro output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android
+          path: ~/.maestro/tests/
+          retention-days: 7
+
+  ios:
+    name: Maestro on iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # No --no-install here: the .xcworkspace only exists once CocoaPods has
+      # run, and xcodebuild needs the workspace rather than the bare project.
+      - name: Prebuild iOS
+        run: pnpm expo prebuild --platform ios
+
+      - name: Build for the simulator
+        run: |
+          workspace=$(ls -d ios/*.xcworkspace | head -1)
+          scheme=$(basename "$workspace" .xcworkspace)
+          echo "Building scheme $scheme from $workspace"
+          echo "IOS_SCHEME=$scheme" >> "$GITHUB_ENV"
+          xcodebuild -workspace "$workspace" \
+            -scheme "$scheme" -configuration Release \
+            -sdk iphonesimulator -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # Pick whatever iPhone this runner image actually ships. Hardcoding a
+      # model name breaks silently every time GitHub rolls the image forward —
+      # "iPhone 16" was not present and simctl failed with "Invalid device".
+      - name: Boot a simulator and run flows
+        run: |
+          xcrun simctl list devices available
+          udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
+          if [ -z "$udid" ]; then
+            echo "::error::No iPhone simulator is available on this runner."
+            exit 1
+          fi
+          echo "Using simulator $udid"
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" \
+            "ios/build/Build/Products/Release-iphonesimulator/${IOS_SCHEME}.app"
+          maestro --device "$udid" test .maestro/flows/
+
+      - name: Upload Maestro output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios
+          path: ~/.maestro/tests/
+          retention-days: 7

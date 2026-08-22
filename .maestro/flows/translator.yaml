@@ -1,0 +1,22 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morseapp
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: 'translator-screen'
+- assertVisible:
+    id: 'morse-output'
+- tapOn:
+    id: 'translator-input'
+- inputText: 'SOS'
+# The Android soft keyboard covers the lower half of the screen, so anything
+# below the input is genuinely not visible until it is dismissed. The iOS
+# simulator defaults to a hardware keyboard and never showed the problem —
+# exactly the kind of cross-platform difference this tier exists to catch.
+- hideKeyboard
+- assertVisible:
+    id: 'morse-string'
+- tapOn:
+    id: 'flash-button'

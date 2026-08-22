@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Least privilege by default; jobs opt into more only when they need it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, typecheck and test
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # SonarCloud needs full history to attribute new code correctly.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint markdown
+        run: pnpm lint:md
+
+      - name: Test with coverage
+        run: pnpm test:ci
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+      # Skipped, not failed, when SONAR_TOKEN is absent: secrets are unreadable
+      # from fork and Dependabot PRs, and the SonarCloud project may not be
+      # created yet. A missing analysis must not block a green change.
+      #
+      # Setup, once: create the project on SonarCloud, add SONAR_TOKEN to the
+      # repository secrets, and turn Automatic Analysis OFF — it conflicts with
+      # CI-based analysis.
+      - name: SonarCloud
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          github.event.pull_request.head.repo.fork != true &&
+          env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v6
+
+  mutation:
+    name: Mutation testing
+    # Only on PRs: a full Stryker run is slow, and its value is in reviewing a
+    # change rather than re-confirming an already-merged branch.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Stryker
+        run: pnpm mutation
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 7
