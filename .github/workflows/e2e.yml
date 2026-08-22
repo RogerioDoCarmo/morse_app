@@ -44,8 +44,13 @@ jobs:
       - name: Prebuild Android
         run: pnpm expo prebuild --platform android --no-install
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
+      # Release, not debug: a debug APK fetches its JS bundle from the Metro dev
+      # server, which is not running in CI, so the app launches to an error
+      # screen and every flow fails on "screen is visible". A release build
+      # embeds the bundle. Expo's generated release buildType signs with the
+      # debug keystore, so this needs no secrets.
+      - name: Build release APK
+        run: ./gradlew assembleRelease
         working-directory: android
 
       - name: Install Maestro
@@ -68,7 +73,7 @@ jobs:
             -gpu swiftshader_indirect -camera-back none -camera-front none
           disable-animations: true
           script: |
-            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
             maestro test .maestro/flows/
 
       - name: Upload Maestro output
@@ -104,7 +109,7 @@ jobs:
           echo "Building scheme $scheme from $workspace"
           echo "IOS_SCHEME=$scheme" >> "$GITHUB_ENV"
           xcodebuild -workspace "$workspace" \
-            -scheme "$scheme" -configuration Debug \
+            -scheme "$scheme" -configuration Release \
             -sdk iphonesimulator -derivedDataPath ios/build \
             CODE_SIGNING_ALLOWED=NO
 
@@ -128,7 +133,7 @@ jobs:
           xcrun simctl boot "$udid" || true
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl install "$udid" \
-            "ios/build/Build/Products/Debug-iphonesimulator/${IOS_SCHEME}.app"
+            "ios/build/Build/Products/Release-iphonesimulator/${IOS_SCHEME}.app"
           maestro --device "$udid" test .maestro/flows/
 
       - name: Upload Maestro output
