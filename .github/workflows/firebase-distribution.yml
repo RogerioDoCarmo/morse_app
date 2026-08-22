@@ -1,0 +1,71 @@
+name: Firebase App Distribution
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Check for a version bump
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    outputs:
+      bumped: ${{ steps.check.outputs.bumped }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # Gate on an actual version change, not on every push. Distributing on
+      # each push produces duplicate same-version releases that testers cannot
+      # tell apart.
+      - id: check
+        run: |
+          current=$(node -p "require('./package.json').version")
+          previous=$(git show HEAD~1:package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version" || echo "none")
+          echo "version=$current" >> "$GITHUB_OUTPUT"
+          if [ "$current" != "$previous" ]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $previous -> $current"
+          else
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged at $current; nothing to distribute."
+          fi
+
+  distribute:
+    name: Build and distribute
+    needs: gate
+    if: needs.gate.outputs.bumped == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build a preview APK
+        run: eas build --platform android --profile preview --non-interactive --wait --output build.apk
+
+      - name: Distribute to testers
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: build.apk
+          releaseNotes: 'v${{ needs.gate.outputs.version }} from develop'

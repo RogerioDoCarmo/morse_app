@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Morse",
+    "slug": "morse-app",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "scheme": "morseapp",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rogeriodocarmo.morseapp",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Morse switches the camera flash on and off to play a message as light. The camera preview is never opened and no image is captured.",
+        "NSMicrophoneUsageDescription": "Morse listens so it can turn what you say into Morse code. Audio is not stored and never leaves your device.",
+        "NSSpeechRecognitionUsageDescription": "Morse turns what you say into text so it can be encoded as Morse code."
+      }
+    },
+    "android": {
+      "package": "com.rogeriodocarmo.morseapp",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F6F8",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.CAMERA", "android.permission.RECORD_AUDIO"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-localization",
+      "expo-splash-screen",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Morse switches the camera flash on and off to play a message as light.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "./plugins/withCleanAndroidPermissions.js"
+    ],
+    "experiments": {
+      "tsconfigPaths": true
+    }
+  }
+}

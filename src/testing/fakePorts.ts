@@ -1,0 +1,65 @@
+import type { AppLocale } from '@/core/domain/locale';
+import type { PermissionKind, PermissionState } from '@/core/domain/permission';
+import type { Ports } from '@/core/ports';
+
+/** A recording fake for every port, so screens can be tested without Expo. */
+export type FakePorts = Ports &
+  Readonly<{
+    calls: {
+      torchEnabled: boolean[];
+      spoken: { text: string; locale: AppLocale }[];
+      requested: PermissionKind[];
+      settingsOpened: number;
+    };
+  }>;
+
+/** Builds fake ports. Override any piece per test. */
+export function createFakePorts(
+  overrides: Partial<Ports> = {},
+  initialPermission: PermissionState = { granted: true, canAskAgain: false },
+): FakePorts {
+  const calls: FakePorts['calls'] = {
+    torchEnabled: [],
+    spoken: [],
+    requested: [],
+    settingsOpened: 0,
+  };
+
+  const base: Ports = {
+    torch: {
+      isAvailable: async () => true,
+      setEnabled: async (enabled) => {
+        calls.torchEnabled.push(enabled);
+      },
+      release: async () => {
+        calls.torchEnabled.push(false);
+      },
+    },
+    tts: {
+      speak: async (text, locale) => {
+        calls.spoken.push({ text, locale });
+      },
+      stop: async () => undefined,
+    },
+    speech: {
+      isAvailable: async () => false,
+      start: async () => () => undefined,
+      stop: async () => undefined,
+    },
+    locale: {
+      getDeviceLocale: () => 'en',
+    },
+    permission: {
+      getState: async () => initialPermission,
+      request: async (kind) => {
+        calls.requested.push(kind);
+        return { granted: true, canAskAgain: false };
+      },
+      openSettings: async () => {
+        calls.settingsOpened += 1;
+      },
+    },
+  };
+
+  return { ...base, ...overrides, calls };
+}

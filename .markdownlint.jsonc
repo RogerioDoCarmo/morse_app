@@ -1,0 +1,11 @@
+{
+  "default": true,
+  // Prose in this repo wraps at 90; tables and code blocks routinely exceed it.
+  "MD013": { "line_length": 100, "tables": false, "code_blocks": false },
+  // Duplicate headings are fine across different sections.
+  "MD024": { "siblings_only": true },
+  // Inline HTML is used for badges.
+  "MD033": false,
+  // The first line need not be a top-level heading in every file.
+  "MD041": false,
+}
