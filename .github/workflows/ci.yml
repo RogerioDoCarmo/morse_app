@@ -18,6 +18,8 @@ jobs:
   verify:
     name: Lint, typecheck and test
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,13 +56,19 @@ jobs:
           path: coverage/
           retention-days: 7
 
-      # Secrets are unreadable from fork and Dependabot PRs, so the job would
-      # fail for reasons unrelated to the change.
+      # Skipped, not failed, when SONAR_TOKEN is absent: secrets are unreadable
+      # from fork and Dependabot PRs, and the SonarCloud project may not be
+      # created yet. A missing analysis must not block a green change.
+      #
+      # Setup, once: create the project on SonarCloud, add SONAR_TOKEN to the
+      # repository secrets, and turn Automatic Analysis OFF — it conflicts with
+      # CI-based analysis.
       - name: SonarCloud
-        if: github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.fork != true
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          github.event.pull_request.head.repo.fork != true &&
+          env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   mutation:
     name: Mutation testing

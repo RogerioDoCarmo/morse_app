@@ -74,15 +74,21 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # No --no-install here: the .xcworkspace only exists once CocoaPods has
+      # run, and xcodebuild needs the workspace rather than the bare project.
       - name: Prebuild iOS
-        run: pnpm expo prebuild --platform ios --no-install
+        run: pnpm expo prebuild --platform ios
 
       - name: Build for the simulator
         run: |
-          xcodebuild -workspace ios/*.xcworkspace \
-            -scheme Morse -configuration Debug \
+          workspace=$(ls -d ios/*.xcworkspace | head -1)
+          scheme=$(basename "$workspace" .xcworkspace)
+          echo "Building scheme $scheme from $workspace"
+          echo "IOS_SCHEME=$scheme" >> "$GITHUB_ENV"
+          xcodebuild -workspace "$workspace" \
+            -scheme "$scheme" -configuration Debug \
             -sdk iphonesimulator -derivedDataPath ios/build \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Install Maestro
         run: |
@@ -92,7 +98,8 @@ jobs:
       - name: Boot a simulator and run flows
         run: |
           xcrun simctl boot "iPhone 16" || true
-          xcrun simctl install booted ios/build/Build/Products/Debug-iphonesimulator/Morse.app
+          xcrun simctl install booted \
+            "ios/build/Build/Products/Debug-iphonesimulator/${IOS_SCHEME}.app"
           maestro test .maestro/flows/
 
       - name: Upload Maestro output
