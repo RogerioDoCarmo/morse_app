@@ -74,6 +74,35 @@ module.exports = tseslint.config(
     },
   },
 
+  // Adapters are the ONLY importers of expo-* / third-party native libraries
+  // (FOUNDATION.md section 1). Documenting that is not enforcing it — without this
+  // rule a screen could import expo-camera directly and nothing would complain.
+  // TorchHost is the one sanctioned exception: expo-camera's torch needs a mounted
+  // CameraView, so the component owns it and the adapter drives it.
+  {
+    files: [
+      'src/screens/**/*.{ts,tsx}',
+      'src/hooks/**/*.{ts,tsx}',
+      'src/application/**/*.{ts,tsx}',
+      'src/components/**/*.{ts,tsx}',
+    ],
+    ignores: ['src/components/TorchHost/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['expo-*'],
+              message:
+                'Only src/adapters/** may import expo-*. Put the dependency behind a port and inject it.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // The domain must stay pure: no React, no Expo, no I/O.
   {
     files: ['src/core/**/*.ts'],
