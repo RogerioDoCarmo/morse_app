@@ -29,6 +29,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Without KVM the emulator is software-rendered and glacial: boot took
+      # 10.7 minutes on the first run here, and Maestro's driver then timed out
+      # before it could attach. This is the fix, not a longer timeout.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - run: pnpm install --frozen-lockfile
 
       - name: Prebuild Android
@@ -45,10 +55,18 @@ jobs:
 
       - name: Run flows on an emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # The driver install is the slow part even with KVM; the default is
+          # not generous enough on a shared runner.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 180000
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
+          emulator-options: >-
+            -no-window -no-snapshot -noaudio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          disable-animations: true
           script: |
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
             maestro test .maestro/flows/
@@ -95,12 +113,23 @@ jobs:
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
+      # Pick whatever iPhone this runner image actually ships. Hardcoding a
+      # model name breaks silently every time GitHub rolls the image forward —
+      # "iPhone 16" was not present and simctl failed with "Invalid device".
       - name: Boot a simulator and run flows
         run: |
-          xcrun simctl boot "iPhone 16" || true
-          xcrun simctl install booted \
+          xcrun simctl list devices available
+          udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
+          if [ -z "$udid" ]; then
+            echo "::error::No iPhone simulator is available on this runner."
+            exit 1
+          fi
+          echo "Using simulator $udid"
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" \
             "ios/build/Build/Products/Debug-iphonesimulator/${IOS_SCHEME}.app"
-          maestro test .maestro/flows/
+          maestro --device "$udid" test .maestro/flows/
 
       - name: Upload Maestro output
         if: failure()
