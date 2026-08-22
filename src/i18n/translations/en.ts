@@ -12,6 +12,8 @@ export const en: TranslationMap = {
   'translator.sourceLabel': 'English',
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Tap a letter to hear it',
+  // Seed content, so the screen demonstrates itself on first open.
+  'translator.sample': 'Hello world',
   'translator.speak': 'Speak',
   'translator.tapItIn': 'Tap it in',
   'translator.readAloud': 'Read aloud',

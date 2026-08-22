@@ -25,7 +25,7 @@
     "mutation": "stryker run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:md": "markdownlint-cli2 \"**/*.md\" \"!node_modules\" \"!design\" \"!.stryker-tmp\"",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"!node_modules\" \"!design\" \"!.stryker-tmp\" \"!.expo\" \"!android\" \"!ios\" \"!coverage\" \"!reports\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",

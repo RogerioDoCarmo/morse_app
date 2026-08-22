@@ -127,3 +127,29 @@ describe('TranslatorScreen — letter selection', () => {
     expect(screen.getAllByTestId('morse-letter')[2]).not.toBeSelected();
   });
 });
+
+describe('TranslatorScreen — seed content', () => {
+  it('seeds the input in the active locale, not always English', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'Hola mundo');
+  });
+
+  it('seeds Portuguese without accents the encoder would fold', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'pt-BR' });
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'Boa noite');
+  });
+
+  it('derives the Morse seed from the same sample, so the directions agree', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    fireEvent.press(screen.getByTestId('segment-toText'));
+    // Round-trips back to the very sample the other direction started from.
+    expect(screen.getByTestId('decoded-text')).toHaveTextContent('HOLA MUNDO');
+  });
+
+  it('separates words with the ITU slash, which survives a copy', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('morse-string')).toHaveTextContent(
+      '.... . .-.. .-.. --- / .-- --- .-. .-.. -..',
+    );
+  });
+});

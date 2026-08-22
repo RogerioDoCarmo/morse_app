@@ -24,9 +24,6 @@ function localeBadge(locale: AppLocale): string {
 /** Which way the translation runs. */
 type Direction = 'toMorse' | 'toText';
 
-const SAMPLE_TEXT = 'Hello world';
-const SAMPLE_MORSE = '.... . .-.. .-.. ---   .-- --- .-. .-.. -..';
-
 /**
  * The Translator screen — built from `design/screens/Main.dc.html`.
  *
@@ -40,9 +37,13 @@ export function TranslatorScreen(): React.JSX.Element {
   const { torch, tts } = usePorts();
   const insets = useSafeAreaInsets();
 
+  // Seeded from the locale so the sample never contradicts the label above it,
+  // and the Morse seed is derived rather than written out — the two directions
+  // cannot drift apart that way.
+  const sample = t('translator.sample');
   const [direction, setDirection] = useState<Direction>('toMorse');
-  const [text, setText] = useState(SAMPLE_TEXT);
-  const [morseInput, setMorseInput] = useState(SAMPLE_MORSE);
+  const [text, setText] = useState(sample);
+  const [morseInput, setMorseInput] = useState(() => encodeToString(sample));
   const [picked, setPicked] = useState<number | null>(null);
   const [flashing, setFlashing] = useState(false);
 

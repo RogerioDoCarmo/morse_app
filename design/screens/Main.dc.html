@@ -217,7 +217,7 @@ class Component extends DCLogic {
       sourceLabel: toMorse ? 'English' : 'Morse',
       targetLabel: toMorse ? 'Morse' : 'English',
       words: words,
-      morseString: words.map((w) => w.letters.map((l) => l.code).join(' ')).join('   '),
+      morseString: words.map((w) => w.letters.map((l) => l.code).join(' ')).join(' / '),
     };
   }
 }

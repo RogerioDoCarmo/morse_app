@@ -88,6 +88,24 @@ standard code, so inventing one would be unreadable to any other operator. All t
 appear in the Learn alphabet, with a footnote stating the rule. See `FOUNDATION.md`
 §Localisation for what this does to the round-trip invariant.
 
+## Conventions the code settled
+
+**Word separator: ` / `.** The artboards originally showed three spaces between
+words in the mono line. The code uses the ITU convention instead, and the artboards
+now follow it — the string sits behind a Copy button, and whitespace runs collapse
+when pasted while a slash does not. `decode` accepts both on the way in, since a
+human tapping one out will produce spaces.
+
+**Seed content is per-locale.** The artboards show "Hello world" / "Boa noite" /
+"Hola mundo"; the app reads the same strings from `translator.sample` rather than
+hardcoding English, so the sample can never contradict the language label above it.
+The Portuguese sample is deliberately accent-free — the encoder folds anything
+outside `Ç É Ñ`.
+
+> Mockups need content to show; a shipping app may not want any. Whether the
+> Translator should instead open **empty** is still open, and depends on the empty
+> state below.
+
 ## Not yet designed
 
 Onboarding / first run, empty and error states beyond the permission gates, dark mode.
