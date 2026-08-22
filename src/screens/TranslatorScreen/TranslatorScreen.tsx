@@ -152,7 +152,7 @@ export function TranslatorScreen(): React.JSX.Element {
           </View>
 
           {toMorse ? (
-            <ScrollView contentContainerStyle={styles.outputScroll}>
+            <ScrollView style={styles.output} contentContainerStyle={styles.outputScroll}>
               <MorseText
                 message={message}
                 selectedIndex={picked}
@@ -279,6 +279,7 @@ const styles = StyleSheet.create({
   textActionLabel: { ...theme.type.chip, color: theme.color.accent },
   input: { ...theme.type.input, color: theme.color.ink, padding: 0 },
   monoInput: { ...theme.type.monoLarge, color: theme.color.accent, padding: 0 },
+  output: { flex: 1 },
   outputScroll: { paddingBottom: theme.spacing.sm },
   decodedBlock: { flex: 1, justifyContent: 'center', gap: theme.spacing.xl },
   decoded: { ...theme.type.decoded, color: theme.color.ink },

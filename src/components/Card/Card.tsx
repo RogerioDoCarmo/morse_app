@@ -32,5 +32,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     boxShadow: theme.shadow.card,
   },
-  grow: { flexGrow: 1, minHeight: 0 },
+  // flexShrink matters as much as flexGrow here: React Native defaults it to 0,
+  // where CSS defaults it to 1. Without it a tall card grows past the container
+  // and pushes its siblings out of view instead of scrolling its own content —
+  // which is exactly how the action row disappeared on a long message.
+  grow: { flexGrow: 1, flexShrink: 1, minHeight: 0 },
 });

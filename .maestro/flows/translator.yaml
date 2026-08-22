@@ -10,6 +10,10 @@ appId: com.rogeriodocarmo.morseapp
     id: 'morse-output'
 - tapOn:
     id: 'translator-input'
+# The field is seeded with sample text, so tapping lands the cursor mid-string
+# and inputText would splice into it — the run before this produced
+# "Hello worlSOSd". Clear first so the flow asserts on what it actually typed.
+- eraseText
 - inputText: 'SOS'
 # The Android soft keyboard covers the lower half of the screen, so anything
 # below the input is genuinely not visible until it is dismissed. The iOS
