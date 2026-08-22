@@ -32,8 +32,11 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@expo-google-fonts/dm-mono": "^0.4.2",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "expo": "~57.0.15",
     "expo-camera": "~57.0.4",
+    "expo-font": "~57.0.1",
     "expo-localization": "~57.0.1",
     "expo-speech": "~57.0.1",
     "expo-splash-screen": "~57.0.7",
@@ -41,7 +44,8 @@
     "expo-system-ui": "~57.0.2",
     "react": "19.2.3",
     "react-native": "0.86.2",
-    "react-native-safe-area-context": "~5.7.0"
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@react-native/jest-preset": "^0.86.2",
