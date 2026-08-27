@@ -103,6 +103,29 @@ module.exports = tseslint.config(
     },
   },
 
+  // Adapters may depend on PORTS, never on each other. The torch and TTS
+  // adapters report errors through ICrashReportingPort; importing the Firebase
+  // adapter directly would point a dependency sideways instead of inward and
+  // drag a vendor SDK into their tests.
+  {
+    files: ['src/adapters/**/*.ts'],
+    ignores: ['src/adapters/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/adapters/*', '../*/'],
+              message:
+                'Adapters must not import other adapters. Depend on the port interface and let the composition root inject it.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // The domain must stay pure: no React, no Expo, no I/O.
   {
     files: ['src/core/**/*.ts'],

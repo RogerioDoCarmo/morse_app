@@ -24,17 +24,19 @@ import type { Ports } from '@/core/ports';
  * identically to a configured one rather than erroring at startup.
  */
 export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
-  const torch = createExpoTorchAdapter();
   const firebaseCrash = createFirebaseCrashReportingAdapter();
   const crash = firebaseCrash.isEnabled()
     ? firebaseCrash
     : createNoopCrashReportingAdapter();
+  // Built after `crash` because both take it: adapters report through the
+  // port, never by reaching for a sibling adapter.
+  const torch = createExpoTorchAdapter(crash);
 
   return {
     torch,
     ports: {
       torch,
-      tts: createExpoSpeechAdapter(),
+      tts: createExpoSpeechAdapter(crash),
       speech: createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),
       permission: createExpoPermissionAdapter(),
