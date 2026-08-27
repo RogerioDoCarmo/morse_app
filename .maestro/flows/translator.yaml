@@ -1,6 +1,6 @@
 # Selectors are stable accessibility labels, never localised text — this app
 # ships in three languages and the CI device locale is not guaranteed.
-appId: com.rogeriodocarmo.morseapp
+appId: com.rogeriodocarmo.morse
 ---
 - launchApp:
     clearState: true

@@ -11,7 +11,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rogeriodocarmo.morseapp",
+      "bundleIdentifier": "com.rogeriodocarmo.morse",
       "infoPlist": {
         "NSCameraUsageDescription": "Morse switches the camera flash on and off to play a message as light. The camera preview is never opened and no image is captured.",
         "NSMicrophoneUsageDescription": "Morse listens so it can turn what you say into Morse code. Audio is not stored and never leaves your device.",
@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.rogeriodocarmo.morseapp",
+      "package": "com.rogeriodocarmo.morse",
       "adaptiveIcon": {
         "backgroundColor": "#F5F6F8",
         "foregroundImage": "./assets/android-icon-foreground.png",
