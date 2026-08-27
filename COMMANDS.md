@@ -171,8 +171,35 @@ development, CI and any Firebase-free build need. With the plugin listed and the
 missing, `expo prebuild` fails outright; that is why the config is dynamic rather than
 static.
 
-CI secrets for distribution: `EXPO_TOKEN`, `FIREBASE_ANDROID_APP_ID`,
-`FIREBASE_SERVICE_ACCOUNT`.
+### Repository secrets
+
+Nothing distributes until these exist. Set with `gh secret set <NAME>`:
+
+| Secret | Where it comes from |
+| --- | --- |
+| `EXPO_TOKEN` | expo.dev → Account → Access tokens |
+| `FIREBASE_ANDROID_APP_ID` | `mobilesdk_app_id` in `google-services.json` |
+| `FIREBASE_IOS_APP_ID` | `GOOGLE_APP_ID` in `GoogleService-Info.plist` |
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase console → Project settings → Service accounts → generate a private key, then paste the whole JSON |
+
+The app ids are not really secret — they ship inside the binary — but they live
+alongside the service account so one place governs distribution.
+
+### Tester channels
+
+| Platform | Channel | Trigger |
+| --- | --- | --- |
+| Android | Firebase App Distribution | a `package.json` version bump on `develop` |
+| iOS | Firebase App Distribution | same |
+| iOS | TestFlight | `eas-build.yml` → Run workflow (opt-in only) |
+
+⚠️ **iOS via Firebase is an ad-hoc build.** Every tester device must be registered
+with `eas device:create` before it can install, and adding a device needs a
+rebuild — the UDID list is signed into the IPA. TestFlight has no such limit, which
+is why both channels exist rather than one replacing the other.
+
+The distribution group is named **`testers`** in the Firebase console; the workflow
+matches on that name.
 
 ## Building for the stores (EAS)
 

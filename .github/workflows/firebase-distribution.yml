@@ -39,10 +39,26 @@ jobs:
           fi
 
   distribute:
-    name: Build and distribute
+    name: Distribute ${{ matrix.platform }}
     needs: gate
     if: needs.gate.outputs.bumped == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      # One platform failing should not deny testers the other.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            artifact: build.apk
+            app_id_secret: FIREBASE_ANDROID_APP_ID
+          # ⚠️ iOS goes out as an AD-HOC build, so every tester device must be
+          # registered with `eas device:create` first and a new device needs a
+          # rebuild — the UDID list is baked into the IPA at signing time.
+          # TestFlight has no such limit and is handled by eas-build.yml's
+          # opt-in submit job; this is the faster channel, not the only one.
+          - platform: ios
+            artifact: build.ipa
+            app_id_secret: FIREBASE_IOS_APP_ID
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -58,14 +74,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build a preview APK
-        run: eas build --platform android --profile preview --non-interactive --wait --output build.apk
+      - name: Build a preview binary
+        run: |
+          eas build --platform ${{ matrix.platform }} --profile preview \
+            --non-interactive --wait --output ${{ matrix.artifact }}
 
       - name: Distribute to testers
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          appId: ${{ secrets[matrix.app_id_secret] }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
-          file: build.apk
+          file: ${{ matrix.artifact }}
           releaseNotes: 'v${{ needs.gate.outputs.version }} from develop'
