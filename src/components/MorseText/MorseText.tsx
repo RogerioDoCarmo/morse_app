@@ -1,11 +1,15 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { MorseMessage } from '@/core/domain/morse';
 import { theme } from '@/theme';
 
 type Props = Readonly<{
   /** The message to render. */
   message: MorseMessage;
+  /** Index of the selected letter, counted across the whole message. */
+  selectedIndex?: number | null;
+  /** Called with that same flat index when a letter is pressed. */
+  onSelectLetter?: (index: number) => void;
   /** Test identifier. Also the Maestro selector — never assert on localised text. */
   testID?: string;
 }>;
@@ -19,8 +23,22 @@ type Props = Readonly<{
  */
 export function MorseText({
   message,
+  selectedIndex = null,
+  onSelectLetter,
   testID = 'morse-output',
 }: Props): React.JSX.Element {
+  // Each word's starting index, computed before render rather than by mutating
+  // a counter inside the map — React may re-enter the callback.
+  const wordOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let running = 0;
+    for (const word of message.words) {
+      offsets.push(running);
+      running += word.letters.length;
+    }
+    return offsets;
+  }, [message]);
+
   return (
     <View
       testID={testID}
@@ -30,23 +48,37 @@ export function MorseText({
     >
       {message.words.map((word, wordIndex) => (
         <View key={`w${String(wordIndex)}`} style={styles.word}>
-          {word.letters.map((letter, letterIndex) => (
-            <View
-              key={`l${String(letterIndex)}`}
-              testID="morse-letter"
-              style={styles.letter}
-            >
-              <View style={styles.marks}>
-                {letter.symbols.map((symbol, symbolIndex) => (
-                  <View
-                    key={`s${String(symbolIndex)}`}
-                    style={symbol === '.' ? styles.dot : styles.dash}
-                  />
-                ))}
-              </View>
-              <Text style={styles.char}>{letter.char}</Text>
-            </View>
-          ))}
+          {word.letters.map((letter, letterIndex) => {
+            const index = (wordOffsets[wordIndex] ?? 0) + letterIndex;
+            const selected = selectedIndex === index;
+            const markColor = selected ? theme.color.onAccent : theme.color.accent;
+            return (
+              <Pressable
+                key={`l${String(letterIndex)}`}
+                testID="morse-letter"
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`morse-letter-${letter.char}`}
+                onPress={() => onSelectLetter?.(index)}
+                style={[styles.letter, selected && styles.letterSelected]}
+              >
+                <View style={styles.marks}>
+                  {letter.symbols.map((symbol, symbolIndex) => (
+                    <View
+                      key={`s${String(symbolIndex)}`}
+                      style={[
+                        symbol === '.' ? styles.dot : styles.dash,
+                        { backgroundColor: markColor },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={selected ? styles.charSelected : styles.char}>
+                  {letter.char}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       ))}
     </View>
@@ -67,12 +99,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.control,
     backgroundColor: theme.color.groundAlt,
   },
+  letterSelected: { backgroundColor: theme.color.accent },
   marks: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.accent },
-  dash: { width: 21, height: 8, borderRadius: 4, backgroundColor: theme.color.accent },
-  char: {
-    fontSize: 11,
-    fontVariant: ['tabular-nums'],
-    color: theme.color.muted,
-  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dash: { width: 21, height: 8, borderRadius: 4 },
+  char: { ...theme.type.letter, color: theme.color.muted },
+  charSelected: { ...theme.type.letter, color: theme.color.onAccent },
 });
