@@ -100,7 +100,16 @@ jobs:
       # No --no-install here: the .xcworkspace only exists once CocoaPods has
       # run, and xcodebuild needs the workspace rather than the bare project.
       - name: Prebuild iOS
-        run: pnpm expo prebuild --platform ios
+        run: |
+          pnpm expo prebuild --platform ios
+          # `expo prebuild` reports "Command `pod install` failed" and still
+          # exits 0. Without this check the job carried on to xcodebuild, which
+          # failed with "'' is not a workspace file" — an opaque error 500 lines
+          # below the one that mattered. Fail where the fault actually is.
+          if ! ls -d ios/*.xcworkspace >/dev/null 2>&1; then
+            echo "::error::pod install produced no ios/*.xcworkspace. The real failure is in the prebuild output above."
+            exit 1
+          fi
 
       - name: Build for the simulator
         run: |
