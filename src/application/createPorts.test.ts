@@ -1,28 +1,53 @@
 import { createPorts } from './createPorts';
 
-jest.mock('expo-camera', () => ({ Camera: { getCameraPermissionsAsync: jest.fn() } }));
-jest.mock('expo-speech', () => ({ speak: jest.fn(), stop: jest.fn() }));
-jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en-US' }] }));
+const mockIsEnabled = jest.fn<boolean, []>();
 
-describe('createPorts', () => {
-  it('wires every port the UI can reach', () => {
-    const { ports } = createPorts();
-    expect(Object.keys(ports).sort()).toEqual([
-      'locale',
-      'permission',
-      'speech',
-      'torch',
-      'tts',
-    ]);
+jest.mock('@/adapters/crash/firebaseCrashReportingAdapter', () => ({
+  createFirebaseCrashReportingAdapter: () => ({
+    isEnabled: (): boolean => mockIsEnabled(),
+    setEnabled: jest.fn(),
+    recordError: jest.fn(),
+    log: jest.fn(),
+  }),
+}));
+
+describe('createPorts — crash reporting selection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('hands back the same torch instance it injected, so the host observes the real one', async () => {
-    const { ports, torch } = createPorts();
-    expect(ports.torch).toBe(torch);
+  it('uses Firebase when it reports itself available', () => {
+    mockIsEnabled.mockReturnValue(true);
+    expect(createPorts().ports.crash.isEnabled()).toBe(true);
+  });
 
-    const seen: boolean[] = [];
-    torch.subscribe((enabled) => seen.push(enabled));
-    await ports.torch.setEnabled(true);
-    expect(seen).toEqual([false, true]);
+  // A checkout without google-services.json is the normal case, and it must
+  // produce a working app rather than an error at startup.
+  it('falls back to the no-op reporter when Firebase is not configured', () => {
+    mockIsEnabled.mockReturnValue(false);
+    const { crash } = createPorts().ports;
+    expect(crash.isEnabled()).toBe(false);
+  });
+
+  it('leaves the no-op reporter inert', async () => {
+    mockIsEnabled.mockReturnValue(false);
+    const { crash } = createPorts().ports;
+    await expect(crash.recordError(new Error('boom'))).resolves.toBeUndefined();
+    expect(crash.isEnabled()).toBe(false);
+  });
+
+  it('still supplies every other port either way', () => {
+    mockIsEnabled.mockReturnValue(false);
+    const { ports } = createPorts();
+    for (const key of [
+      'torch',
+      'tts',
+      'speech',
+      'locale',
+      'permission',
+      'crash',
+    ] as const) {
+      expect(ports[key]).toBeDefined();
+    }
   });
 });

@@ -20,6 +20,7 @@ const path = require('path');
  *   - CAMERA        → the torch. There is no separate torch permission on
  *                     either platform.
  *   - RECORD_AUDIO  → speech input. Genuinely used.
+ *   - INTERNET      → Crashlytics. See the note on the removal list below.
  *
  * ⚠️ DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION will still show up in a built
  * artifact. That is androidx declaring a signature-level permission for its own
@@ -27,10 +28,16 @@ const path = require('path');
  * must NOT be stripped — removing it weakens security.
  */
 const PERMISSIONS_TO_REMOVE = [
-  // React Native core, for the Metro dev server and the debugger. This app is
-  // offline-only: no fetch, no analytics, no crash reporting, no OTA check, and
-  // a release build loads its bundle from the APK's own assets.
-  'android.permission.INTERNET',
+  // ⚠️ INTERNET was on this list until Crashlytics was added, and removing it
+  // from the list is a deliberate reversal, not an oversight.
+  //
+  // Crashlytics uploads crash reports, so the app is no longer offline-only.
+  // Stripping INTERNET does not make it safer — it makes crash reporting fail
+  // SILENTLY: the build succeeds, the app runs, and reports simply never
+  // arrive. If crash reporting is ever dropped, put INTERNET back here.
+  //
+  // ACCESS_NETWORK_STATE stays stripped: Crashlytics does not require it, and
+  // it is injected by React Native core for the dev-server reachability check.
   'android.permission.ACCESS_NETWORK_STATE',
   // Expo prebuild's default set, inherited from Expo Go. No haptics dependency
   // here and the Vibration API is never called.

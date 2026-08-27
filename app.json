@@ -42,8 +42,8 @@
           "recordAudioAndroid": false
         }
       ],
-      "./plugins/withCleanAndroidPermissions.js",
-      "expo-font"
+      "expo-font",
+      "./plugins/withCleanAndroidPermissions.js"
     ],
     "experiments": {
       "tsconfigPaths": true

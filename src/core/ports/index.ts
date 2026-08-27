@@ -9,6 +9,7 @@ import type { IPermissionPort } from './IPermissionPort';
 import type { ISpeechRecognitionPort } from './ISpeechRecognitionPort';
 import type { ITextToSpeechPort } from './ITextToSpeechPort';
 import type { ITorchPort } from './ITorchPort';
+import type { ICrashReportingPort } from './ICrashReportingPort';
 
 /**
  * Everything the UI layer is allowed to reach the outside world through.
@@ -20,4 +21,6 @@ export type Ports = Readonly<{
   speech: ISpeechRecognitionPort;
   locale: ILocalePort;
   permission: IPermissionPort;
+  crash: ICrashReportingPort;
 }>;
+export type { ICrashReportingPort } from './ICrashReportingPort';

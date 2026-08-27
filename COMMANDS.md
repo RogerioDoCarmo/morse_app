@@ -144,11 +144,35 @@ bundletool dump manifest --bundle=app.aab                       # AAB is protobu
 unzip -p app.ipa "Payload/*.app/Info.plist" | plutil -p -       # iOS
 ```
 
-Expected surface: `CAMERA`, `RECORD_AUDIO`, and
+Expected surface: `CAMERA`, `INTERNET`, `RECORD_AUDIO`, and
 `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. That last one is androidx declaring a
 signature-level permission for its own receivers — it is not user-facing and **must not be
 stripped**. Anything else appearing means `plugins/withCleanAndroidPermissions.js` needs a
 look.
+
+⚠️ **`INTERNET` is required by Crashlytics** and was deliberately taken off the strip list.
+Putting it back makes crash reporting fail **silently** — the build succeeds, the app runs,
+and reports never arrive. If crash reporting is ever dropped, strip it again.
+
+## Firebase
+
+Crashlytics and App Distribution need a Firebase project. Drop the credential files in the
+repo root — they are gitignored, being per-project:
+
+| Platform | File |
+| --- | --- |
+| Android | `google-services.json` |
+| iOS | `GoogleService-Info.plist` |
+
+**Their presence is the switch.** `app.config.js` adds the Firebase plugins only when a
+file is there, and `createPorts` picks the no-op crash reporter to match. A checkout
+without them builds and runs a working, uninstrumented app — which is what local
+development, CI and any Firebase-free build need. With the plugin listed and the file
+missing, `expo prebuild` fails outright; that is why the config is dynamic rather than
+static.
+
+CI secrets for distribution: `EXPO_TOKEN`, `FIREBASE_ANDROID_APP_ID`,
+`FIREBASE_SERVICE_ACCOUNT`.
 
 ## Building for the stores (EAS)
 

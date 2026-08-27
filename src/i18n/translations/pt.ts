@@ -45,7 +45,7 @@ export const ptBR: TranslationMap = {
   'permission.microphoneRationale':
     'Para transformar o que você diz em Morse, o app precisa ouvir você. Digitar e tocar funcionam sem isto, então você pode pular.',
   'permission.microphoneAssurance':
-    'O reconhecimento roda no aparelho onde a plataforma permite. Nenhum áudio é armazenado e nada é enviado.',
+    'O reconhecimento roda no aparelho onde a plataforma permite. Nenhum áudio é armazenado, e nenhum áudio é enviado.',
   'permission.microphoneGrant': 'Permitir acesso ao microfone',
   'permission.blockedHint':
     'Isto fica desativado até você liberar o acesso nos ajustes do sistema. O resto do app continua funcionando.',

@@ -10,6 +10,8 @@ export type FakePorts = Ports &
       spoken: { text: string; locale: AppLocale }[];
       requested: PermissionKind[];
       settingsOpened: number;
+      recorded: { message: string; context?: string }[];
+      crashCollection: boolean[];
     };
   }>;
 
@@ -23,6 +25,8 @@ export function createFakePorts(
     spoken: [],
     requested: [],
     settingsOpened: 0,
+    recorded: [],
+    crashCollection: [],
   };
 
   const base: Ports = {
@@ -48,6 +52,22 @@ export function createFakePorts(
     },
     locale: {
       getDeviceLocale: () => 'en',
+    },
+    crash: {
+      isEnabled: () => true,
+      setEnabled: async (enabled) => {
+        calls.crashCollection.push(enabled);
+      },
+      recordError: async (error, context) => {
+        calls.recorded.push(
+          context === undefined
+            ? { message: error.message }
+            : { message: error.message, context },
+        );
+      },
+      log: async (message) => {
+        calls.recorded.push({ message });
+      },
     },
     permission: {
       getState: async () => initialPermission,

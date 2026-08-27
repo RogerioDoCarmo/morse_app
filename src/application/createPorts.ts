@@ -1,3 +1,5 @@
+import { createFirebaseCrashReportingAdapter } from '@/adapters/crash/firebaseCrashReportingAdapter';
+import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashReportingAdapter';
 import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizationAdapter';
 import { createExpoPermissionAdapter } from '@/adapters/permission/expoPermissionAdapter';
 import { createUnavailableSpeechRecognitionAdapter } from '@/adapters/speech/unavailableSpeechRecognitionAdapter';
@@ -15,9 +17,18 @@ import type { Ports } from '@/core/ports';
  * The torch adapter is returned alongside the ports because the torch is a
  * camera-view prop rather than an imperative API, so a host component has to
  * observe it. See {@link TorchAdapter}.
+ *
+ * Crash reporting picks itself: the Firebase adapter reports its own
+ * availability, and a checkout without `google-services.json` gets the no-op
+ * one. That keeps local development, CI and any Firebase-free build behaving
+ * identically to a configured one rather than erroring at startup.
  */
 export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
   const torch = createExpoTorchAdapter();
+  const firebaseCrash = createFirebaseCrashReportingAdapter();
+  const crash = firebaseCrash.isEnabled()
+    ? firebaseCrash
+    : createNoopCrashReportingAdapter();
 
   return {
     torch,
@@ -27,6 +38,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
       speech: createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),
       permission: createExpoPermissionAdapter(),
+      crash,
     },
   };
 }

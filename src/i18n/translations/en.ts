@@ -45,7 +45,7 @@ export const en: TranslationMap = {
   'permission.microphoneRationale':
     'To turn what you say into Morse, the app has to hear you. Typing and tap input work without this, so you can skip it.',
   'permission.microphoneAssurance':
-    'Recognition runs on the device where the platform supports it. No audio is stored and nothing is uploaded.',
+    'Recognition runs on the device where the platform supports it. No audio is stored, and no audio is ever uploaded.',
   'permission.microphoneGrant': 'Allow microphone access',
   'permission.blockedHint':
     'This stays off until you grant access in the system settings. Everything else in the app keeps working.',
