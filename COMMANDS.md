@@ -164,12 +164,20 @@ repo root — they are gitignored, being per-project:
 | Android | `google-services.json` |
 | iOS | `GoogleService-Info.plist` |
 
-**Their presence is the switch.** `app.config.js` adds the Firebase plugins only when a
-file is there, and `createPorts` picks the no-op crash reporter to match. A checkout
-without them builds and runs a working, uninstrumented app — which is what local
-development, CI and any Firebase-free build need. With the plugin listed and the file
-missing, `expo prebuild` fails outright; that is why the config is dynamic rather than
-static.
+**Their presence is the switch** — for the *config plugins*. `app.config.js` adds them
+only when a file is there, and `createPorts` picks the no-op crash reporter to match.
+With a plugin listed and the file missing, `expo prebuild` fails outright; that is why
+the config is dynamic rather than static.
+
+⚠️ **The switch does not reach the pods.** The `@react-native-firebase/*` packages are
+autolinked from `node_modules`, so their pods are in the build whenever the packages are
+INSTALLED — credential files or not. Anything that configures those pods therefore has to
+be unconditional too, which is why `plugins/withRNFirebaseDisableSPM.js` and the
+`expo-build-properties` linkage are pushed outside the credential branch. On iOS the
+pod's autolinked Crashlytics build phase also reads `GOOGLE_APP_ID` out of
+`GoogleService-Info.plist`, so an iOS build cannot succeed without that file at all. CI
+writes both files from secrets before prebuilding, so it builds the configuration that
+actually ships.
 
 ### Repository secrets
 
@@ -181,9 +189,12 @@ Nothing distributes until these exist. Set with `gh secret set <NAME>`:
 | `FIREBASE_ANDROID_APP_ID` | `mobilesdk_app_id` in `google-services.json` |
 | `FIREBASE_IOS_APP_ID` | `GOOGLE_APP_ID` in `GoogleService-Info.plist` |
 | `FIREBASE_SERVICE_ACCOUNT` | Firebase console → Project settings → Service accounts → generate a private key, then paste the whole JSON |
+| `GOOGLE_SERVICES_JSON` | `base64 -i google-services.json \| pbcopy` — E2E writes it back before prebuilding Android |
+| `GOOGLE_SERVICE_INFO_PLIST` | `base64 -i GoogleService-Info.plist \| pbcopy` — E2E writes it back before prebuilding iOS |
 
-The app ids are not really secret — they ship inside the binary — but they live
-alongside the service account so one place governs distribution.
+The app ids and the two config files are not really secret — they all ship inside the
+binary — but they live alongside the service account so one place governs distribution,
+and keeping them out of a public repo costs nothing.
 
 ### Tester channels
 

@@ -35,18 +35,20 @@ module.exports = () => {
   const cleaner = './plugins/withCleanAndroidPermissions.js';
   const plugins = expo.plugins.filter((entry) => entry !== cleaner);
 
-  // ⚠️ UNCONDITIONAL, and it must stay that way. react-native-firebase resolves
-  // the Firebase Apple SDK through Swift Package Manager on RN 0.75+, and its
-  // SPM products are automatic libraries — under the default static linkage
-  // every pod embeds its own copy and they collide as duplicate symbols. Pods
-  // are autolinked from `node_modules`, so they are in the Podfile whenever the
-  // packages are INSTALLED; the credential files have nothing to do with it.
-  //
-  // Gating this on credentials is what broke CI: it prebuilt without them, got
-  // the pods without the linkage, and `pod install` died with "SPM + static
-  // linkage is not supported". If Firebase is ever removed from
-  // `package.json`, remove this too.
-  plugins.push(['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }]);
+  // ⚠️ UNCONDITIONAL, and it must stay that way — the pods it configures are
+  // autolinked from `node_modules`, so they are present whenever the packages
+  // are INSTALLED, credential files or not. Gating this on credentials is what
+  // broke CI twice. See the plugin for the full reasoning. If Firebase is ever
+  // removed from `package.json`, remove this too.
+  plugins.push('./plugins/withRNFirebaseDisableSPM.js');
+
+  // The other half of that bargain. Off SPM, Firebase arrives as ordinary pods,
+  // and its Swift pods (FirebaseCrashlytics, FirebaseSessions) import
+  // GoogleUtilities, GoogleDataTransport and nanopb — none of which define
+  // modules, so `pod install` refuses to build them as plain static libraries.
+  // Static FRAMEWORKS carry module maps, which satisfies that without moving
+  // the app to dynamic linking.
+  plugins.push(['expo-build-properties', { ios: { useFrameworks: 'static' } }]);
 
   if (hasAndroid || hasIos) {
     plugins.push('@react-native-firebase/app', '@react-native-firebase/crashlytics');

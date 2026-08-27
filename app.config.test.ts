@@ -35,26 +35,28 @@ function loadConfig(present: readonly string[]): {
 
 const nameOf = (plugin: Plugin): string => (Array.isArray(plugin) ? plugin[0] : plugin);
 
-const buildProperties = (plugins: Plugin[]): [string, Record<string, unknown>?][] =>
-  plugins.filter(
-    (plugin): plugin is [string, Record<string, unknown>?] =>
-      Array.isArray(plugin) && plugin[0] === 'expo-build-properties',
-  );
+const DISABLE_SPM = './plugins/withRNFirebaseDisableSPM.js';
 
 describe('app.config', () => {
   // The regression this exists for: the pods come from package.json and are
-  // autolinked unconditionally, so the linkage that makes them build has to be
+  // autolinked unconditionally, so whatever configures them has to be
   // unconditional too. Gating it on credentials passed locally and broke CI.
   it.each([
     ['no credentials', []],
     ['android only', [ANDROID]],
     ['ios only', [IOS]],
     ['both', [ANDROID, IOS]],
-  ])('links iOS frameworks dynamically with %s', (_label, present) => {
-    const entries = buildProperties(loadConfig(present).expo.plugins);
+  ])('takes Firebase off SPM and onto static frameworks with %s', (_label, present) => {
+    const plugins = loadConfig(present).expo.plugins;
 
-    expect(entries).toHaveLength(1);
-    expect(entries[0]?.[1]).toEqual({ ios: { useFrameworks: 'dynamic' } });
+    expect(plugins.map(nameOf).filter((name) => name === DISABLE_SPM)).toHaveLength(1);
+
+    const buildProperties = plugins.filter(
+      (plugin): plugin is [string, Record<string, unknown>?] =>
+        Array.isArray(plugin) && plugin[0] === 'expo-build-properties',
+    );
+    expect(buildProperties).toHaveLength(1);
+    expect(buildProperties[0]?.[1]).toEqual({ ios: { useFrameworks: 'static' } });
   });
 
   it('adds the Firebase plugins only once credentials exist', () => {
