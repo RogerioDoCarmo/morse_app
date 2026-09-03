@@ -141,23 +141,38 @@
     </div>
   </div>
 
-  <div style="display: flex; gap: 10px; padding: 14px 20px 12px; flex-shrink: 0;">
-    <button style="flex-grow: 1; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-      Flash it
-    </button>
+  <!-- OUTPUT CHANNELS — which ways the one message is sent. Multi-select, and
+       live: turning one on mid-message joins the run already in progress. -->
+  <div style="display: flex; gap: 8px; padding: 12px 20px 0; flex-shrink: 0;">
+    <sc-for list="{{ channels }}" as="ch" hint-placeholder-count="4">
+      <sc-if value="{{ ch.on }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ ch.toggle }}" style="flex-grow: 1; height: 58px; border-radius: 16px; background: #e7f6f3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #0d7d70;">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ ch.path }}"></path></svg>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.02em;">{{ ch.label }}</span>
+        </button>
+      </sc-if>
+      <sc-if value="{{ ch.off }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ ch.toggle }}" style="flex-grow: 1; height: 58px; border-radius: 16px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #9aa3ad; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ ch.path }}"></path></svg>
+          <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.02em;">{{ ch.label }}</span>
+        </button>
+      </sc-if>
+    </sc-for>
+  </div>
 
+  <div style="display: flex; gap: 10px; padding: 12px 20px 12px; flex-shrink: 0;">
     <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
-      <button onClick="{{ stop }}" style="width: 54px; height: 54px; background: #12a594; border-radius: 16px; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(18, 165, 148, 0.28);">
+      <button onClick="{{ stop }}" style="flex-grow: 1; height: 54px; background: #12a594; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="5" width="14" height="14" rx="3"></rect></svg>
+        Stop
       </button>
     </sc-if>
     <sc-if value="{{ idle }}" hint-placeholder-val="{{ false }}">
-      <button onClick="{{ start }}" style="width: 54px; height: 54px; background: #ffffff; border-radius: 16px; color: #101820; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+      <button onClick="{{ start }}" style="flex-grow: 1; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>
+        Send it
       </button>
     </sc-if>
-
     <button style="width: 54px; height: 54px; background: #ffffff; border-radius: 16px; color: #101820; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
     </button>
@@ -188,7 +203,13 @@
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { playing: false, elapsedMs: 0 };
+    this.state = {
+      playing: false,
+      elapsedMs: 0,
+      // Sound on by default; the others are opt-in. Light needs the camera,
+      // and the phone is usually face-down or in a pocket for the rest.
+      on: { sound: true, light: true, screen: false, buzz: false },
+    };
     this.timer = null;
   }
 
@@ -275,6 +296,17 @@ class Component extends DCLogic {
     this.setState({ playing: false, elapsedMs: 0 });
   }
 
+  // One path each, so the icon can ride through an attribute hole. Text holes
+  // escape their value, which would print the SVG source instead of drawing it.
+  outputs() {
+    return [
+      { key: 'sound', label: 'Sound', path: 'M11 5 6 9H2v6h4l5 4V5z M15.5 8.5a5 5 0 0 1 0 7' },
+      { key: 'light', label: 'Light', path: 'M13 2 3 14h9l-1 8 10-12h-9l1-8z' },
+      { key: 'screen', label: 'Screen', path: 'M3 4h18v12H3z M8 20h8' },
+      { key: 'buzz', label: 'Vibrate', path: 'M8 4h8v16H8z M4 9v6 M20 9v6' },
+    ];
+  }
+
   renderVals() {
     const laid = this.layout();
     const unit = this.unit();
@@ -298,9 +330,22 @@ class Component extends DCLogic {
 
     const pct = totalMs === 0 ? 0 : Math.min(100, (this.state.elapsedMs / totalMs) * 100);
 
+    const on = this.state.on;
+
     return {
       playing: playing,
       idle: !playing,
+      channels: this.outputs().map((o) => ({
+        label: o.label,
+        path: o.path,
+        on: on[o.key],
+        off: !on[o.key],
+        toggle: () => {
+          const next = Object.assign({}, this.state.on);
+          next[o.key] = !next[o.key];
+          this.setState({ on: next });
+        },
+      })),
       start: () => this.start(),
       stop: () => this.stop(),
       words: words,
