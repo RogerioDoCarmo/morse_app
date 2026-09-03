@@ -30,29 +30,34 @@ describe('TranslatorScreen', () => {
     expect(screen.getByTestId('morse-string')).toHaveTextContent('.- -.-.. .- ---');
   });
 
-  it('drives the torch through the port, not a library', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('flash-button'));
-    await waitFor(() => {
-      expect(ports.calls.torchEnabled).toEqual([true]);
-    });
+  it('starts with sound on and light off', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('channel-sound')).toBeSelected();
+    expect(screen.getByTestId('channel-light')).not.toBeSelected();
   });
 
-  it('turns the torch back off on a second press', async () => {
+  it('offers the two channels that are built, and greys out the two that are not', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('channel-screen')).toBeDisabled();
+    expect(screen.getByTestId('channel-buzz')).toBeDisabled();
+    expect(screen.getByTestId('channel-sound')).not.toBeDisabled();
+    expect(screen.getByTestId('channel-light')).not.toBeDisabled();
+  });
+
+  // The torch is no longer a switch you leave on — it carries the message.
+  it('leaves the torch alone until a message runs', async () => {
     const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('flash-button'));
+    fireEvent.press(screen.getByTestId('channel-light'));
     await waitFor(() => {
-      expect(ports.calls.torchEnabled).toEqual([true]);
+      expect(screen.getByTestId('channel-light')).toBeSelected();
     });
-    fireEvent.press(screen.getByTestId('flash-button'));
-    await waitFor(() => {
-      expect(ports.calls.torchEnabled).toEqual([true, false]);
-    });
+    expect(ports.calls.torchEnabled).toEqual([]);
   });
 
   it('renders in the selected locale', () => {
     renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    expect(screen.getByText('Destellar')).toBeOnTheScreen();
+    expect(screen.getByText('Emitir')).toBeOnTheScreen();
+    expect(screen.getByText('Sonido')).toBeOnTheScreen();
   });
 });
 
@@ -218,7 +223,7 @@ describe('TranslatorScreen — audio playback', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.played).toHaveLength(1);
     // "RIFF" — the port takes bytes, and these are the bytes of a WAV file.
@@ -229,7 +234,7 @@ describe('TranslatorScreen — audio playback', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
     expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
@@ -245,17 +250,17 @@ describe('TranslatorScreen — audio playback', () => {
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
     expect(screen.queryByTestId('playing-badge')).toBeNull();
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.queryByTestId('playing-badge')).toBeNull();
   });
 
   it('lights the letter the playhead is on, and moves it along', async () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     const output = (): ReturnType<typeof within> =>
       within(screen.getByTestId('morse-output'));
@@ -278,23 +283,29 @@ describe('TranslatorScreen — audio playback', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('play-audio'));
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.stops).toBeGreaterThan(0);
     expect(screen.queryByTestId('playback-progress')).toBeNull();
   });
 
-  it('clears the playing state when the audio reaches the end on its own', async () => {
+  // The clock ends the run, not the audio. A run with sound switched off has
+  // no audio to end it, and the clock is already what the bar and chips follow.
+  it('ends the run when the clock reaches the end, not when the audio does', async () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('signal-button'));
 
+    // Resolving the audio early changes nothing: SOS is 27 units, 3.24s.
     await act(async () => {
       audio.finish();
       await Promise.resolve();
     });
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
 
+    await advance(3300);
     expect(screen.queryByTestId('playback-progress')).toBeNull();
     expect(screen.queryByTestId('playing-badge')).toBeNull();
   });
@@ -303,7 +314,7 @@ describe('TranslatorScreen — audio playback', () => {
   it('stops when the message is edited mid-playback', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
@@ -316,7 +327,7 @@ describe('TranslatorScreen — audio playback', () => {
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
     fireEvent.changeText(screen.getByTestId('translator-input'), '');
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.played).toHaveLength(0);
     expect(screen.queryByTestId('playback-progress')).toBeNull();
@@ -379,7 +390,7 @@ describe('TranslatorScreen — characters Morse cannot carry', () => {
     fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
     expect(screen.getByTestId('unsupported-notice')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
   });
@@ -454,7 +465,7 @@ describe('TranslatorScreen — hearing one letter', () => {
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
     expect(audio.played).toHaveLength(1);
 
     fireEvent.press(screen.getByLabelText('morse-letter-O'));
@@ -469,7 +480,7 @@ describe('TranslatorScreen — hearing one letter', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
@@ -482,20 +493,165 @@ describe('TranslatorScreen — hearing one letter', () => {
     ).toBeOnTheScreen();
   });
 
-  it('takes taps again once the message has finished', async () => {
+  it('takes taps again once the message is stopped', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('play-audio'));
-    await act(async () => {
-      audio.finish();
-      await Promise.resolve();
-    });
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
 
     fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
-    expect(audio.played).toHaveLength(2);
     expect(Array.from(audio.played[1] ?? [])).toEqual(Array.from(wavFor('O')));
+  });
+});
+
+describe('TranslatorScreen — output channels', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const advance = async (ms: number): Promise<void> => {
+    await act(async () => {
+      jest.advanceTimersByTime(ms);
+      await Promise.resolve();
+    });
+  };
+
+  const typeE = (): void => {
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+  };
+
+  it('leaves the torch alone when light is off', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    typeE();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(60);
+
+    expect(ports.calls.torchEnabled).toEqual([]);
+  });
+
+  // E is one dot: on at the start, off one unit (120ms) later.
+  it('carries the message on the torch when light is on', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    typeE();
+    fireEvent.press(screen.getByTestId('channel-light'));
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(30);
+    expect(ports.calls.torchEnabled).toEqual([true]);
+
+    await advance(300);
+    expect(ports.calls.torchEnabled).toEqual([true, false]);
+  });
+
+  it('never leaves the torch on when the run is stopped part-way', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-light'));
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(30);
+    expect(ports.calls.torchEnabled).toEqual([true]);
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    expect(ports.calls.torchEnabled).toEqual([true, false]);
+  });
+
+  // The promise of one run, several channels: the light joins what is already
+  // going out rather than starting a second run beside it.
+  it('lets the light join a message already in progress', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(200);
+    expect(ports.calls.torchEnabled).toEqual([]);
+
+    fireEvent.press(screen.getByTestId('channel-light'));
+    await advance(60);
+    expect(ports.calls.torchEnabled.length).toBeGreaterThan(0);
+  });
+
+  it('stops the sound when its channel is switched off mid-message', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    expect(audio.played).toHaveLength(1);
+
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    expect(audio.stops).toBeGreaterThan(0);
+
+    // The run itself carries on — the message is still being transmitted, just
+    // not audibly.
+    await advance(60);
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+  });
+
+  it('plays only what is left when sound is switched back on mid-message', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    await advance(1000);
+    fireEvent.press(screen.getByTestId('channel-sound'));
+
+    expect(audio.played).toHaveLength(2);
+    // The tail is shorter than the whole message, because it starts part-way.
+    expect(audio.played[1]?.length ?? 0).toBeLessThan(audio.played[0]?.length ?? 0);
+  });
+
+  it('runs on the torch alone, with no sound at all', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    typeE();
+
+    fireEvent.press(screen.getByTestId('channel-light'));
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(audio.played).toHaveLength(0);
+    await advance(30);
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+
+    // And the clock still ends it, with no audio to do so.
+    await advance(300);
+    expect(screen.queryByTestId('playback-progress')).toBeNull();
+  });
+
+  it('has nothing to signal with when every channel is off', () => {
+    renderWithProviders(<TranslatorScreen />);
+    typeE();
+
+    fireEvent.press(screen.getByTestId('channel-sound'));
+
+    expect(screen.getByTestId('signal-button')).toBeDisabled();
+  });
+
+  it('has nothing to signal when there is no message', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), '');
+
+    expect(screen.getByTestId('signal-button')).toBeDisabled();
+  });
+
+  it('offers the button again as soon as a channel comes back', () => {
+    renderWithProviders(<TranslatorScreen />);
+    typeE();
+
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    expect(screen.getByTestId('signal-button')).toBeDisabled();
+
+    fireEvent.press(screen.getByTestId('channel-light'));
+    expect(screen.getByTestId('signal-button')).not.toBeDisabled();
   });
 });

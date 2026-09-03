@@ -5,7 +5,10 @@ import {
   DEFAULT_PLAYBACK_UNIT_MS,
   clampPlaybackUnitMs,
   letterSpans,
+  signalAt,
+  signalChanges,
   soundingIndexAt,
+  timelineFrom,
   toTimeline,
   totalMs,
 } from '@/core/domain/timeline';
@@ -16,12 +19,23 @@ import { renderWav } from '@/core/domain/tone';
  *
  * The clock is separate from the audio on purpose: expo-audio reports its
  * position only in status callbacks, at a rate this app does not control, and
- * a progress bar that advances in visible jumps looks broken. Both are driven
- * from the same rendered timeline, so they cannot drift.
+ * a progress bar that advances in visible jumps looks broken.
  */
 const TICK_MS = 50;
 
-/** Where playback is, and how to drive it. */
+/**
+ * How often the on/off outputs are driven.
+ *
+ * Much finer than the progress tick, because this one has to be accurate: a
+ * dot is 120ms at the default speed, so 50ms of slop would be a third of it.
+ * It touches no React state, so it costs a comparison and nothing else.
+ */
+const DRIVE_MS = 10;
+
+/** The ways a message can go out. Screen and vibration are designed, not built. */
+export type OutputChannel = 'sound' | 'light';
+
+/** Where playback is, how to drive it, and which outputs are carrying it. */
 export type MorsePlayback = Readonly<{
   playing: boolean;
   /** Letter the playhead is on, or null when nothing is playing. */
@@ -31,72 +45,152 @@ export type MorsePlayback = Readonly<{
   elapsedMs: number;
   /** How long the whole message takes at the current speed. */
   durationMs: number;
+  /** Which outputs are switched on. */
+  channels: Readonly<Record<OutputChannel, boolean>>;
+  /** Switches one output on or off, taking effect immediately. */
+  toggleChannel: (channel: OutputChannel) => void;
+  /** False when there is nothing to play, or nothing to play it on. */
+  canPlay: boolean;
   play: () => void;
   stop: () => void;
   /**
    * Plays one letter on its own, as a preview. Reports no progress: a letter
    * is at most eleven units, and a bar that appeared and vanished inside a
    * second would read as a glitch rather than as feedback.
+   *
+   * Ignored while a message is playing.
    */
   playLetter: (index: number) => void;
 }>;
 
 /**
- * Plays a message as sound and reports where the playhead is.
+ * Plays a message across several outputs at once, and reports where the
+ * playhead is.
  *
- * Renders the audio from the domain and hands the bytes to the port, so this
- * hook knows nothing about expo-audio, files or codecs.
+ * There is ONE run. The channels choose which ways it goes out, and they are
+ * live — switching one on mid-message joins the run already in progress rather
+ * than starting a second one beside it, which would transmit the same message
+ * twice, out of step.
  */
 export function useMorsePlayback(
   message: MorseMessage,
   unitMs: number = DEFAULT_PLAYBACK_UNIT_MS,
 ): MorsePlayback {
-  const { audio } = usePorts();
+  const { audio, torch } = usePorts();
   const unit = clampPlaybackUnitMs(unitMs);
 
   const timeline = useMemo(() => toTimeline(message), [message]);
   const spans = useMemo(() => letterSpans(message), [message]);
+  const changes = useMemo(() => signalChanges(timeline), [timeline]);
   const durationMs = totalMs(timeline, unit);
 
   const [elapsedMs, setElapsedMs] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const clearTicker = useCallback((): void => {
-    if (ticker.current !== null) {
-      clearInterval(ticker.current);
-      ticker.current = null;
-    }
+  // Sound on, Light off: switching Light on is what raises the camera
+  // permission, and a new user's first press should not open a system dialog.
+  const [channels, setChannels] = useState<Record<OutputChannel, boolean>>({
+    sound: true,
+    light: false,
+  });
+
+  const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
+  const driver = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAt = useRef(0);
+  /** Read by the driver, which must see a toggle without being restarted. */
+  const live = useRef<Record<OutputChannel, boolean>>(channels);
+  /** What the torch was last told, so it is not told the same thing repeatedly. */
+  const lit = useRef(false);
+
+  const elapsedUnits = useCallback(
+    (): number => (Date.now() - startedAt.current) / unit,
+    [unit],
+  );
+
+  const darken = useCallback((): void => {
+    if (!lit.current) return;
+    lit.current = false;
+    void torch.setEnabled(false);
+  }, [torch]);
+
+  const clearTimers = useCallback((): void => {
+    if (ticker.current !== null) clearInterval(ticker.current);
+    if (driver.current !== null) clearInterval(driver.current);
+    ticker.current = null;
+    driver.current = null;
   }, []);
 
-  const stop = useCallback((): void => {
-    clearTicker();
+  /** Ends the run and puts every output back to rest. */
+  const finish = useCallback((): void => {
+    clearTimers();
+    darken();
+    void audio.stop();
     setPlaying(false);
     setElapsedMs(0);
-    void audio.stop();
-  }, [audio, clearTicker]);
+  }, [audio, clearTimers, darken]);
 
   const play = useCallback((): void => {
-    // Nothing to play is not an error, and starting anyway would leave a
-    // progress bar sitting at zero with no way back.
+    // Nothing to play, or nothing to play it on. Running anyway would animate
+    // a progress bar over an output that is switched off.
     if (timeline.totalUnits === 0) return;
+    if (!live.current.sound && !live.current.light) return;
 
-    clearTicker();
-    const startedAt = Date.now();
+    clearTimers();
+    startedAt.current = Date.now();
     setPlaying(true);
     setElapsedMs(0);
+
+    // The clock ends the run, not the audio. A muted run has no audio to end
+    // it, and the clock is already what the progress bar and the chips follow.
     ticker.current = setInterval(() => {
-      setElapsedMs(Math.min(durationMs, Date.now() - startedAt));
+      const elapsed = Date.now() - startedAt.current;
+      if (elapsed >= durationMs) finish();
+      else setElapsedMs(elapsed);
     }, TICK_MS);
 
-    // The port resolves when playback finishes OR is stopped, so this one
-    // continuation covers both endings.
-    void audio.play(renderWav(timeline, { unitMs: unit })).then(() => {
-      clearTicker();
-      setPlaying(false);
-      setElapsedMs(0);
-    });
-  }, [audio, clearTicker, durationMs, timeline, unit]);
+    driver.current = setInterval(() => {
+      const wanted = live.current.light && signalAt(changes, elapsedUnits());
+      if (wanted === lit.current) return;
+      lit.current = wanted;
+      void torch.setEnabled(wanted);
+    }, DRIVE_MS);
+
+    if (live.current.sound) {
+      void audio.play(renderWav(timeline, { unitMs: unit }));
+    }
+  }, [
+    audio,
+    changes,
+    clearTimers,
+    durationMs,
+    elapsedUnits,
+    finish,
+    timeline,
+    torch,
+    unit,
+  ]);
+
+  const toggleChannel = useCallback(
+    (channel: OutputChannel): void => {
+      const next = { ...live.current, [channel]: !live.current[channel] };
+      live.current = next;
+      setChannels(next);
+
+      // The light channel needs nothing here — the driver reads `live` on its
+      // next pass and catches up on its own, whichever way it was switched.
+      if (!playing || channel !== 'sound') return;
+
+      if (next.sound) {
+        // Join where the others already are, rather than starting again.
+        void audio.play(
+          renderWav(timelineFrom(timeline, elapsedUnits()), { unitMs: unit }),
+        );
+      } else {
+        void audio.stop();
+      }
+    },
+    [audio, elapsedUnits, playing, timeline, unit],
+  );
 
   const playLetter = useCallback(
     (index: number): void => {
@@ -114,16 +208,17 @@ export function useMorsePlayback(
   );
 
   // Editing the text mid-playback, or leaving the screen, must not leave a
-  // clock running over a message that is no longer on screen — the audio was
-  // rendered from the old one and cannot be edited in flight.
+  // clock running — or, worse, the torch switched on — over a message that is
+  // no longer on screen.
   useEffect(() => {
     return () => {
-      clearTicker();
+      clearTimers();
+      darken();
       void audio.stop();
       setPlaying(false);
       setElapsedMs(0);
     };
-  }, [message, audio, clearTicker]);
+  }, [message, audio, clearTimers, darken]);
 
   return {
     playing,
@@ -131,8 +226,11 @@ export function useMorsePlayback(
     progress: durationMs === 0 ? 0 : elapsedMs / durationMs,
     elapsedMs,
     durationMs,
+    channels,
+    toggleChannel,
+    canPlay: timeline.totalUnits > 0 && (channels.sound || channels.light),
     play,
-    stop,
+    stop: finish,
     playLetter,
   };
 }

@@ -7,59 +7,80 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'translator-screen'
 
-# Type a long message rather than using the seeded sample. Two reasons: the
-# sample follows the device locale, and at the 120ms default it lasts about
-# eleven seconds — less than this flow takes to reach the assertions below, so
-# playback ended underneath them. This one runs for roughly half a minute.
+# A long message rather than the seeded sample: the sample follows the device
+# locale, and at the 120ms default it lasts about eleven seconds — less than
+# this flow takes. This one runs for roughly half a minute.
+#
+# Each section below STARTS ITS OWN RUN and stops it. Letting many assertions
+# ride one run is what made this flaky: the message ended underneath them, and
+# a check that had passed moments earlier began to fail.
 - tapOn:
     id: 'translator-input'
 - eraseText
-- inputText: 'SOS SOS SOS SOS SOS SOS'
+- inputText: 'SOS SOS SOS SOS SOS SOS SOS SOS'
 - hideKeyboard
 
+# --- what only exists while a message is running ---
 - tapOn:
-    id: 'play-audio'
-
-# The three things that only exist while a message is playing.
+    id: 'signal-button'
 - assertVisible:
     id: 'playing-badge'
 - assertVisible:
     id: 'playback-progress'
 - assertVisible:
     id: 'playback-clock'
+- tapOn:
+    id: 'signal-button'
+- assertNotVisible:
+    id: 'playback-progress'
+- assertNotVisible:
+    id: 'playing-badge'
 
-# Tapping a letter while the message runs is ignored. The port plays one thing
-# at a time, so a preview would replace the message mid-transmission.
+# --- tapping a letter mid-message is ignored ---
+# The port plays one thing at a time, so a preview would replace the message.
+- tapOn:
+    id: 'signal-button'
 - tapOn:
     id: 'morse-letter'
     index: 0
 - assertVisible:
-    id: 'playing-badge'
+    id: 'playback-progress'
+- tapOn:
+    id: 'signal-button'
+
+# --- one run, several channels ---
+# Light joins the message already in progress rather than starting a second
+# one beside it.
+- tapOn:
+    id: 'signal-button'
+- tapOn:
+    id: 'channel-light'
 - assertVisible:
     id: 'playback-progress'
-
-# Pressing it again stops: the same control, now showing a stop glyph.
 - tapOn:
-    id: 'play-audio'
+    id: 'signal-button'
 - assertNotVisible:
     id: 'playback-progress'
-- assertNotVisible:
-    id: 'playing-badge'
 
-# Now that nothing is running, a letter tap previews just that letter — the
-# card has always said "tap a letter to hear it".
+# --- a letter preview, now that nothing is running ---
 - tapOn:
     id: 'morse-letter'
     index: 1
-
-# A preview reports no progress. One letter is at most eleven units, and a bar
-# that appeared and vanished inside a second would read as a glitch.
 - assertNotVisible:
     id: 'playback-progress'
 - assertNotVisible:
     id: 'playing-badge'
 
-# The Morse output survives all of it rather than being replaced.
+# --- nothing switched on means nothing to signal with ---
+- tapOn:
+    id: 'channel-light'
+- tapOn:
+    id: 'channel-sound'
+- assertVisible:
+    id: 'signal-button'
+    enabled: false
+
+# The output survives all of it rather than being replaced.
 - assertVisible:
     id: 'morse-output'
 - assertVisible:

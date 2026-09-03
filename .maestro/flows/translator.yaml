@@ -43,5 +43,9 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'unsupported-notice'
 
+# The torch is a CHANNEL now, not a switch you leave on. Turning it on arms
+# the light for the next run; it does not light anything by itself.
 - tapOn:
-    id: 'flash-button'
+    id: 'channel-light'
+- assertVisible:
+    id: 'signal-button'

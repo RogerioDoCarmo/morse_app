@@ -5,6 +5,7 @@ import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { IconButton } from '@/components/IconButton';
 import { MorseText } from '@/components/MorseText';
+import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { TabBar } from '@/components/TabBar';
 import {
@@ -47,7 +48,7 @@ function clock(ms: number): string {
  */
 export function TranslatorScreen(): React.JSX.Element {
   const { t, locale } = useLocale();
-  const { torch, tts } = usePorts();
+  const { tts } = usePorts();
   const insets = useSafeAreaInsets();
 
   // Seeded from the locale so the sample never contradicts the label above it,
@@ -58,7 +59,6 @@ export function TranslatorScreen(): React.JSX.Element {
   const [text, setText] = useState(sample);
   const [morseInput, setMorseInput] = useState(() => encodeToString(sample));
   const [picked, setPicked] = useState<number | null>(null);
-  const [flashing, setFlashing] = useState(false);
 
   const toMorse = direction === 'toMorse';
   const decoded = useMemo(() => decode(morseInput), [morseInput]);
@@ -77,12 +77,6 @@ export function TranslatorScreen(): React.JSX.Element {
     { value: 'toMorse', label: t('translator.toMorse') },
     { value: 'toText', label: t('translator.toText') },
   ];
-
-  const toggleFlash = useCallback(async (): Promise<void> => {
-    const next = !flashing;
-    setFlashing(next);
-    await torch.setEnabled(next);
-  }, [flashing, torch]);
 
   // The card has always said "tap a letter to hear it". This is what makes
   // that true; selecting without playing left the hint promising something the
@@ -103,6 +97,37 @@ export function TranslatorScreen(): React.JSX.Element {
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
   }, [decoded, locale, tts]);
+
+  // Screen and vibration are designed and drawn but not built. They carry no
+  // handler, which is what greys them out — better than a cell that answers a
+  // press with nothing.
+  const channelCells: readonly ChannelCell[] = [
+    {
+      channel: 'sound',
+      icon: 'volume',
+      label: t('translator.channelSound'),
+      on: playback.channels.sound,
+      onToggle: () => {
+        playback.toggleChannel('sound');
+      },
+    },
+    {
+      channel: 'light',
+      icon: 'zap',
+      label: t('translator.channelLight'),
+      on: playback.channels.light,
+      onToggle: () => {
+        playback.toggleChannel('light');
+      },
+    },
+    {
+      channel: 'screen',
+      icon: 'screen',
+      label: t('translator.channelScreen'),
+      on: false,
+    },
+    { channel: 'buzz', icon: 'vibrate', label: t('translator.channelBuzz'), on: false },
+  ];
 
   // One slot, three things it can say — and they rank. What is happening now
   // beats a warning, and a warning beats a standing hint.
@@ -258,26 +283,44 @@ export function TranslatorScreen(): React.JSX.Element {
           </View>
         </Card>
 
+        <OutputChannels cells={channelCells} />
+
         <View style={styles.actions}>
           <Pressable
-            testID="flash-button"
+            testID="signal-button"
             accessibilityRole="button"
-            accessibilityLabel="flash-button"
-            accessibilityState={{ selected: flashing }}
-            onPress={() => {
-              void toggleFlash();
+            accessibilityLabel="signal-button"
+            accessibilityState={{
+              selected: playback.playing,
+              disabled: !playback.playing && !playback.canPlay,
             }}
-            style={({ pressed }) => [styles.flash, pressed && styles.flashPressed]}
-          >
-            <Icon name="zap" size={18} color={theme.color.onInk} />
-            <Text style={styles.flashLabel}>{t('translator.flash')}</Text>
-          </Pressable>
-          <IconButton
-            name={playback.playing ? 'stop' : 'volume'}
-            label="play-audio"
-            active={playback.playing}
+            disabled={!playback.playing && !playback.canPlay}
             onPress={playback.playing ? playback.stop : playback.play}
-          />
+            style={({ pressed }) => [
+              styles.signal,
+              playback.playing && styles.signalPlaying,
+              !playback.playing && !playback.canPlay && styles.signalBlocked,
+              pressed && styles.signalPressed,
+            ]}
+          >
+            <Icon
+              name={playback.playing ? 'stop' : 'play'}
+              size={17}
+              color={
+                !playback.playing && !playback.canPlay
+                  ? theme.color.faint
+                  : theme.color.onInk
+              }
+            />
+            <Text
+              style={[
+                styles.signalLabel,
+                !playback.playing && !playback.canPlay && styles.signalLabelBlocked,
+              ]}
+            >
+              {playback.playing ? t('translator.stop') : t('translator.signal')}
+            </Text>
+          </Pressable>
           <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
         </View>
       </View>
@@ -395,7 +438,7 @@ const styles = StyleSheet.create({
   clock: { ...theme.type.mono, color: theme.color.muted, flexShrink: 0 },
   mono: { ...theme.type.mono, color: theme.color.muted },
   actions: { flexDirection: 'row', gap: 10, paddingBottom: theme.spacing.md },
-  flash: {
+  signal: {
     flex: 1,
     height: 54,
     flexDirection: 'row',
@@ -405,6 +448,11 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.chip,
     backgroundColor: theme.color.ink,
   },
-  flashPressed: { opacity: 0.85 },
-  flashLabel: { ...theme.type.action, color: theme.color.onInk },
+  signalPlaying: { backgroundColor: theme.color.accent },
+  // Nothing switched on: there is nothing for it to drive, and saying so is
+  // better than animating a progress bar over silence.
+  signalBlocked: { backgroundColor: theme.color.track },
+  signalPressed: { opacity: 0.85 },
+  signalLabel: { ...theme.type.action, color: theme.color.onInk },
+  signalLabelBlocked: { color: theme.color.faint },
 });

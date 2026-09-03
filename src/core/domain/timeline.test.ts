@@ -7,6 +7,9 @@ import {
   PLAYBACK_UNITS,
   clampPlaybackUnitMs,
   letterSpans,
+  signalAt,
+  signalChanges,
+  timelineFrom,
   soundingIndexAt,
   toTimeline,
   toTimedSegments,
@@ -320,5 +323,117 @@ describe('letter numbering agrees between the message and the timeline', () => {
     expect(
       letterSpans(message).map((span) => letterAt(message, span.index)?.char),
     ).toEqual(['A', 'B', 'C', 'D']);
+  });
+});
+
+describe('signalChanges', () => {
+  it('has nothing to change when there is nothing to play', () => {
+    expect(signalChanges(toTimeline(encode('')))).toEqual([]);
+  });
+
+  it('switches on at the start and off at the end of a single dot', () => {
+    expect(signalChanges(toTimeline(encode('E')))).toEqual([
+      { atUnit: 0, on: true },
+      { atUnit: 1, on: false },
+    ]);
+  });
+
+  it('flips at every segment boundary', () => {
+    // A is dot(1) gap(1) dash(3).
+    expect(signalChanges(toTimeline(encode('A')))).toEqual([
+      { atUnit: 0, on: true },
+      { atUnit: 1, on: false },
+      { atUnit: 2, on: true },
+      { atUnit: 5, on: false },
+    ]);
+  });
+
+  // Nothing may be left switched on when the message ends.
+  it('always ends switched off', () => {
+    const changes = signalChanges(toTimeline(encode('HELLO WORLD')));
+    expect(changes[changes.length - 1]).toEqual({ atUnit: 111, on: false });
+  });
+
+  it('alternates, so no state is ever set twice running', () => {
+    const flags = signalChanges(toTimeline(encode('SOS'))).map((c) => c.on);
+    expect(flags.slice(1)).toEqual(flags.slice(0, -1).map((on) => !on));
+  });
+});
+
+describe('timelineFrom', () => {
+  it('returns the whole message from the very beginning', () => {
+    const whole = toTimeline(encode('A'));
+    expect(timelineFrom(whole, 0)).toEqual(whole);
+  });
+
+  it('returns nothing once the message is over', () => {
+    expect(timelineFrom(toTimeline(encode('A')), 5)).toEqual({
+      segments: [],
+      totalUnits: 0,
+    });
+  });
+
+  it('drops the segments already played', () => {
+    // A is on(1) off(1) on(3); from unit 2 only the dash is left.
+    expect(timelineFrom(toTimeline(encode('A')), 2)).toEqual({
+      segments: [{ on: true, units: 3 }],
+      totalUnits: 3,
+    });
+  });
+
+  // Joining mid-mark hears the rest of it, which is what the other outputs
+  // are doing at that moment.
+  it('truncates a mark that is already under way', () => {
+    expect(timelineFrom(toTimeline(encode('T')), 1)).toEqual({
+      segments: [{ on: true, units: 2 }],
+      totalUnits: 2,
+    });
+  });
+
+  it('truncates a silence that is already under way', () => {
+    // From 1.5: half a unit of the gap, then the dash.
+    expect(timelineFrom(toTimeline(encode('A')), 1.5)).toEqual({
+      segments: [
+        { on: false, units: 0.5 },
+        { on: true, units: 3 },
+      ],
+      totalUnits: 3.5,
+    });
+  });
+
+  it('leaves the remaining message the length it should be', () => {
+    const whole = toTimeline(encode('HELLO WORLD'));
+    expect(timelineFrom(whole, 40).totalUnits).toBe(whole.totalUnits - 40);
+  });
+});
+
+describe('signalAt', () => {
+  // A is on(1) off(1) on(3).
+  const changes = signalChanges(toTimeline(encode('A')));
+
+  it('is off before the message starts', () => {
+    expect(signalAt(changes, -1)).toBe(false);
+  });
+
+  it('is on the instant the first mark begins', () => {
+    expect(signalAt(changes, 0)).toBe(true);
+  });
+
+  it('follows the marks and the silences between them', () => {
+    expect(signalAt(changes, 0.5)).toBe(true);
+    expect(signalAt(changes, 1)).toBe(false);
+    expect(signalAt(changes, 1.9)).toBe(false);
+    expect(signalAt(changes, 2)).toBe(true);
+    expect(signalAt(changes, 4.9)).toBe(true);
+  });
+
+  // Nothing may be left switched on after the end.
+  it('is off once the message is over', () => {
+    expect(signalAt(changes, 5)).toBe(false);
+    expect(signalAt(changes, 500)).toBe(false);
+  });
+
+  it('is off when there is nothing to play', () => {
+    expect(signalAt([], 3)).toBe(false);
   });
 });
