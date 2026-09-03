@@ -21,6 +21,7 @@ export const en: TranslationMap = {
   'translator.copy': 'Copy',
   'translator.play': 'Play',
   'translator.playing': 'Playing',
+  'translator.unsupported': 'No code for: {{chars}}',
   'settings.title': 'Settings',
   'settings.cutoff': 'Dot / dash cut-off',
   'settings.cutoffHint':

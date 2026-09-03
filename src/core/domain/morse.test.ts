@@ -5,6 +5,7 @@ import {
   encode,
   encodeToString,
   normaliseForMorse,
+  unsupportedCharacters,
 } from './morse';
 
 describe('normaliseForMorse', () => {
@@ -127,5 +128,62 @@ describe('round trip', () => {
     const text = 'Ação, você está?';
     expect(decode(encodeToString(text))).toBe(normaliseForMorse(text));
     expect(normaliseForMorse(text)).not.toBe(text.toUpperCase());
+  });
+});
+
+describe('unsupportedCharacters', () => {
+  it('finds nothing to complain about in encodable text', () => {
+    expect(unsupportedCharacters('Hello world')).toEqual([]);
+    expect(unsupportedCharacters('SOS 123 -.!?')).toEqual([]);
+  });
+
+  it('reports what the encoder would throw away', () => {
+    expect(unsupportedCharacters('Hi 日本')).toEqual(['日', '本']);
+    expect(unsupportedCharacters('a#b')).toEqual(['#']);
+  });
+
+  it('reports each character once, in the order it first appears', () => {
+    expect(unsupportedCharacters('#a~b#c~')).toEqual(['#', '~']);
+  });
+
+  // Folding is a substitution the recipient can read, not a loss.
+  it('says nothing about diacritics that fold onto a letter', () => {
+    expect(unsupportedCharacters('Ação')).toEqual([]);
+    expect(unsupportedCharacters('àéîõü')).toEqual([]);
+  });
+
+  it('says nothing about the three accents with codes of their own', () => {
+    expect(unsupportedCharacters('ÇÉÑ')).toEqual([]);
+  });
+
+  // ß uppercases to SS, so nothing is lost — reporting it would be a lie.
+  it('follows the encoder through case folding', () => {
+    expect(unsupportedCharacters('straße')).toEqual([]);
+  });
+
+  it('never complains about whitespace, which is collapsed rather than lost', () => {
+    expect(unsupportedCharacters('  \t\n  ')).toEqual([]);
+    expect(unsupportedCharacters('a\tb')).toEqual([]);
+  });
+
+  it('reports a character as it was typed, not as it was folded', () => {
+    // Uppercased, because that is the form the encoder works in.
+    expect(unsupportedCharacters('日')).toEqual(['日']);
+  });
+
+  it('handles characters outside the basic plane as single characters', () => {
+    expect(unsupportedCharacters('😀x😀')).toEqual(['😀']);
+  });
+
+  // A combining mark with nothing to combine with folds away to nothing at all.
+  // The encoder drops it, so it is a loss and must be reported like any other.
+  it('reports a stray combining mark, which folds away to nothing', () => {
+    expect(unsupportedCharacters('\u0301')).toEqual(['\u0301']);
+    // Attached to a letter it is not a loss — the letter survives.
+    expect(unsupportedCharacters('e\u0301')).toEqual([]);
+  });
+
+  it('finds nothing in an empty string', () => {
+    expect(unsupportedCharacters('')).toEqual([]);
   });
 });

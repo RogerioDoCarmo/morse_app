@@ -20,6 +20,7 @@ export const es: TranslationMap = {
   'translator.copy': 'Copiar',
   'translator.play': 'Reproducir',
   'translator.playing': 'Reproduciendo',
+  'translator.unsupported': 'Sin código: {{chars}}',
   'settings.title': 'Ajustes',
   'settings.cutoff': 'Umbral de punto / raya',
   'settings.cutoffHint':

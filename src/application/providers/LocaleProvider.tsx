@@ -14,8 +14,12 @@ type LocaleContextValue = Readonly<{
   locale: AppLocale;
   /** Switches the interface language. */
   setLocale: (locale: AppLocale) => void;
-  /** Looks a string up in the current locale. */
-  t: (key: TranslationKey) => string;
+  /**
+   * Looks a string up in the current locale, filling any `{{name}}` holes from
+   * `values`. A hole with no value is left as it is rather than blanked, so a
+   * missing one shows up in the UI instead of vanishing.
+   */
+  t: (key: TranslationKey, values?: Readonly<Record<string, string>>) => string;
 }>;
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -40,7 +44,14 @@ export function LocaleProvider({
     () => ({
       locale,
       setLocale,
-      t: (key) => TRANSLATIONS[locale][key],
+      t: (key, values) => {
+        const value = TRANSLATIONS[locale][key];
+        if (values === undefined) return value;
+        return value.replace(
+          /\{\{(\w+)\}\}/gu,
+          (hole, name: string) => values[name] ?? hole,
+        );
+      },
     }),
     [locale],
   );

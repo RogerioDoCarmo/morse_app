@@ -7,7 +7,12 @@ import { IconButton } from '@/components/IconButton';
 import { MorseText } from '@/components/MorseText';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { TabBar } from '@/components/TabBar';
-import { decode, encode, encodeToString } from '@/core/domain/morse';
+import {
+  decode,
+  encode,
+  encodeToString,
+  unsupportedCharacters,
+} from '@/core/domain/morse';
 import type { AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useMorsePlayback } from '@/application/useMorsePlayback';
@@ -60,6 +65,10 @@ export function TranslatorScreen(): React.JSX.Element {
   const source = toMorse ? text : decoded;
   const message = useMemo(() => encode(source), [source]);
   const morse = useMemo(() => encodeToString(source), [source]);
+  // What the encoder will throw away. Dropping it is right — there is no code
+  // to send — but dropping it without saying so leaves the sender believing a
+  // message went out whole.
+  const unsupported = useMemo(() => unsupportedCharacters(source), [source]);
   const playback = useMorsePlayback(message);
   // One decimal is enough to look continuous and keeps the style object stable.
   const progressPercent = Math.round(playback.progress * 1000) / 10;
@@ -78,6 +87,23 @@ export function TranslatorScreen(): React.JSX.Element {
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
   }, [decoded, locale, tts]);
+
+  // One slot, three things it can say — and they rank. What is happening now
+  // beats a warning, and a warning beats a standing hint.
+  const headerNote = playback.playing ? (
+    <View style={styles.playingBadge} testID="playing-badge">
+      <Icon name="volume" size={13} color={theme.color.accent} strokeWidth={2.2} />
+      <Text style={styles.playingLabel}>{t('translator.playing')}</Text>
+    </View>
+  ) : unsupported.length > 0 ? (
+    <Text style={styles.unsupported} numberOfLines={2} testID="unsupported-notice">
+      {t('translator.unsupported', { chars: unsupported.join(' ') })}
+    </Text>
+  ) : (
+    <Text style={styles.hint} numberOfLines={2}>
+      {t('translator.hint')}
+    </Text>
+  );
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]} testID="translator-screen">
@@ -155,22 +181,7 @@ export function TranslatorScreen(): React.JSX.Element {
             <Text style={styles.label}>
               {toMorse ? t('translator.morseLabel') : t('translator.sourceLabel')}
             </Text>
-            {toMorse && playback.playing ? (
-              <View style={styles.playingBadge} testID="playing-badge">
-                <Icon
-                  name="volume"
-                  size={13}
-                  color={theme.color.accent}
-                  strokeWidth={2.2}
-                />
-                <Text style={styles.playingLabel}>{t('translator.playing')}</Text>
-              </View>
-            ) : null}
-            {toMorse && !playback.playing ? (
-              <Text style={styles.hint} numberOfLines={2}>
-                {t('translator.hint')}
-              </Text>
-            ) : null}
+            {toMorse ? headerNote : null}
           </View>
 
           {toMorse ? (
@@ -343,6 +354,14 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   playingBadge: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+  // Ink rather than the faint hint colour it replaces: this is the one thing in
+  // the row the user has to notice.
+  unsupported: {
+    ...theme.type.label,
+    color: theme.color.ink,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
   playingLabel: { ...theme.type.label, color: theme.color.accent },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
   track: {

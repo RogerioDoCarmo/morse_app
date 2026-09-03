@@ -319,3 +319,73 @@ describe('TranslatorScreen — audio playback', () => {
     expect(screen.queryByTestId('playback-progress')).toBeNull();
   });
 });
+
+describe('TranslatorScreen — characters Morse cannot carry', () => {
+  it('says nothing when everything typed can be encoded', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
+  });
+
+  // The defect this exists for: these characters are dropped, and were dropped
+  // without a word to the sender.
+  it('names the characters it had to drop', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
+    expect(screen.getByTestId('unsupported-notice')).toHaveTextContent('No code for: #');
+    // And the rest of the message still encodes.
+    expect(screen.getByTestId('morse-string')).toHaveTextContent('.... ..');
+  });
+
+  it('lists each one once, however often it was typed', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), '#a~b#c~');
+    expect(screen.getByTestId('unsupported-notice')).toHaveTextContent(
+      'No code for: # ~',
+    );
+  });
+
+  it('says nothing about accents it folds onto a letter', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'AÇÃO');
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
+  });
+
+  it('replaces the hint, and gives it back once the text is encodable', () => {
+    renderWithProviders(<TranslatorScreen />);
+    const input = screen.getByTestId('translator-input');
+
+    fireEvent.changeText(input, '#');
+    expect(screen.getByTestId('unsupported-notice')).toBeOnTheScreen();
+
+    fireEvent.changeText(input, 'OK');
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
+  });
+
+  it('warns in the interface language', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    fireEvent.changeText(screen.getByTestId('translator-input'), '#');
+    expect(screen.getByTestId('unsupported-notice')).toHaveTextContent('Sin código: #');
+  });
+
+  // What is happening now outranks a warning about what was typed.
+  it('yields the slot to playback while a message is playing', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
+    expect(screen.getByTestId('unsupported-notice')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
+    expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
+  });
+
+  // Morse in, text out: an untranslatable token already shows as the
+  // undecodable glyph, which is a different signal on a different pane.
+  it('stays out of the way in the other direction', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('segment-toText'));
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
+  });
+});
