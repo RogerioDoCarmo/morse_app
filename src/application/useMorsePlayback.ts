@@ -81,7 +81,7 @@ export function useMorsePlayback(
   message: MorseMessage,
   unitMs: number = DEFAULT_PLAYBACK_UNIT_MS,
 ): MorsePlayback {
-  const { audio, torch } = usePorts();
+  const { audio, keepAwake, torch } = usePorts();
   const unit = clampPlaybackUnitMs(unitMs);
 
   const timeline = useMemo(() => toTimeline(message), [message]);
@@ -110,10 +110,25 @@ export function useMorsePlayback(
   const lit = useRef(false);
   /** The same, for the on-screen surface — this one guards a re-render. */
   const surface = useRef(false);
+  /** Whether the screen is being held awake, so it is held and freed once. */
+  const held = useRef(false);
 
   const elapsedUnits = useCallback(
     (): number => (Date.now() - startedAt.current) / unit,
     [unit],
+  );
+
+  /**
+   * Holds the screen awake, or lets it go. Idempotent, so the cleanup effect
+   * can run on every keystroke without a native call each time.
+   */
+  const keepScreenOn = useCallback(
+    (on: boolean): void => {
+      if (on === held.current) return;
+      held.current = on;
+      void (on ? keepAwake.activate() : keepAwake.release());
+    },
+    [keepAwake],
   );
 
   /** Puts every on/off output back to dark. Safe to call twice. */
@@ -140,9 +155,10 @@ export function useMorsePlayback(
     clearTimers();
     darken();
     void audio.stop();
+    keepScreenOn(false);
     setPlaying(false);
     setElapsedMs(0);
-  }, [audio, clearTimers, darken]);
+  }, [audio, clearTimers, darken, keepScreenOn]);
 
   const play = useCallback((): void => {
     // Nothing to play, or nothing to play it on. Running anyway would animate
@@ -154,6 +170,11 @@ export function useMorsePlayback(
     startedAt.current = Date.now();
     setPlaying(true);
     setElapsedMs(0);
+
+    // A message is minutes long at slow speeds, and the idle timer sees no
+    // touches for the whole of it. Letting the screen dim stops the screen
+    // channel dead, and on some devices the torch with it.
+    keepScreenOn(true);
 
     // The clock ends the run, not the audio. A muted run has no audio to end
     // it, and the clock is already what the progress bar and the chips follow.
@@ -192,6 +213,7 @@ export function useMorsePlayback(
     timeline,
     torch,
     unit,
+    keepScreenOn,
   ]);
 
   const toggleChannel = useCallback(
@@ -239,10 +261,11 @@ export function useMorsePlayback(
       clearTimers();
       darken();
       void audio.stop();
+      keepScreenOn(false);
       setPlaying(false);
       setElapsedMs(0);
     };
-  }, [message, audio, clearTimers, darken]);
+  }, [message, audio, clearTimers, darken, keepScreenOn]);
 
   return {
     playing,

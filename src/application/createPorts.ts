@@ -1,5 +1,6 @@
 import { createExpoAudioAdapter } from '@/adapters/audio/expoAudioAdapter';
 import { createFirebaseCrashReportingAdapter } from '@/adapters/crash/firebaseCrashReportingAdapter';
+import { createExpoKeepAwakeAdapter } from '@/adapters/keepAwake/expoKeepAwakeAdapter';
 import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashReportingAdapter';
 import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizationAdapter';
 import { createExpoPermissionAdapter } from '@/adapters/permission/expoPermissionAdapter';
@@ -38,6 +39,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
     ports: {
       torch,
       audio: createExpoAudioAdapter(crash),
+      keepAwake: createExpoKeepAwakeAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
       speech: createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),

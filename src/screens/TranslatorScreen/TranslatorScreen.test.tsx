@@ -758,3 +758,53 @@ describe('TranslatorScreen — the screen channel', () => {
     expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
   });
 });
+
+describe('TranslatorScreen — keeping the screen awake', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // A message is minutes long at slow speeds, and the idle timer sees no
+  // touches for the whole of it.
+  it('holds the screen awake for the length of a message', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.awake).toEqual([true]);
+  });
+
+  it('lets it sleep again when the message ends', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+
+    expect(ports.calls.awake).toEqual([true, false]);
+  });
+
+  it('lets it sleep when the message is stopped part-way', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.awake).toEqual([true, false]);
+  });
+
+  it('never holds it for a letter preview', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+
+    expect(ports.calls.awake).toEqual([]);
+  });
+});
