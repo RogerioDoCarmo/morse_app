@@ -1,3 +1,4 @@
+import { createExpoAudioAdapter } from '@/adapters/audio/expoAudioAdapter';
 import { createFirebaseCrashReportingAdapter } from '@/adapters/crash/firebaseCrashReportingAdapter';
 import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashReportingAdapter';
 import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizationAdapter';
@@ -36,6 +37,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
     torch,
     ports: {
       torch,
+      audio: createExpoAudioAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
       speech: createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),
