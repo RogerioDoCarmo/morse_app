@@ -10,6 +10,7 @@ import { TabBar } from '@/components/TabBar';
 import { decode, encode, encodeToString } from '@/core/domain/morse';
 import type { AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { useMorsePlayback } from '@/application/useMorsePlayback';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { theme } from '@/theme';
 
@@ -23,6 +24,13 @@ function localeBadge(locale: AppLocale): string {
 
 /** Which way the translation runs. */
 type Direction = 'toMorse' | 'toText';
+
+/** `m:ss`, the way a player shows a position. */
+function clock(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  const rest = seconds % 60;
+  return `${String(Math.floor(seconds / 60))}:${rest < 10 ? '0' : ''}${String(rest)}`;
+}
 
 /**
  * The Translator screen — built from `design/screens/Main.dc.html`.
@@ -52,6 +60,9 @@ export function TranslatorScreen(): React.JSX.Element {
   const source = toMorse ? text : decoded;
   const message = useMemo(() => encode(source), [source]);
   const morse = useMemo(() => encodeToString(source), [source]);
+  const playback = useMorsePlayback(message);
+  // One decimal is enough to look continuous and keeps the style object stable.
+  const progressPercent = Math.round(playback.progress * 1000) / 10;
 
   const segments: readonly Segment<Direction>[] = [
     { value: 'toMorse', label: t('translator.toMorse') },
@@ -144,7 +155,18 @@ export function TranslatorScreen(): React.JSX.Element {
             <Text style={styles.label}>
               {toMorse ? t('translator.morseLabel') : t('translator.sourceLabel')}
             </Text>
-            {toMorse ? (
+            {toMorse && playback.playing ? (
+              <View style={styles.playingBadge} testID="playing-badge">
+                <Icon
+                  name="volume"
+                  size={13}
+                  color={theme.color.accent}
+                  strokeWidth={2.2}
+                />
+                <Text style={styles.playingLabel}>{t('translator.playing')}</Text>
+              </View>
+            ) : null}
+            {toMorse && !playback.playing ? (
               <Text style={styles.hint} numberOfLines={2}>
                 {t('translator.hint')}
               </Text>
@@ -156,6 +178,7 @@ export function TranslatorScreen(): React.JSX.Element {
               <MorseText
                 message={message}
                 selectedIndex={picked}
+                soundingIndex={playback.soundingIndex}
                 onSelectLetter={setPicked}
               />
             </ScrollView>
@@ -185,6 +208,19 @@ export function TranslatorScreen(): React.JSX.Element {
           )}
 
           <View style={styles.monoFooter}>
+            {playback.playing ? (
+              <View style={styles.progressRow} testID="playback-progress">
+                <View style={styles.track}>
+                  <View
+                    testID="playback-fill"
+                    style={[styles.trackFill, { width: `${progressPercent}%` }]}
+                  />
+                </View>
+                <Text testID="playback-clock" style={styles.clock}>
+                  {clock(playback.elapsedMs)} / {clock(playback.durationMs)}
+                </Text>
+              </View>
+            ) : null}
             <Text
               testID="morse-string"
               accessibilityLabel="morse-string"
@@ -209,7 +245,12 @@ export function TranslatorScreen(): React.JSX.Element {
             <Icon name="zap" size={18} color={theme.color.onInk} />
             <Text style={styles.flashLabel}>{t('translator.flash')}</Text>
           </Pressable>
-          <IconButton name="volume" label="play-audio" onPress={() => undefined} />
+          <IconButton
+            name={playback.playing ? 'stop' : 'volume'}
+            label="play-audio"
+            active={playback.playing}
+            onPress={playback.playing ? playback.stop : playback.play}
+          />
           <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
         </View>
       </View>
@@ -299,7 +340,24 @@ const styles = StyleSheet.create({
     borderTopColor: theme.color.border,
     paddingTop: theme.spacing.md,
     marginTop: theme.spacing.md,
+    gap: 11,
   },
+  playingBadge: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+  playingLabel: { ...theme.type.label, color: theme.color.accent },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+  track: {
+    flex: 1,
+    height: 4,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.color.track,
+    overflow: 'hidden',
+  },
+  trackFill: {
+    height: 4,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.color.accent,
+  },
+  clock: { ...theme.type.mono, color: theme.color.muted, flexShrink: 0 },
   mono: { ...theme.type.mono, color: theme.color.muted },
   actions: { flexDirection: 'row', gap: 10, paddingBottom: theme.spacing.md },
   flash: {

@@ -1,0 +1,35 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: 'translator-screen'
+
+# The seeded sample is long enough that playback is still running on the next
+# assertion. A short message would finish before the flow could look at it.
+- tapOn:
+    id: 'play-audio'
+
+# The three things that only exist while a message is playing.
+- assertVisible:
+    id: 'playing-badge'
+- assertVisible:
+    id: 'playback-progress'
+- assertVisible:
+    id: 'playback-clock'
+
+# Pressing it again stops: the same control, now showing a stop glyph.
+- tapOn:
+    id: 'play-audio'
+- assertNotVisible:
+    id: 'playback-progress'
+- assertNotVisible:
+    id: 'playing-badge'
+
+# The Morse output survives playback rather than being replaced by it.
+- assertVisible:
+    id: 'morse-output'
+- assertVisible:
+    id: 'morse-string'

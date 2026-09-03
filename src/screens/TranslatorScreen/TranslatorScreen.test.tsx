@@ -1,5 +1,7 @@
 import React from 'react';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import type { Ports } from '@/core/ports';
+import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { TranslatorScreen } from './TranslatorScreen';
 
@@ -151,5 +153,169 @@ describe('TranslatorScreen — seed content', () => {
     expect(screen.getByTestId('morse-string')).toHaveTextContent(
       '.... . .-.. .-.. --- / .-- --- .-. .-.. -..',
     );
+  });
+});
+
+/**
+ * An audio port whose playback stays in flight until the test ends it, so the
+ * playing state can be observed. The real adapter resolves on finish OR stop;
+ * `finish` and `stop` here are the two ways that happens.
+ */
+function pendingAudio(): Readonly<{
+  played: Uint8Array[];
+  stops: number;
+  finish: () => void;
+  port: Ports['audio'];
+}> {
+  const played: Uint8Array[] = [];
+  const state = { stops: 0, resolve: (): void => undefined };
+  return {
+    played,
+    get stops(): number {
+      return state.stops;
+    },
+    finish: (): void => {
+      state.resolve();
+    },
+    port: {
+      play: (wav) => {
+        played.push(wav);
+        return new Promise<void>((resolve) => {
+          state.resolve = resolve;
+        });
+      },
+      stop: () => {
+        state.stops += 1;
+        state.resolve();
+        return Promise.resolve();
+      },
+    },
+  };
+}
+
+const withAudio = (port: Ports['audio']): FakePorts => createFakePorts({ audio: port });
+
+describe('TranslatorScreen — audio playback', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** Advances both the clock the hook reads and the timer it ticks on. */
+  const advance = async (ms: number): Promise<void> => {
+    await act(async () => {
+      jest.advanceTimersByTime(ms);
+      await Promise.resolve();
+    });
+  };
+
+  it('hands the port a real WAV of the message on screen', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    expect(audio.played).toHaveLength(1);
+    // "RIFF" — the port takes bytes, and these are the bytes of a WAV file.
+    expect(Array.from(audio.played[0]?.slice(0, 4) ?? [])).toEqual([82, 73, 70, 70]);
+  });
+
+  it('shows the message playing, with a clock that runs', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+    // "Hello world" is 111 units; at the 120ms playback default that is 13.3s.
+    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:00 / 0:13');
+
+    await advance(5000);
+    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:05 / 0:13');
+  });
+
+  it('replaces the hint with the playing state, and puts it back after', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    expect(screen.queryByTestId('playing-badge')).toBeNull();
+    fireEvent.press(screen.getByTestId('play-audio'));
+    expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+    expect(screen.queryByTestId('playing-badge')).toBeNull();
+  });
+
+  it('lights the letter the playhead is on, and moves it along', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    const output = (): ReturnType<typeof within> =>
+      within(screen.getByTestId('morse-output'));
+
+    // H starts the message and holds through the gap that follows it.
+    expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
+    expect(
+      output().getByRole('button', { selected: true, name: 'morse-letter-H' }),
+    ).toBeOnTheScreen();
+
+    // E begins 10 units in — 1200ms at the playback default.
+    await advance(1300);
+    expect(
+      output().getByRole('button', { selected: true, name: 'morse-letter-E' }),
+    ).toBeOnTheScreen();
+    expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
+  });
+
+  it('stops through the port when the button is pressed again', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    expect(audio.stops).toBeGreaterThan(0);
+    expect(screen.queryByTestId('playback-progress')).toBeNull();
+  });
+
+  it('clears the playing state when the audio reaches the end on its own', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    await act(async () => {
+      audio.finish();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId('playback-progress')).toBeNull();
+    expect(screen.queryByTestId('playing-badge')).toBeNull();
+  });
+
+  // The audio was rendered from the old text and cannot be edited in flight.
+  it('stops when the message is edited mid-playback', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    expect(screen.queryByTestId('playback-progress')).toBeNull();
+    expect(audio.stops).toBeGreaterThan(0);
+  });
+
+  it('plays nothing at all when there is nothing to play', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.changeText(screen.getByTestId('translator-input'), '');
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    expect(audio.played).toHaveLength(0);
+    expect(screen.queryByTestId('playback-progress')).toBeNull();
   });
 });

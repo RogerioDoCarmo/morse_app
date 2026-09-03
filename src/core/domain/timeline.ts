@@ -137,6 +137,84 @@ export function toTimeline(message: MorseMessage): MorseTimeline {
   };
 }
 
+/** Where one letter sits on the timeline. */
+export type LetterSpan = Readonly<{
+  /**
+   * Flat index across the whole message, counting every letter in every word —
+   * the same numbering the Morse output uses to identify a letter, so an index
+   * from here can be handed straight to it.
+   */
+  index: number;
+  /** Unit the letter's first mark begins on. */
+  startUnit: number;
+  /** Unit its last mark ends on. */
+  endUnit: number;
+}>;
+
+/**
+ * Locates every letter on the timeline, so a caller can light one in time with
+ * the sound.
+ *
+ * Times the message exactly as {@link toTimeline} does — a letter with no marks
+ * earns neither a gap nor a span — but keeps counting the flat index through
+ * the skipped ones so it still matches the rendered output.
+ */
+export function letterSpans(message: MorseMessage): readonly LetterSpan[] {
+  const spans: LetterSpan[] = [];
+  let unit = 0;
+  let index = 0;
+  let sounded = false;
+
+  message.words.forEach((word) => {
+    const audible = word.letters.filter((letter) => letter.symbols.length > 0);
+    if (audible.length === 0) {
+      index += word.letters.length;
+      return;
+    }
+
+    if (sounded) unit += PLAYBACK_UNITS.wordGap;
+    let firstOfWord = true;
+
+    word.letters.forEach((letter) => {
+      const here = index;
+      index += 1;
+      if (letter.symbols.length === 0) return;
+
+      if (!firstOfWord) unit += PLAYBACK_UNITS.letterGap;
+      firstOfWord = false;
+      sounded = true;
+
+      const startUnit = unit;
+      letter.symbols.forEach((symbol, symbolIndex) => {
+        if (symbolIndex > 0) unit += PLAYBACK_UNITS.symbolGap;
+        unit += symbol === '.' ? PLAYBACK_UNITS.dot : PLAYBACK_UNITS.dash;
+      });
+      spans.push({ index: here, startUnit: startUnit, endUnit: unit });
+    });
+  });
+
+  return spans;
+}
+
+/**
+ * Which letter the playhead is on at `elapsedUnits`.
+ *
+ * A letter stays current through the silence that follows it, until the next
+ * one begins. Clearing it during every gap would make the highlight strobe —
+ * there is a gap after every letter, and the gaps are up to seven times longer
+ * than a dot.
+ */
+export function soundingIndexAt(
+  spans: readonly LetterSpan[],
+  elapsedUnits: number,
+): number | null {
+  let current: number | null = null;
+  spans.forEach((span) => {
+    if (elapsedUnits >= span.startUnit) current = span.index;
+  });
+  return current;
+}
+
 /**
  * Converts a timeline to real durations.
  *

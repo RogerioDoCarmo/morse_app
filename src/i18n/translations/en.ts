@@ -20,6 +20,7 @@ export const en: TranslationMap = {
   'translator.flash': 'Flash it',
   'translator.copy': 'Copy',
   'translator.play': 'Play',
+  'translator.playing': 'Playing',
   'settings.title': 'Settings',
   'settings.cutoff': 'Dot / dash cut-off',
   'settings.cutoffHint':

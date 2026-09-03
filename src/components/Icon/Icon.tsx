@@ -13,6 +13,7 @@ export type IconName =
   | 'settings'
   | 'mic'
   | 'zap'
+  | 'stop'
   | 'volume'
   | 'copy'
   | 'book'
@@ -28,7 +29,7 @@ type Props = Readonly<{
   strokeWidth?: number;
 }>;
 
-const FILLED: ReadonlySet<IconName> = new Set<IconName>(['zap']);
+const FILLED: ReadonlySet<IconName> = new Set<IconName>(['zap', 'stop']);
 
 /** Renders one icon from the design's set. */
 export function Icon({
@@ -74,6 +75,8 @@ function glyph(name: IconName): React.JSX.Element {
       );
     case 'zap':
       return <Polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />;
+    case 'stop':
+      return <Rect x="5" y="5" width="14" height="14" rx="3" />;
     case 'volume':
       return (
         <>

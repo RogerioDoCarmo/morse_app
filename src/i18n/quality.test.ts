@@ -32,6 +32,7 @@ const BUDGETS: Partial<Record<TranslationKey, number>> = {
   'translator.flash': 14,
   'translator.readAloud': 20,
   'translator.hint': 34,
+  'translator.playing': 16,
   'permission.openSettings': 22,
   'permission.notNow': 16,
 };

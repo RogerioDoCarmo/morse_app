@@ -6,6 +6,8 @@ import {
   PARIS_UNITS_PER_WORD,
   PLAYBACK_UNITS,
   clampPlaybackUnitMs,
+  letterSpans,
+  soundingIndexAt,
   toTimeline,
   toTimedSegments,
   totalMs,
@@ -185,5 +187,119 @@ describe('playback speed', () => {
     expect(timeline.totalUnits).toBe(111);
     expect(totalMs(timeline, DEFAULT_PLAYBACK_UNIT_MS)).toBe(13320);
     expect(totalMs(timeline, DEFAULT_UNIT_MS)).toBe(19980);
+  });
+});
+
+describe('letterSpans', () => {
+  it('finds nothing in a message with nothing to play', () => {
+    expect(letterSpans(encode(''))).toEqual([]);
+  });
+
+  it('starts the first letter at zero', () => {
+    expect(letterSpans(encode('E'))).toEqual([{ index: 0, startUnit: 0, endUnit: 1 }]);
+  });
+
+  it('spans a letter from its first mark to its last', () => {
+    // A is dot(1) gap(1) dash(3).
+    expect(letterSpans(encode('A'))).toEqual([{ index: 0, startUnit: 0, endUnit: 5 }]);
+  });
+
+  it('leaves the letter gap between spans', () => {
+    expect(letterSpans(encode('EE'))).toEqual([
+      { index: 0, startUnit: 0, endUnit: 1 },
+      { index: 1, startUnit: 4, endUnit: 5 },
+    ]);
+  });
+
+  it('leaves the longer word gap between words', () => {
+    expect(letterSpans(encode('E E'))).toEqual([
+      { index: 0, startUnit: 0, endUnit: 1 },
+      { index: 1, startUnit: 8, endUnit: 9 },
+    ]);
+  });
+
+  it('numbers letters straight through, so an index identifies one letter', () => {
+    expect(letterSpans(encode('AB CD')).map((span) => span.index)).toEqual([0, 1, 2, 3]);
+  });
+
+  // The output numbers every letter it renders; the timeline skips silent ones.
+  // If those two disagree, playback lights the wrong chip.
+  it('keeps counting the index through letters it does not sound', () => {
+    expect(
+      letterSpans({
+        words: [
+          {
+            letters: [
+              { char: 'E', symbols: ['.'] },
+              { char: '', symbols: [] },
+              { char: 'T', symbols: ['-'] },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([
+      { index: 0, startUnit: 0, endUnit: 1 },
+      { index: 2, startUnit: 4, endUnit: 7 },
+    ]);
+  });
+
+  // A word with nothing audible in it must earn no word gap — otherwise every
+  // letter after it plays late — while still advancing the flat index, or the
+  // letters after it light one chip too early.
+  it('skips a silent word without paying for it in time or in index', () => {
+    expect(
+      letterSpans({
+        words: [
+          { letters: [{ char: 'E', symbols: ['.'] }] },
+          {
+            letters: [
+              { char: '', symbols: [] },
+              { char: '', symbols: [] },
+            ],
+          },
+          { letters: [{ char: 'T', symbols: ['-'] }] },
+        ],
+      }),
+    ).toEqual([
+      { index: 0, startUnit: 0, endUnit: 1 },
+      // One word gap, not two, and the index has passed over both silent letters.
+      { index: 3, startUnit: 8, endUnit: 11 },
+    ]);
+  });
+
+  it('ends exactly where the timeline ends', () => {
+    const spans = letterSpans(encode('SOS'));
+    expect(spans[spans.length - 1]?.endUnit).toBe(toTimeline(encode('SOS')).totalUnits);
+  });
+});
+
+describe('soundingIndexAt', () => {
+  const spans = letterSpans(encode('EE'));
+
+  it('is nothing before the first letter begins', () => {
+    expect(soundingIndexAt(spans, -1)).toBeNull();
+  });
+
+  it('lands on the first letter as it starts', () => {
+    expect(soundingIndexAt(spans, 0)).toBe(0);
+  });
+
+  // There is a gap after every letter, and gaps run up to seven units. Clearing
+  // the highlight in them would strobe.
+  it('holds a letter through the silence that follows it', () => {
+    expect(soundingIndexAt(spans, 1)).toBe(0);
+    expect(soundingIndexAt(spans, 3.9)).toBe(0);
+  });
+
+  it('moves on when the next letter begins', () => {
+    expect(soundingIndexAt(spans, 4)).toBe(1);
+  });
+
+  it('stays on the last letter once the message is over', () => {
+    expect(soundingIndexAt(spans, 99)).toBe(1);
+  });
+
+  it('is nothing at all when there is nothing to play', () => {
+    expect(soundingIndexAt([], 5)).toBeNull();
   });
 });
