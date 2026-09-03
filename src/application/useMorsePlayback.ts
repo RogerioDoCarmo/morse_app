@@ -100,20 +100,17 @@ export function useMorsePlayback(
 
   const playLetter = useCallback(
     (index: number): void => {
+      // Ignored while a message is running. The port plays one thing at a
+      // time, so a preview would replace the message mid-transmission — and
+      // the letters are a progress display at that moment, not a keyboard.
+      if (playing) return;
+
       const letter = letterAt(message, index);
       if (letter === null || letter.symbols.length === 0) return;
 
-      // A preview interrupts the message rather than layering over it — the
-      // port plays one thing at a time, and two Morse signals at once are
-      // unreadable. Clearing here as well keeps the progress UI from running
-      // on over audio that has been replaced.
-      clearTicker();
-      setPlaying(false);
-      setElapsedMs(0);
-
       void audio.play(renderWav(toTimeline(messageOfLetter(letter)), { unitMs: unit }));
     },
-    [audio, clearTicker, message, unit],
+    [audio, message, playing, unit],
   );
 
   // Editing the text mid-playback, or leaving the screen, must not leave a

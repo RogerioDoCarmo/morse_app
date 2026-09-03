@@ -7,8 +7,16 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'translator-screen'
 
-# The seeded sample is long enough that playback is still running on the next
-# assertion. A short message would finish before the flow could look at it.
+# Type a long message rather than using the seeded sample. Two reasons: the
+# sample follows the device locale, and at the 120ms default it lasts about
+# eleven seconds — less than this flow takes to reach the assertions below, so
+# playback ended underneath them. This one runs for roughly half a minute.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'SOS SOS SOS SOS SOS SOS'
+- hideKeyboard
+
 - tapOn:
     id: 'play-audio'
 
@@ -20,6 +28,16 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'playback-clock'
 
+# Tapping a letter while the message runs is ignored. The port plays one thing
+# at a time, so a preview would replace the message mid-transmission.
+- tapOn:
+    id: 'morse-letter'
+    index: 0
+- assertVisible:
+    id: 'playing-badge'
+- assertVisible:
+    id: 'playback-progress'
+
 # Pressing it again stops: the same control, now showing a stop glyph.
 - tapOn:
     id: 'play-audio'
@@ -28,20 +46,8 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'playing-badge'
 
-# The Morse output survives playback rather than being replaced by it.
-- assertVisible:
-    id: 'morse-output'
-- assertVisible:
-    id: 'morse-string'
-
-# Tapping a letter previews just that letter — the card has always said "tap a
-# letter to hear it". Type a known message first: the seeded sample follows the
-# device locale, and the CI device's locale is not guaranteed.
-- tapOn:
-    id: 'translator-input'
-- eraseText
-- inputText: 'SOS'
-- hideKeyboard
+# Now that nothing is running, a letter tap previews just that letter — the
+# card has always said "tap a letter to hear it".
 - tapOn:
     id: 'morse-letter'
     index: 1
@@ -52,5 +58,9 @@ appId: com.rogeriodocarmo.morse
     id: 'playback-progress'
 - assertNotVisible:
     id: 'playing-badge'
+
+# The Morse output survives all of it rather than being replaced.
 - assertVisible:
     id: 'morse-output'
+- assertVisible:
+    id: 'morse-string'

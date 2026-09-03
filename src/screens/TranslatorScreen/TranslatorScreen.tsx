@@ -89,6 +89,11 @@ export function TranslatorScreen(): React.JSX.Element {
   // screen did not do.
   const pickLetter = useCallback(
     (index: number): void => {
+      // Nothing at all while a message is running: not the sound, and not the
+      // selection either. The highlight belongs to the playhead then, and
+      // moving it under a running message would fight with it.
+      if (playback.playing) return;
+
       setPicked(index);
       playback.playLetter(index);
     },

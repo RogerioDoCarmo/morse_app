@@ -447,20 +447,55 @@ describe('TranslatorScreen — hearing one letter', () => {
     expect(audio.played).toHaveLength(2);
   });
 
-  // A preview interrupts rather than layering: two Morse signals at once are
-  // unreadable, and the progress UI must not run on over replaced audio.
-  it('ends a message that was playing, and clears its progress', () => {
+  // While a message is running the letters are a progress display, not a
+  // keyboard. A tap must not replace the audio mid-transmission.
+  it('ignores a tap while a message is playing', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
     fireEvent.press(screen.getByTestId('play-audio'));
-    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+    expect(audio.played).toHaveLength(1);
 
     fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
-    expect(screen.queryByTestId('playback-progress')).toBeNull();
-    expect(screen.queryByTestId('playing-badge')).toBeNull();
+    // Nothing new played, and the message is still running.
+    expect(audio.played).toHaveLength(1);
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+    expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
+  });
+
+  it('leaves the highlight to the playhead, rather than to the tap', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('play-audio'));
+
+    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+
+    // Still the first letter, where the playhead is — not the one tapped.
+    expect(
+      within(screen.getByTestId('morse-output')).getByRole('button', {
+        selected: true,
+        name: 'morse-letter-S',
+      }),
+    ).toBeOnTheScreen();
+  });
+
+  it('takes taps again once the message has finished', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+    await act(async () => {
+      audio.finish();
+      await Promise.resolve();
+    });
+
+    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+
+    expect(audio.played).toHaveLength(2);
     expect(Array.from(audio.played[1] ?? [])).toEqual(Array.from(wavFor('O')));
   });
 });
