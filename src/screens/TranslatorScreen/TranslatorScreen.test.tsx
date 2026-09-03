@@ -36,12 +36,12 @@ describe('TranslatorScreen', () => {
     expect(screen.getByTestId('channel-light')).not.toBeSelected();
   });
 
-  it('offers the two channels that are built, and greys out the two that are not', () => {
+  it('offers the channels that are built, and greys out the one that is not', () => {
     renderWithProviders(<TranslatorScreen />);
-    expect(screen.getByTestId('channel-screen')).toBeDisabled();
-    expect(screen.getByTestId('channel-buzz')).toBeDisabled();
     expect(screen.getByTestId('channel-sound')).not.toBeDisabled();
     expect(screen.getByTestId('channel-light')).not.toBeDisabled();
+    expect(screen.getByTestId('channel-screen')).not.toBeDisabled();
+    expect(screen.getByTestId('channel-buzz')).toBeDisabled();
   });
 
   // The torch is no longer a switch you leave on — it carries the message.
@@ -653,5 +653,108 @@ describe('TranslatorScreen — output channels', () => {
 
     fireEvent.press(screen.getByTestId('channel-light'));
     expect(screen.getByTestId('signal-button')).not.toBeDisabled();
+  });
+});
+
+describe('TranslatorScreen — the screen channel', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const advance = async (ms: number): Promise<void> => {
+    await act(async () => {
+      jest.advanceTimersByTime(ms);
+      await Promise.resolve();
+    });
+  };
+
+  it('shows the Morse chips, not a surface, while the channel is off', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
+    expect(screen.queryByTestId('signal-surface')).toBeNull();
+  });
+
+  // The chips are a reading aid; while the screen carries the message the
+  // square IS the message, and the chips would only compete with it.
+  it('gives the chips over to the surface while it is carrying the message', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
+    expect(screen.queryByTestId('morse-output')).toBeNull();
+  });
+
+  it('gives the chips back when the message ends', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+    expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
+
+    await advance(300);
+
+    expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
+    expect(screen.queryByTestId('signal-surface')).toBeNull();
+  });
+
+  it('lights the surface on the signal and darkens it between marks', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    // E is one dot: lit for one unit, 120ms.
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await advance(30);
+    expect(screen.getByTestId('signal-surface')).toBeSelected();
+
+    await advance(300);
+    expect(screen.queryByTestId('signal-surface')).toBeNull();
+  });
+
+  it('runs on the screen alone, with neither sound nor light', async () => {
+    const audio = pendingAudio();
+    const { ports } = renderWithProviders(<TranslatorScreen />, {
+      ports: withAudio(audio.port),
+    });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await advance(30);
+    expect(screen.getByTestId('signal-surface')).toBeSelected();
+    expect(audio.played).toHaveLength(0);
+    expect(ports.calls.torchEnabled).toEqual([]);
+  });
+
+  it('counts as something to signal with on its own', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    expect(screen.getByTestId('signal-button')).toBeDisabled();
+
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    expect(screen.getByTestId('signal-button')).not.toBeDisabled();
+  });
+
+  it('lets the screen join a message already in progress', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    expect(screen.queryByTestId('signal-surface')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    await advance(30);
+
+    expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
   });
 });

@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon';
 import { IconButton } from '@/components/IconButton';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
+import { SignalSurface } from '@/components/SignalSurface';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { TabBar } from '@/components/TabBar';
 import {
@@ -98,9 +99,13 @@ export function TranslatorScreen(): React.JSX.Element {
     await tts.speak(decoded, locale);
   }, [decoded, locale, tts]);
 
-  // Screen and vibration are designed and drawn but not built. They carry no
-  // handler, which is what greys them out — better than a cell that answers a
-  // press with nothing.
+  // The chips are a reading aid; while the screen is carrying the message the
+  // square IS the message, and the chips would only compete with it.
+  const showSurface = playback.playing && playback.channels.screen;
+
+  // Vibration is designed and drawn but not built. It carries no handler,
+  // which is what greys it out — better than a cell that answers a press with
+  // nothing.
   const channelCells: readonly ChannelCell[] = [
     {
       channel: 'sound',
@@ -124,7 +129,10 @@ export function TranslatorScreen(): React.JSX.Element {
       channel: 'screen',
       icon: 'screen',
       label: t('translator.channelScreen'),
-      on: false,
+      on: playback.channels.screen,
+      onToggle: () => {
+        playback.toggleChannel('screen');
+      },
     },
     { channel: 'buzz', icon: 'vibrate', label: t('translator.channelBuzz'), on: false },
   ];
@@ -225,7 +233,9 @@ export function TranslatorScreen(): React.JSX.Element {
             {toMorse ? headerNote : null}
           </View>
 
-          {toMorse ? (
+          {toMorse && showSurface ? (
+            <SignalSurface lit={playback.screenLit} />
+          ) : toMorse ? (
             <ScrollView style={styles.output} contentContainerStyle={styles.outputScroll}>
               <MorseText
                 message={message}

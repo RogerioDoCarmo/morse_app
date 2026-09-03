@@ -139,6 +139,15 @@
       "y": 0,
       "w": 390,
       "h": 844
+    },
+    {
+      "file": "ScreenSignal.dc.html",
+      "title": "Screen channel",
+      "page": "phone",
+      "x": 2820,
+      "y": 0,
+      "w": 390,
+      "h": 844
     }
   ],
   "annotations": [
@@ -189,6 +198,14 @@
       "y": -230,
       "w": 390,
       "text": "FIRST RUN — three slides\n\nExists because Light starts off. Without it the torch is a feature nobody finds, and the strip looks like decoration.\n\nThe illustrations are the app's own components, not invented artwork: real letter chips, the real channel strip, the real Signal button. What the carousel promises is exactly what the next screen shows.\n\nSlide 2 is the one that had to exist. It says plainly which channels are on, why Light is not, and that any of them can be changed at any time — including mid-message.\n\nSkip jumps to the last slide rather than dismissing outright, so the Start button is always the way out. One way in, one way out.\n\nWHEN IT SHOWS — decided 2026-09-03. Gated on a stored version number, not a seen/unseen flag, so it can be shown again after an update that adds something worth explaining. The version is configurable rather than hard-wired.\n\nFor now it is set to show ONCE: the version stays put, so nobody sees it twice. Revisit when every screen exists — Screen and Vibrate are drawn in the strip but not built, and slide 2 has to be rewritten when they land."
+    },
+    {
+      "id": "screen-signal",
+      "page": "phone",
+      "x": 2820,
+      "y": -250,
+      "w": 390,
+      "text": "SCREEN — the flicker surface\n\nWhile Screen is on and a message runs, the Morse chips give way to a square that flips between near-black and white on the signal. The chips are a reading aid; at that moment the square IS the message.\n\n⚠️ THE SIZE IS A SAFETY CONSTRAINT, not a layout preference. Morse flashes at 4.2Hz at 10 WPM and 6.3Hz at 15 — both far past WCAG 2.3.1's limit of three flashes per second. The only compliant route left is keeping the flashing area under 25% of the visual field. 240x240 is 17.5% of a 390x844 screen.\n\nSo full-screen is NOT available, however much more legible it would be across a room. If it ever gets bigger, it needs a photosensitivity warning ahead of it and probably a setting.\n\nThe artboard flips by button rather than animating, for the same reason — a design canvas is not the place to strobe at 6Hz.\n\nStill open: keeping the screen awake during a run. A long message will hit auto-lock part-way through."
     }
   ],
   "launch": {

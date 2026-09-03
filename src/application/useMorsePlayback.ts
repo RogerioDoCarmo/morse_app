@@ -32,8 +32,8 @@ const TICK_MS = 50;
  */
 const DRIVE_MS = 10;
 
-/** The ways a message can go out. Screen and vibration are designed, not built. */
-export type OutputChannel = 'sound' | 'light';
+/** The ways a message can go out. Vibration is designed, not built. */
+export type OutputChannel = 'sound' | 'light' | 'screen';
 
 /** Where playback is, how to drive it, and which outputs are carrying it. */
 export type MorsePlayback = Readonly<{
@@ -47,6 +47,11 @@ export type MorsePlayback = Readonly<{
   durationMs: number;
   /** Which outputs are switched on. */
   channels: Readonly<Record<OutputChannel, boolean>>;
+  /**
+   * Whether the on-screen surface is lit right now. Changes only when the
+   * signal does — at most twice a unit — not on every pass of the driver.
+   */
+  screenLit: boolean;
   /** Switches one output on or off, taking effect immediately. */
   toggleChannel: (channel: OutputChannel) => void;
   /** False when there is nothing to play, or nothing to play it on. */
@@ -92,7 +97,9 @@ export function useMorsePlayback(
   const [channels, setChannels] = useState<Record<OutputChannel, boolean>>({
     sound: true,
     light: false,
+    screen: false,
   });
+  const [screenLit, setScreenLit] = useState(false);
 
   const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
   const driver = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -101,16 +108,24 @@ export function useMorsePlayback(
   const live = useRef<Record<OutputChannel, boolean>>(channels);
   /** What the torch was last told, so it is not told the same thing repeatedly. */
   const lit = useRef(false);
+  /** The same, for the on-screen surface — this one guards a re-render. */
+  const surface = useRef(false);
 
   const elapsedUnits = useCallback(
     (): number => (Date.now() - startedAt.current) / unit,
     [unit],
   );
 
+  /** Puts every on/off output back to dark. Safe to call twice. */
   const darken = useCallback((): void => {
-    if (!lit.current) return;
-    lit.current = false;
-    void torch.setEnabled(false);
+    if (lit.current) {
+      lit.current = false;
+      void torch.setEnabled(false);
+    }
+    if (surface.current) {
+      surface.current = false;
+      setScreenLit(false);
+    }
   }, [torch]);
 
   const clearTimers = useCallback((): void => {
@@ -133,7 +148,7 @@ export function useMorsePlayback(
     // Nothing to play, or nothing to play it on. Running anyway would animate
     // a progress bar over an output that is switched off.
     if (timeline.totalUnits === 0) return;
-    if (!live.current.sound && !live.current.light) return;
+    if (!live.current.sound && !live.current.light && !live.current.screen) return;
 
     clearTimers();
     startedAt.current = Date.now();
@@ -149,10 +164,19 @@ export function useMorsePlayback(
     }, TICK_MS);
 
     driver.current = setInterval(() => {
-      const wanted = live.current.light && signalAt(changes, elapsedUnits());
-      if (wanted === lit.current) return;
-      lit.current = wanted;
-      void torch.setEnabled(wanted);
+      const on = signalAt(changes, elapsedUnits());
+
+      const wantTorch = live.current.light && on;
+      if (wantTorch !== lit.current) {
+        lit.current = wantTorch;
+        void torch.setEnabled(wantTorch);
+      }
+
+      const wantSurface = live.current.screen && on;
+      if (wantSurface !== surface.current) {
+        surface.current = wantSurface;
+        setScreenLit(wantSurface);
+      }
     }, DRIVE_MS);
 
     if (live.current.sound) {
@@ -176,8 +200,8 @@ export function useMorsePlayback(
       live.current = next;
       setChannels(next);
 
-      // The light channel needs nothing here — the driver reads `live` on its
-      // next pass and catches up on its own, whichever way it was switched.
+      // Light and screen need nothing here — the driver reads `live` on its
+      // next pass and catches up on its own, whichever way they were switched.
       if (!playing || channel !== 'sound') return;
 
       if (next.sound) {
@@ -227,8 +251,10 @@ export function useMorsePlayback(
     elapsedMs,
     durationMs,
     channels,
+    screenLit,
     toggleChannel,
-    canPlay: timeline.totalUnits > 0 && (channels.sound || channels.light),
+    canPlay:
+      timeline.totalUnits > 0 && (channels.sound || channels.light || channels.screen),
     play,
     stop: finish,
     playLetter,

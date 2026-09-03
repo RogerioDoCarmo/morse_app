@@ -71,6 +71,25 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'playing-badge'
 
+# --- the screen channel takes the card over while it carries the message ---
+# The chips are a reading aid; the square IS the message at that moment.
+- tapOn:
+    id: 'channel-screen'
+- tapOn:
+    id: 'signal-button'
+- assertVisible:
+    id: 'signal-surface'
+- assertNotVisible:
+    id: 'morse-output'
+- tapOn:
+    id: 'signal-button'
+- assertVisible:
+    id: 'morse-output'
+- assertNotVisible:
+    id: 'signal-surface'
+- tapOn:
+    id: 'channel-screen'
+
 # --- nothing switched on means nothing to signal with ---
 - tapOn:
     id: 'channel-light'
