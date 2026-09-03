@@ -33,3 +33,24 @@ appId: com.rogeriodocarmo.morse
     id: 'morse-output'
 - assertVisible:
     id: 'morse-string'
+
+# Tapping a letter previews just that letter — the card has always said "tap a
+# letter to hear it". Type a known message first: the seeded sample follows the
+# device locale, and the CI device's locale is not guaranteed.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'SOS'
+- hideKeyboard
+- tapOn:
+    id: 'morse-letter'
+    index: 1
+
+# A preview reports no progress. One letter is at most eleven units, and a bar
+# that appeared and vanished inside a second would read as a glitch.
+- assertNotVisible:
+    id: 'playback-progress'
+- assertNotVisible:
+    id: 'playing-badge'
+- assertVisible:
+    id: 'morse-output'

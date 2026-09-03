@@ -145,6 +145,36 @@ export function normaliseForMorse(text: string): string {
 }
 
 /**
+ * The letter at `index`, counting straight through every word.
+ *
+ * This flat numbering is the one identity a letter has outside the message:
+ * the rendered output labels its cells with it, and `letterSpans` times them
+ * by it. Returns null for an index that names no letter, so a stale selection
+ * cannot resurrect a letter that has since been typed away.
+ *
+ * Negative, fractional and NaN indices need no guard of their own: none of
+ * them can match a slot, and the lookup already answers null for anything it
+ * cannot find. A guard would be unreachable code — mutation testing is what
+ * showed that the one written here first could not change any outcome.
+ */
+export function letterAt(message: MorseMessage, index: number): MorseLetter | null {
+  let remaining = index;
+  for (const word of message.words) {
+    if (remaining < word.letters.length) return word.letters[remaining] ?? null;
+    remaining -= word.letters.length;
+  }
+  return null;
+}
+
+/**
+ * Wraps one letter as a message of its own, so it can be encoded, timed or
+ * played exactly the way a whole message is.
+ */
+export function messageOfLetter(letter: MorseLetter): MorseMessage {
+  return { words: [{ letters: [letter] }] };
+}
+
+/**
  * Characters in `text` that Morse cannot carry, each listed once in the order
  * it first appears.
  *

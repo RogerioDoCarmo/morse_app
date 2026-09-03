@@ -1,5 +1,8 @@
 import React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { encode } from '@/core/domain/morse';
+import { DEFAULT_PLAYBACK_UNIT_MS, toTimeline } from '@/core/domain/timeline';
+import { renderWav } from '@/core/domain/tone';
 import type { Ports } from '@/core/ports';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
@@ -387,5 +390,77 @@ describe('TranslatorScreen — characters Morse cannot carry', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.press(screen.getByTestId('segment-toText'));
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
+  });
+});
+
+describe('TranslatorScreen — hearing one letter', () => {
+  /** The bytes the domain would render for `text` on its own. */
+  const wavFor = (text: string): Uint8Array =>
+    renderWav(toTimeline(encode(text)), { unitMs: DEFAULT_PLAYBACK_UNIT_MS });
+
+  it('plays only the letter that was tapped', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+
+    expect(audio.played).toHaveLength(1);
+    // Exactly O on its own — not the message, and not O's position in it.
+    expect(Array.from(audio.played[0] ?? [])).toEqual(Array.from(wavFor('O')));
+  });
+
+  it('plays a different letter when a different one is tapped', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'AT');
+
+    fireEvent.press(screen.getByLabelText('morse-letter-A'));
+    fireEvent.press(screen.getByLabelText('morse-letter-T'));
+
+    expect(Array.from(audio.played[0] ?? [])).toEqual(Array.from(wavFor('A')));
+    expect(Array.from(audio.played[1] ?? [])).toEqual(Array.from(wavFor('T')));
+  });
+
+  it('still selects the letter it plays', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+
+    expect(
+      within(screen.getByTestId('morse-output')).getAllByRole('button', {
+        selected: true,
+      }),
+    ).toHaveLength(1);
+  });
+
+  it('replays on every tap, including the same letter twice', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+
+    fireEvent.press(screen.getByLabelText('morse-letter-E'));
+    fireEvent.press(screen.getByLabelText('morse-letter-E'));
+
+    expect(audio.played).toHaveLength(2);
+  });
+
+  // A preview interrupts rather than layering: two Morse signals at once are
+  // unreadable, and the progress UI must not run on over replaced audio.
+  it('ends a message that was playing, and clears its progress', () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('play-audio'));
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+
+    expect(screen.queryByTestId('playback-progress')).toBeNull();
+    expect(screen.queryByTestId('playing-badge')).toBeNull();
+    expect(Array.from(audio.played[1] ?? [])).toEqual(Array.from(wavFor('O')));
   });
 });

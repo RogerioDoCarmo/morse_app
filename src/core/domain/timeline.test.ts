@@ -1,4 +1,4 @@
-import { encode } from './morse';
+import { encode, letterAt } from './morse';
 import { DEFAULT_UNIT_MS, MAX_UNIT_MS, MIN_UNIT_MS } from './tapping';
 import {
   DEFAULT_PLAYBACK_UNIT_MS,
@@ -301,5 +301,24 @@ describe('soundingIndexAt', () => {
 
   it('is nothing at all when there is nothing to play', () => {
     expect(soundingIndexAt([], 5)).toBeNull();
+  });
+});
+
+// Two places compute the same flat numbering: letterAt walks the message, and
+// letterSpans walks the timeline. If they ever disagree, tapping a letter
+// plays a different one.
+describe('letter numbering agrees between the message and the timeline', () => {
+  it.each(['SOS', 'HELLO WORLD', 'A B C', 'E'])('lines up for %s', (text) => {
+    const message = encode(text);
+    letterSpans(message).forEach((span) => {
+      expect(letterAt(message, span.index)).not.toBeNull();
+    });
+  });
+
+  it('agrees on which letter each span belongs to', () => {
+    const message = encode('AB CD');
+    expect(
+      letterSpans(message).map((span) => letterAt(message, span.index)?.char),
+    ).toEqual(['A', 'B', 'C', 'D']);
   });
 });

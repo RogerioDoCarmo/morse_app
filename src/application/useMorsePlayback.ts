@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePorts } from '@/application/providers/PortsProvider';
-import type { MorseMessage } from '@/core/domain/morse';
+import { letterAt, messageOfLetter, type MorseMessage } from '@/core/domain/morse';
 import {
   DEFAULT_PLAYBACK_UNIT_MS,
   clampPlaybackUnitMs,
@@ -33,6 +33,12 @@ export type MorsePlayback = Readonly<{
   durationMs: number;
   play: () => void;
   stop: () => void;
+  /**
+   * Plays one letter on its own, as a preview. Reports no progress: a letter
+   * is at most eleven units, and a bar that appeared and vanished inside a
+   * second would read as a glitch rather than as feedback.
+   */
+  playLetter: (index: number) => void;
 }>;
 
 /**
@@ -92,6 +98,24 @@ export function useMorsePlayback(
     });
   }, [audio, clearTicker, durationMs, timeline, unit]);
 
+  const playLetter = useCallback(
+    (index: number): void => {
+      const letter = letterAt(message, index);
+      if (letter === null || letter.symbols.length === 0) return;
+
+      // A preview interrupts the message rather than layering over it — the
+      // port plays one thing at a time, and two Morse signals at once are
+      // unreadable. Clearing here as well keeps the progress UI from running
+      // on over audio that has been replaced.
+      clearTicker();
+      setPlaying(false);
+      setElapsedMs(0);
+
+      void audio.play(renderWav(toTimeline(messageOfLetter(letter)), { unitMs: unit }));
+    },
+    [audio, clearTicker, message, unit],
+  );
+
   // Editing the text mid-playback, or leaving the screen, must not leave a
   // clock running over a message that is no longer on screen — the audio was
   // rendered from the old one and cannot be edited in flight.
@@ -112,5 +136,6 @@ export function useMorsePlayback(
     durationMs,
     play,
     stop,
+    playLetter,
   };
 }

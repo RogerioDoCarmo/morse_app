@@ -4,6 +4,8 @@ import {
   decode,
   encode,
   encodeToString,
+  letterAt,
+  messageOfLetter,
   normaliseForMorse,
   unsupportedCharacters,
 } from './morse';
@@ -185,5 +187,46 @@ describe('unsupportedCharacters', () => {
 
   it('finds nothing in an empty string', () => {
     expect(unsupportedCharacters('')).toEqual([]);
+  });
+});
+
+describe('letterAt', () => {
+  it('counts straight through words, not per word', () => {
+    const message = encode('AB CD');
+    expect(letterAt(message, 0)?.char).toBe('A');
+    expect(letterAt(message, 1)?.char).toBe('B');
+    expect(letterAt(message, 2)?.char).toBe('C');
+    expect(letterAt(message, 3)?.char).toBe('D');
+  });
+
+  it('carries the marks along with the character', () => {
+    expect(letterAt(encode('SOS'), 1)?.symbols).toEqual(['-', '-', '-']);
+  });
+
+  // A selection can outlive the text it was made in.
+  it('finds nothing past the end of the message', () => {
+    expect(letterAt(encode('AB'), 2)).toBeNull();
+    expect(letterAt(encode(''), 0)).toBeNull();
+  });
+
+  it('finds nothing for an index that names no letter', () => {
+    const message = encode('AB');
+    expect(letterAt(message, -1)).toBeNull();
+    expect(letterAt(message, 1.5)).toBeNull();
+    expect(letterAt(message, Number.NaN)).toBeNull();
+  });
+});
+
+describe('messageOfLetter', () => {
+  it('wraps a letter as a message of exactly that letter', () => {
+    const letter = letterAt(encode('SOS'), 1);
+    expect(letter).not.toBeNull();
+    expect(messageOfLetter(letter!)).toEqual({ words: [{ letters: [letter] }] });
+  });
+
+  // The point of it: one letter encodes and renders like any other message.
+  it('produces the same message as encoding that letter alone', () => {
+    const letter = letterAt(encode('HI'), 0);
+    expect(messageOfLetter(letter!)).toEqual(encode('H'));
   });
 });

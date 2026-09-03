@@ -84,6 +84,17 @@ export function TranslatorScreen(): React.JSX.Element {
     await torch.setEnabled(next);
   }, [flashing, torch]);
 
+  // The card has always said "tap a letter to hear it". This is what makes
+  // that true; selecting without playing left the hint promising something the
+  // screen did not do.
+  const pickLetter = useCallback(
+    (index: number): void => {
+      setPicked(index);
+      playback.playLetter(index);
+    },
+    [playback],
+  );
+
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
   }, [decoded, locale, tts]);
@@ -190,7 +201,7 @@ export function TranslatorScreen(): React.JSX.Element {
                 message={message}
                 selectedIndex={picked}
                 soundingIndex={playback.soundingIndex}
-                onSelectLetter={setPicked}
+                onSelectLetter={pickLetter}
               />
             </ScrollView>
           ) : (
