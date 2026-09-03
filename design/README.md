@@ -46,7 +46,7 @@ Tablet is 1180×820 landscape and adds no new screens. Two rules:
 | `screens/` | the live design — every app screen, phone and tablet |
 | `directions/` | the four direction candidates, kept as the decision record |
 | `options/` | 3× PNG renders of those four candidates |
-| `screens/renders/` | 2× PNG renders of every screen |
+| `screens/renders/` | 2× PNG renders of the screens (not yet `Playing`) |
 
 `*.dc.html` are Design Component artboards — the editable canvas source. `canvas.json`
 lays them out, names the pages, and picks the launch view.
@@ -63,6 +63,18 @@ output.
 - **Trilingual UI** — English, Português (Brasil), Español. The whole interface
   translates, not just the input
 - App name still open — "Morse" is a placeholder wordmark, not a proposal
+
+## Settled since
+
+- **2026-09-03 · audio playback.** `Playing.dc.html` is the Translator with sound
+  running, not a new screen: the speaker button already in the action row fills teal
+  and becomes stop. Progress reads twice — the letter chips carry played / sounding /
+  pending, and a thin track carries the exact position. **Flash it stays enabled while
+  audio plays**, so light and sound run together.
+- Timing in that artboard is the real ITU rhythm and agrees with
+  `src/core/domain/timeline.ts` — both make "Hello world" 111 units. At the default
+  180ms unit that is 20 seconds, which is worth revisiting: the 180ms default was
+  chosen for tap INPUT (a learner keying at 6–7 wpm), not for playback.
 
 ## Localisation
 
