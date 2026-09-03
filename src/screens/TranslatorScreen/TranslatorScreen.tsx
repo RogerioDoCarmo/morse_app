@@ -103,9 +103,6 @@ export function TranslatorScreen(): React.JSX.Element {
   // square IS the message, and the chips would only compete with it.
   const showSurface = playback.playing && playback.channels.screen;
 
-  // Vibration is designed and drawn but not built. It carries no handler,
-  // which is what greys it out — better than a cell that answers a press with
-  // nothing.
   const channelCells: readonly ChannelCell[] = [
     {
       channel: 'sound',
@@ -134,7 +131,15 @@ export function TranslatorScreen(): React.JSX.Element {
         playback.toggleChannel('screen');
       },
     },
-    { channel: 'buzz', icon: 'vibrate', label: t('translator.channelBuzz'), on: false },
+    {
+      channel: 'buzz',
+      icon: 'vibrate',
+      label: t('translator.channelBuzz'),
+      on: playback.channels.buzz,
+      onToggle: () => {
+        playback.toggleChannel('buzz');
+      },
+    },
   ];
 
   // One slot, three things it can say — and they rank. What is happening now

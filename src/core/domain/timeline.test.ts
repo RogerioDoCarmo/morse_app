@@ -8,6 +8,7 @@ import {
   clampPlaybackUnitMs,
   letterSpans,
   signalAt,
+  signalMarks,
   signalChanges,
   timelineFrom,
   soundingIndexAt,
@@ -435,5 +436,42 @@ describe('signalAt', () => {
 
   it('is off when there is nothing to play', () => {
     expect(signalAt([], 3)).toBe(false);
+  });
+});
+
+describe('signalMarks', () => {
+  it('finds no marks in an empty message', () => {
+    expect(signalMarks(toTimeline(encode('')))).toEqual([]);
+  });
+
+  it('reports a dot as short and a dash as long', () => {
+    expect(signalMarks(toTimeline(encode('E')))).toEqual([
+      { atUnit: 0, units: 1, long: false },
+    ]);
+    expect(signalMarks(toTimeline(encode('T')))).toEqual([
+      { atUnit: 0, units: 3, long: true },
+    ]);
+  });
+
+  it('gives every mark the unit it starts on, gaps included', () => {
+    // A is dot(1) gap(1) dash(3).
+    expect(signalMarks(toTimeline(encode('A')))).toEqual([
+      { atUnit: 0, units: 1, long: false },
+      { atUnit: 2, units: 3, long: true },
+    ]);
+  });
+
+  it('leaves the silences out entirely', () => {
+    expect(signalMarks(toTimeline(encode('SOS')))).toHaveLength(9);
+  });
+
+  it('starts each mark where signalAt turns on', () => {
+    const timeline = toTimeline(encode('HELLO'));
+    const changes = signalChanges(timeline);
+    signalMarks(timeline).forEach((mark) => {
+      expect(signalAt(changes, mark.atUnit)).toBe(true);
+      // And is off again the instant it ends.
+      expect(signalAt(changes, mark.atUnit + mark.units)).toBe(false);
+    });
   });
 });

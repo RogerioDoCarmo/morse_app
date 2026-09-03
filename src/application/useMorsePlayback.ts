@@ -7,6 +7,7 @@ import {
   letterSpans,
   signalAt,
   signalChanges,
+  signalMarks,
   soundingIndexAt,
   timelineFrom,
   toTimeline,
@@ -32,8 +33,8 @@ const TICK_MS = 50;
  */
 const DRIVE_MS = 10;
 
-/** The ways a message can go out. Vibration is designed, not built. */
-export type OutputChannel = 'sound' | 'light' | 'screen';
+/** The ways a message can go out. */
+export type OutputChannel = 'sound' | 'light' | 'screen' | 'buzz';
 
 /** Where playback is, how to drive it, and which outputs are carrying it. */
 export type MorsePlayback = Readonly<{
@@ -81,12 +82,27 @@ export function useMorsePlayback(
   message: MorseMessage,
   unitMs: number = DEFAULT_PLAYBACK_UNIT_MS,
 ): MorsePlayback {
-  const { audio, keepAwake, torch } = usePorts();
+  const { audio, keepAwake, torch, vibration } = usePorts();
   const unit = clampPlaybackUnitMs(unitMs);
 
   const timeline = useMemo(() => toTimeline(message), [message]);
   const spans = useMemo(() => letterSpans(message), [message]);
   const changes = useMemo(() => signalChanges(timeline), [timeline]);
+
+  /**
+   * The marks in milliseconds, from `fromUnit` onward. Vibration is handed the
+   * whole set up front rather than driven tick by tick: Android plays it in
+   * the OS, where the rhythm does not depend on this app's timers at all.
+   */
+  const marksFrom = useCallback(
+    (fromUnit: number) =>
+      signalMarks(timelineFrom(timeline, fromUnit)).map((mark) => ({
+        atMs: mark.atUnit * unit,
+        durationMs: mark.units * unit,
+        long: mark.long,
+      })),
+    [timeline, unit],
+  );
   const durationMs = totalMs(timeline, unit);
 
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -98,6 +114,7 @@ export function useMorsePlayback(
     sound: true,
     light: false,
     screen: false,
+    buzz: false,
   });
   const [screenLit, setScreenLit] = useState(false);
 
@@ -155,16 +172,17 @@ export function useMorsePlayback(
     clearTimers();
     darken();
     void audio.stop();
+    void vibration.stop();
     keepScreenOn(false);
     setPlaying(false);
     setElapsedMs(0);
-  }, [audio, clearTimers, darken, keepScreenOn]);
+  }, [audio, clearTimers, darken, keepScreenOn, vibration]);
 
   const play = useCallback((): void => {
     // Nothing to play, or nothing to play it on. Running anyway would animate
     // a progress bar over an output that is switched off.
     if (timeline.totalUnits === 0) return;
-    if (!live.current.sound && !live.current.light && !live.current.screen) return;
+    if (!Object.values(live.current).some(Boolean)) return;
 
     clearTimers();
     startedAt.current = Date.now();
@@ -203,6 +221,9 @@ export function useMorsePlayback(
     if (live.current.sound) {
       void audio.play(renderWav(timeline, { unitMs: unit }));
     }
+    if (live.current.buzz) {
+      void vibration.play(marksFrom(0));
+    }
   }, [
     audio,
     changes,
@@ -210,10 +231,12 @@ export function useMorsePlayback(
     durationMs,
     elapsedUnits,
     finish,
+    keepScreenOn,
+    marksFrom,
     timeline,
     torch,
     unit,
-    keepScreenOn,
+    vibration,
   ]);
 
   const toggleChannel = useCallback(
@@ -224,18 +247,26 @@ export function useMorsePlayback(
 
       // Light and screen need nothing here — the driver reads `live` on its
       // next pass and catches up on its own, whichever way they were switched.
-      if (!playing || channel !== 'sound') return;
+      // Sound and vibration are handed whole sequences, so they have to be
+      // handed a new one that starts where the run already is.
+      if (!playing) return;
 
-      if (next.sound) {
-        // Join where the others already are, rather than starting again.
-        void audio.play(
-          renderWav(timelineFrom(timeline, elapsedUnits()), { unitMs: unit }),
-        );
-      } else {
-        void audio.stop();
+      if (channel === 'sound') {
+        if (next.sound) {
+          void audio.play(
+            renderWav(timelineFrom(timeline, elapsedUnits()), { unitMs: unit }),
+          );
+        } else {
+          void audio.stop();
+        }
+      }
+
+      if (channel === 'buzz') {
+        if (next.buzz) void vibration.play(marksFrom(elapsedUnits()));
+        else void vibration.stop();
       }
     },
-    [audio, elapsedUnits, playing, timeline, unit],
+    [audio, elapsedUnits, marksFrom, playing, timeline, unit, vibration],
   );
 
   const playLetter = useCallback(
@@ -261,11 +292,12 @@ export function useMorsePlayback(
       clearTimers();
       darken();
       void audio.stop();
+      void vibration.stop();
       keepScreenOn(false);
       setPlaying(false);
       setElapsedMs(0);
     };
-  }, [message, audio, clearTimers, darken, keepScreenOn]);
+  }, [message, audio, clearTimers, darken, keepScreenOn, vibration]);
 
   return {
     playing,
@@ -276,8 +308,7 @@ export function useMorsePlayback(
     channels,
     screenLit,
     toggleChannel,
-    canPlay:
-      timeline.totalUnits > 0 && (channels.sound || channels.light || channels.screen),
+    canPlay: timeline.totalUnits > 0 && Object.values(channels).some(Boolean),
     play,
     stop: finish,
     playLetter,

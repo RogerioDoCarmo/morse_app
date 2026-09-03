@@ -90,6 +90,21 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'channel-screen'
 
+# --- vibration is a channel like any other ---
+# On iOS it cannot vary a vibration's LENGTH, so it fires a pulse at each
+# mark's start with intensity carrying dot from dash. Nothing to assert
+# visually; this is here so the path runs on a real device.
+- tapOn:
+    id: 'channel-buzz'
+- tapOn:
+    id: 'signal-button'
+- assertVisible:
+    id: 'playback-progress'
+- tapOn:
+    id: 'signal-button'
+- tapOn:
+    id: 'channel-buzz'
+
 # --- nothing switched on means nothing to signal with ---
 - tapOn:
     id: 'channel-light'

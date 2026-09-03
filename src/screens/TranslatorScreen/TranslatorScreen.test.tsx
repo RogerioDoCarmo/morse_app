@@ -36,12 +36,11 @@ describe('TranslatorScreen', () => {
     expect(screen.getByTestId('channel-light')).not.toBeSelected();
   });
 
-  it('offers the channels that are built, and greys out the one that is not', () => {
+  it('offers every channel in the strip', () => {
     renderWithProviders(<TranslatorScreen />);
-    expect(screen.getByTestId('channel-sound')).not.toBeDisabled();
-    expect(screen.getByTestId('channel-light')).not.toBeDisabled();
-    expect(screen.getByTestId('channel-screen')).not.toBeDisabled();
-    expect(screen.getByTestId('channel-buzz')).toBeDisabled();
+    for (const channel of ['sound', 'light', 'screen', 'buzz']) {
+      expect(screen.getByTestId(`channel-${channel}`)).not.toBeDisabled();
+    }
   });
 
   // The torch is no longer a switch you leave on — it carries the message.
@@ -806,5 +805,82 @@ describe('TranslatorScreen — keeping the screen awake', () => {
     fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     expect(ports.calls.awake).toEqual([]);
+  });
+});
+
+describe('TranslatorScreen — the vibration channel', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const advance = async (ms: number): Promise<void> => {
+    await act(async () => {
+      jest.advanceTimersByTime(ms);
+      await Promise.resolve();
+    });
+  };
+
+  it('does not vibrate while the channel is off', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.vibrated).toEqual([]);
+  });
+
+  // A is dot(1) gap(1) dash(3): two marks, the second three times the first.
+  it('hands the port every mark, with the dashes marked as long', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'A');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.vibrated).toEqual([
+      [
+        { atMs: 0, durationMs: 120, long: false },
+        { atMs: 240, durationMs: 360, long: true },
+      ],
+    ]);
+  });
+
+  it('stops the motor when the message is stopped', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.vibrationStops).toBeGreaterThan(0);
+  });
+
+  // Handed a whole sequence rather than driven tick by tick, so joining a run
+  // means handing it a new sequence that starts where the run already is.
+  it('hands over only the marks still to come when it joins mid-message', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(1000);
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+
+    const joined = ports.calls.vibrated[0] ?? [];
+    expect(joined.length).toBeGreaterThan(0);
+    // Fewer marks than the whole message, because part of it has gone.
+    expect(joined.length).toBeLessThan(9);
+  });
+
+  it('counts as something to signal with on its own', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+
+    fireEvent.press(screen.getByTestId('channel-sound'));
+    expect(screen.getByTestId('signal-button')).toBeDisabled();
+
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    expect(screen.getByTestId('signal-button')).not.toBeDisabled();
   });
 });

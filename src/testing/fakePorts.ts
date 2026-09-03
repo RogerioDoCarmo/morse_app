@@ -10,6 +10,8 @@ export type FakePorts = Ports &
       spoken: { text: string; locale: AppLocale }[];
       played: Uint8Array[];
       awake: boolean[];
+      vibrated: { atMs: number; durationMs: number; long: boolean }[][];
+      vibrationStops: number;
       audioStopped: number;
       requested: PermissionKind[];
       settingsOpened: number;
@@ -28,6 +30,8 @@ export function createFakePorts(
     spoken: [],
     played: [],
     awake: [],
+    vibrated: [],
+    vibrationStops: 0,
     audioStopped: 0,
     requested: [],
     settingsOpened: 0,
@@ -59,6 +63,14 @@ export function createFakePorts(
       },
       release: async () => {
         calls.awake.push(false);
+      },
+    },
+    vibration: {
+      play: async (marks) => {
+        calls.vibrated.push([...marks]);
+      },
+      stop: async () => {
+        calls.vibrationStops += 1;
       },
     },
     tts: {

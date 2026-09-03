@@ -10,6 +10,7 @@ import {
   type TorchAdapter,
 } from '@/adapters/torch/expoTorchAdapter';
 import { createExpoSpeechAdapter } from '@/adapters/tts/expoSpeechAdapter';
+import { createPlatformVibrationAdapter } from '@/adapters/vibration/platformVibrationAdapter';
 import type { Ports } from '@/core/ports';
 
 /**
@@ -40,6 +41,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
       torch,
       audio: createExpoAudioAdapter(crash),
       keepAwake: createExpoKeepAwakeAdapter(crash),
+      vibration: createPlatformVibrationAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
       speech: createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),

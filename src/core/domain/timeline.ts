@@ -120,6 +120,43 @@ export function signalChanges(timeline: MorseTimeline): readonly SignalChange[] 
   return changes;
 }
 
+/** One mark to be felt or seen: when it starts, how long, and which it is. */
+export type SignalMark = Readonly<{
+  atUnit: number;
+  units: number;
+  /**
+   * True for a dash. Carried rather than inferred, so an output that cannot
+   * vary duration can still tell the two apart by some other means.
+   */
+  long: boolean;
+}>;
+
+/**
+ * Just the marks, without the silences between them.
+ *
+ * An output that fires a pulse rather than holding a state needs the starts,
+ * not the transitions — and it needs to know which mark it is firing, because
+ * a device that cannot vary the length of a pulse has to carry the difference
+ * some other way.
+ */
+export function signalMarks(timeline: MorseTimeline): readonly SignalMark[] {
+  const marks: SignalMark[] = [];
+  let atUnit = 0;
+
+  timeline.segments.forEach((segment) => {
+    if (segment.on) {
+      marks.push({
+        atUnit,
+        units: segment.units,
+        long: segment.units === PLAYBACK_UNITS.dash,
+      });
+    }
+    atUnit += segment.units;
+  });
+
+  return marks;
+}
+
 /**
  * Whether the output should be on at `atUnit`.
  *
