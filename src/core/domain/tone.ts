@@ -11,8 +11,12 @@
  * and rendering it up front is what makes the file saveable, which is the
  * behaviour that prompted this feature.
  */
-import { DEFAULT_UNIT_MS, clampUnitMs } from './tapping';
-import { toTimedSegments, type MorseTimeline } from './timeline';
+import {
+  DEFAULT_PLAYBACK_UNIT_MS,
+  clampPlaybackUnitMs,
+  toTimedSegments,
+  type MorseTimeline,
+} from './timeline';
 
 /** A WAV header is exactly this long for 16-bit PCM with no extra chunks. */
 const HEADER_BYTES = 44;
@@ -123,7 +127,7 @@ export function renderWav(
 ): Uint8Array {
   const sampleRate = options.sampleRate ?? DEFAULT_SAMPLE_RATE;
   const frequencyHz = options.frequencyHz ?? DEFAULT_TONE_HZ;
-  const unitMs = clampUnitMs(options.unitMs ?? DEFAULT_UNIT_MS);
+  const unitMs = clampPlaybackUnitMs(options.unitMs ?? DEFAULT_PLAYBACK_UNIT_MS);
 
   const segments = toTimedSegments(timeline, unitMs).map((segment) => ({
     on: segment.on,

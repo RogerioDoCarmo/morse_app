@@ -7,6 +7,7 @@
 /* eslint-disable testing-library/render-result-naming-convention */
 import { encode } from './morse';
 import { MIN_UNIT_MS } from './tapping';
+import { DEFAULT_PLAYBACK_UNIT_MS } from './timeline';
 import { toTimeline, totalMs } from './timeline';
 import {
   DEFAULT_SAMPLE_RATE,
@@ -191,6 +192,13 @@ describe('renderWav audio', () => {
 
     // Clamped to MIN_UNIT_MS, so one unit is that many milliseconds.
     expect(samplesOf(fast)).toHaveLength(MIN_UNIT_MS);
+  });
+
+  // Not the tap threshold: playback has its own, faster default.
+  it('defaults to the playback speed', () => {
+    // One dot at 120ms, sampled at 8kHz.
+    expect(DEFAULT_PLAYBACK_UNIT_MS).toBe(120);
+    expect(samplesOf(wav('E'))).toHaveLength(960);
   });
 
   it('defaults to the standard sidetone and sample rate', () => {

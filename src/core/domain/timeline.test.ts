@@ -1,6 +1,16 @@
 import { encode } from './morse';
 import { DEFAULT_UNIT_MS, MAX_UNIT_MS, MIN_UNIT_MS } from './tapping';
-import { PLAYBACK_UNITS, toTimeline, toTimedSegments, totalMs } from './timeline';
+import {
+  DEFAULT_PLAYBACK_UNIT_MS,
+  DEFAULT_PLAYBACK_WPM,
+  PARIS_UNITS_PER_WORD,
+  PLAYBACK_UNITS,
+  clampPlaybackUnitMs,
+  toTimeline,
+  toTimedSegments,
+  totalMs,
+  unitMsForWpm,
+} from './timeline';
 
 /** Compact rendering of a timeline, so expectations read like the signal does. */
 const shape = (text: string): string =>
@@ -112,9 +122,9 @@ describe('toTimedSegments', () => {
     ]);
   });
 
-  it('falls back to the default rather than producing NaN durations', () => {
+  it('falls back to the playback default rather than producing NaN durations', () => {
     expect(toTimedSegments(toTimeline(encode('E')), Number.NaN)).toEqual([
-      { on: true, ms: DEFAULT_UNIT_MS },
+      { on: true, ms: DEFAULT_PLAYBACK_UNIT_MS },
     ]);
   });
 
@@ -131,5 +141,49 @@ describe('totalMs', () => {
 
   it('is zero for an empty timeline', () => {
     expect(totalMs(toTimeline(encode('')), 100)).toBe(0);
+  });
+});
+
+describe('playback speed', () => {
+  // PARIS is 50 units, so a unit is 1200/wpm milliseconds. These three are the
+  // speeds the Settings screen offers.
+  it('converts words per minute to a unit length', () => {
+    expect(PARIS_UNITS_PER_WORD).toBe(50);
+    expect(unitMsForWpm(5)).toBe(240);
+    expect(unitMsForWpm(10)).toBe(120);
+    expect(unitMsForWpm(15)).toBe(80);
+  });
+
+  it('defaults to 10 words per minute', () => {
+    expect(DEFAULT_PLAYBACK_WPM).toBe(10);
+    expect(DEFAULT_PLAYBACK_UNIT_MS).toBe(120);
+  });
+
+  // The whole point of a separate setting. Reusing the tap threshold made
+  // "Hello world" take twenty seconds.
+  it('plays faster than a human keys', () => {
+    expect(DEFAULT_PLAYBACK_UNIT_MS).toBeLessThan(DEFAULT_UNIT_MS);
+  });
+
+  it('offers every Settings speed inside the allowed range', () => {
+    [5, 10, 15].forEach((wpm) => {
+      const ms = unitMsForWpm(wpm);
+      expect(clampPlaybackUnitMs(ms)).toBe(ms);
+    });
+  });
+
+  it('holds an out-of-range speed and falls back on nonsense', () => {
+    expect(clampPlaybackUnitMs(1)).toBe(MIN_UNIT_MS);
+    expect(clampPlaybackUnitMs(9000)).toBe(MAX_UNIT_MS);
+    expect(clampPlaybackUnitMs(Number.NaN)).toBe(DEFAULT_PLAYBACK_UNIT_MS);
+    expect(clampPlaybackUnitMs(Number.POSITIVE_INFINITY)).toBe(DEFAULT_PLAYBACK_UNIT_MS);
+  });
+
+  it('plays Hello world in 13.3 seconds rather than 20', () => {
+    const timeline = toTimeline(encode('Hello world'));
+
+    expect(timeline.totalUnits).toBe(111);
+    expect(totalMs(timeline, DEFAULT_PLAYBACK_UNIT_MS)).toBe(13320);
+    expect(totalMs(timeline, DEFAULT_UNIT_MS)).toBe(19980);
   });
 });

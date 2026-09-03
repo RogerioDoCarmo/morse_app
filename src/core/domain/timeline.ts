@@ -35,6 +35,46 @@ export const PLAYBACK_UNITS = Object.freeze({
   wordGap: 7,
 });
 
+/**
+ * The reference word every operator measures speed against. PARIS is exactly
+ * 50 units including the word gap that follows it, so one unit is
+ * `60000 / (50 * wpm)` milliseconds — 1200/wpm.
+ */
+export const PARIS_UNITS_PER_WORD = 50;
+
+/** Milliseconds per unit at a given speed. */
+export function unitMsForWpm(wordsPerMinute: number): number {
+  return 60000 / (PARIS_UNITS_PER_WORD * wordsPerMinute);
+}
+
+/**
+ * Default PLAYBACK speed, in words per minute.
+ *
+ * ⚠️ Deliberately NOT tapping's DEFAULT_UNIT_MS. That one is a dot/dash
+ * threshold for a human keying by hand, and 180ms suits a learner at about
+ * 6-7 wpm. Reusing it for playback made "Hello world" take twenty seconds —
+ * far too slow to sit through for something the app is merely reading out.
+ *
+ * The Settings screen offers 5, 10 and 15 wpm, which are 240, 120 and 80ms.
+ * The two speeds are separate settings and there is no reason for them to
+ * agree: you can key slowly and still want to listen quickly.
+ */
+export const DEFAULT_PLAYBACK_WPM = 10;
+
+/** The same default expressed as a unit length. */
+export const DEFAULT_PLAYBACK_UNIT_MS = unitMsForWpm(DEFAULT_PLAYBACK_WPM);
+
+/**
+ * Holds a playback speed inside the range the settings screen offers.
+ *
+ * Shares tapping's range — one slider's worth of sensible unit lengths covers
+ * both — but falls back to the PLAYBACK default rather than the tap threshold
+ * when handed something that is not a number.
+ */
+export function clampPlaybackUnitMs(ms: number): number {
+  return Number.isFinite(ms) ? clampUnitMs(ms) : DEFAULT_PLAYBACK_UNIT_MS;
+}
+
 /** One stretch of the output being on or off. Never zero-length. */
 export type TimelineSegment = Readonly<{
   /** True while the tone, torch, screen or motor is driven. */
@@ -100,15 +140,14 @@ export function toTimeline(message: MorseMessage): MorseTimeline {
 /**
  * Converts a timeline to real durations.
  *
- * `unitMs` goes through {@link clampUnitMs}, so the one speed the user can
- * configure governs playback as well as tap input, and a nonsensical value
+ * `unitMs` goes through {@link clampPlaybackUnitMs}, so a nonsensical value
  * cannot turn every duration into `NaN`.
  */
 export function toTimedSegments(
   timeline: MorseTimeline,
   unitMs: number,
 ): readonly TimedSegment[] {
-  const clamped = clampUnitMs(unitMs);
+  const clamped = clampPlaybackUnitMs(unitMs);
   return timeline.segments.map((segment) => ({
     on: segment.on,
     ms: segment.units * clamped,
@@ -117,5 +156,5 @@ export function toTimedSegments(
 
 /** How long the whole message takes to play, in milliseconds. */
 export function totalMs(timeline: MorseTimeline, unitMs: number): number {
-  return timeline.totalUnits * clampUnitMs(unitMs);
+  return timeline.totalUnits * clampPlaybackUnitMs(unitMs);
 }

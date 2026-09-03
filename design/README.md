@@ -72,9 +72,12 @@ output.
   pending, and a thin track carries the exact position. **Flash it stays enabled while
   audio plays**, so light and sound run together.
 - Timing in that artboard is the real ITU rhythm and agrees with
-  `src/core/domain/timeline.ts` — both make "Hello world" 111 units. At the default
-  180ms unit that is 20 seconds, which is worth revisiting: the 180ms default was
-  chosen for tap INPUT (a learner keying at 6–7 wpm), not for playback.
+  `src/core/domain/timeline.ts` — both make "Hello world" 111 units.
+- **2026-09-03 · playback speed is its own setting.** Settings always offered two
+  controls; the code was wrongly reusing the dot/dash cut-off for playback, which made
+  "Hello world" take 20 seconds. Playback now defaults to **10 WPM = 120ms** (PARIS:
+  a unit is 1200/wpm), giving 13.3s. The 5/10/15 WPM chips are 240/120/80ms, and
+  15 WPM lands exactly on the 80ms floor of the shared range.
 
 ## Localisation
 

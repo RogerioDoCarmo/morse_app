@@ -184,7 +184,7 @@
 
 </div>
 </x-dc>
-<script data-dc-script data-props='{"unitMs":{"editor":"range","default":180,"min":80,"max":400,"step":10,"unit":"ms","section":"Playback"},"$preview":{"width":390,"height":844}}'>
+<script data-dc-script data-props='{"unitMs":{"editor":"range","default":120,"min":80,"max":400,"step":10,"unit":"ms","section":"Playback"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -204,7 +204,7 @@ class Component extends DCLogic {
   }
 
   unit() {
-    return this.props.unitMs ?? 180;
+    return this.props.unitMs ?? 120;
   }
 
   table() {
