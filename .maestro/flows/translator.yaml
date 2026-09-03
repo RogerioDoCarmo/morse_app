@@ -22,5 +22,26 @@ appId: com.rogeriodocarmo.morse
 - hideKeyboard
 - assertVisible:
     id: 'morse-string'
+
+# Characters with no Morse code are dropped. They used to be dropped silently,
+# which left the sender believing the whole message went out. '#' is ASCII, so
+# this types the same on both platforms' keyboards.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'HI #'
+- hideKeyboard
+- assertVisible:
+    id: 'unsupported-notice'
+
+# And the notice goes away once everything can be encoded again.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'HI'
+- hideKeyboard
+- assertNotVisible:
+    id: 'unsupported-notice'
+
 - tapOn:
     id: 'flash-button'

@@ -5,6 +5,7 @@ import {
   encode,
   encodeToString,
   normaliseForMorse,
+  unsupportedCharacters,
 } from './morse';
 
 /** Arbitrary text drawn only from characters the app can represent. */
@@ -68,6 +69,48 @@ describe('morse properties', () => {
     fc.assert(
       fc.property(fc.string({ maxLength: 60 }), (text) => {
         expect(encodeToString(normaliseForMorse(text))).toBe(encodeToString(text));
+      }),
+    );
+  });
+});
+
+describe('unsupportedCharacters properties', () => {
+  // The strongest statement of what this function is for: normalising removes
+  // exactly what it reports, so once normalised there is nothing left to warn
+  // about. If these two ever disagree, the warning is lying in one direction
+  // or the other.
+  it('reports exactly what normalising removes', () => {
+    fc.assert(
+      fc.property(fc.string({ maxLength: 60 }), (text) => {
+        expect(unsupportedCharacters(normaliseForMorse(text))).toEqual([]);
+      }),
+    );
+  });
+
+  it('never reports something that survived into the encoded message', () => {
+    fc.assert(
+      fc.property(fc.string({ maxLength: 60 }), (text) => {
+        const normalised = normaliseForMorse(text);
+        unsupportedCharacters(text).forEach((char) => {
+          expect(normalised).not.toContain(char);
+        });
+      }),
+    );
+  });
+
+  it('reports nothing at all for text drawn from the supported set', () => {
+    fc.assert(
+      fc.property(supportedText, (text) => {
+        expect(unsupportedCharacters(text)).toEqual([]);
+      }),
+    );
+  });
+
+  it('lists each character once', () => {
+    fc.assert(
+      fc.property(fc.string({ maxLength: 60 }), (text) => {
+        const dropped = unsupportedCharacters(text);
+        expect(new Set(dropped).size).toBe(dropped.length);
       }),
     );
   });

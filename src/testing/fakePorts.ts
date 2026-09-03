@@ -8,6 +8,8 @@ export type FakePorts = Ports &
     calls: {
       torchEnabled: boolean[];
       spoken: { text: string; locale: AppLocale }[];
+      played: Uint8Array[];
+      audioStopped: number;
       requested: PermissionKind[];
       settingsOpened: number;
       recorded: { message: string; context?: string }[];
@@ -23,6 +25,8 @@ export function createFakePorts(
   const calls: FakePorts['calls'] = {
     torchEnabled: [],
     spoken: [],
+    played: [],
+    audioStopped: 0,
     requested: [],
     settingsOpened: 0,
     recorded: [],
@@ -37,6 +41,14 @@ export function createFakePorts(
       },
       release: async () => {
         calls.torchEnabled.push(false);
+      },
+    },
+    audio: {
+      play: async (wav) => {
+        calls.played.push(wav);
+      },
+      stop: async () => {
+        calls.audioStopped += 1;
       },
     },
     tts: {

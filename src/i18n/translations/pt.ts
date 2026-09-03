@@ -20,6 +20,8 @@ export const ptBR: TranslationMap = {
   'translator.flash': 'Piscar',
   'translator.copy': 'Copiar',
   'translator.play': 'Tocar som',
+  'translator.playing': 'Tocando',
+  'translator.unsupported': 'Sem código: {{chars}}',
   'settings.title': 'Ajustes',
   'settings.cutoff': 'Limite de ponto / traço',
   'settings.cutoffHint':

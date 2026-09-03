@@ -21,6 +21,9 @@ const path = require('path');
  *                     either platform.
  *   - RECORD_AUDIO  → speech input. Genuinely used.
  *   - INTERNET      → Crashlytics. See the note on the removal list below.
+ *   - MODIFY_AUDIO_SETTINGS → injected by expo-audio for audio focus. Normal
+ *                     protection level, so it is never prompted for, and
+ *                     stripping it risks playback losing focus to other apps.
  *
  * ⚠️ DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION will still show up in a built
  * artifact. That is androidx declaring a signature-level permission for its own

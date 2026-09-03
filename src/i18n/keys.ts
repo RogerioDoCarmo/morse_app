@@ -24,6 +24,8 @@ export type TranslationKey =
   | 'translator.flash'
   | 'translator.copy'
   | 'translator.play'
+  | 'translator.playing'
+  | 'translator.unsupported'
   | 'settings.title'
   | 'settings.cutoff'
   | 'settings.cutoffHint'

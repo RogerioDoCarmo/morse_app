@@ -121,6 +121,15 @@
       "y": 0,
       "w": 390,
       "h": 844
+    },
+    {
+      "file": "Playing.dc.html",
+      "title": "Translator · playing",
+      "page": "phone",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844
     }
   ],
   "annotations": [
@@ -130,7 +139,7 @@
       "x": 0,
       "y": -260,
       "w": 820,
-      "text": "Direction D, executed modern — Plus Jakarta Sans, near-black ink on a cool off-white, one vivid teal, 22px cards on soft shadow.\n\nWorking controls, not pictures:\n• Translator — the text ⇄ Morse toggle flips; tapping a letter chip selects it\n• Speech — the mic cycles idle → listening → result, and the EN/PT switch changes the recognised copy\n• Tap decode — press DURATION is measured for real. Tap for a dot, hold for a dash; 3 units of silence closes the letter, 7 closes the word. The cut-off stepper retunes it live.\n• Settings — the threshold slider, speed and toggles all work\n• Permission gates — the four states switch from the row at the bottom\n\nApp name is still open; \"Morse\" is a placeholder wordmark."
+      "text": "Direction D, executed modern — Plus Jakarta Sans, near-black ink on a cool off-white, one vivid teal, 22px cards on soft shadow.\n\nWorking controls, not pictures:\n• Translator — the text ⇄ Morse toggle flips; tapping a letter chip selects it\n• Speech — the mic cycles idle → listening → result, and the EN/PT switch changes the recognised copy\n• Tap decode — press DURATION is measured for real. Tap for a dot, hold for a dash; 3 units of silence closes the letter, 7 closes the word. The cut-off stepper retunes it live.\n• Settings — the threshold slider, speed and toggles all work\n• Permission gates — the four states switch from the row at the bottom\n• Translator · playing — the speaker button really plays: chips light letter by letter on ITU timing (dot 1, dash 3, gaps 1/3/7) and the speed chip retunes it live\n\nApp name is still open; \"Morse\" is a placeholder wordmark."
     },
     {
       "id": "phone-scroll-note",
@@ -155,6 +164,14 @@
       "y": -300,
       "w": 1330,
       "text": "THREE UI LANGUAGES — English, Português (Brasil), Español\n\nThe whole interface translates, not just the input. These two are the same artboard as the English Translator with only the strings swapped, so any layout difference is purely string length.\n\nWhat that surfaced: the Morse card's header row put its label and its hint on one line with no shrink protection. It fit in English at 390pt and would have collided at 360pt in Portuguese. Both now shrink and wrap; every phone frame was re-checked at 360pt.\n\nAccented letters — decided: Ç (-.-..), É (..-..) and Ñ (--.--) have real ITU codes and are supported; every other diacritic is sent as its base letter. Ñ and Ç are distinct letters, not decoration (año ≠ ano), and the rest have no standard code. All three are in the Learn alphabet with the rule stated underneath."
+    },
+    {
+      "id": "playing-state",
+      "page": "phone",
+      "x": 1880,
+      "y": -190,
+      "w": 390,
+      "text": "PLAYING — audio output\n\nNot a new screen: the Translator with sound running. The speaker button that was already in the action row is the control; it fills teal and becomes stop.\n\nProgress is shown twice, deliberately. The chips carry it in the content itself — played, sounding, still to come — and the thin track under the divider carries the exact position for anyone watching the clock rather than the letters.\n\nFlash it stays live while audio plays — decided 2026-09-03. Light and sound run together rather than competing for the message.\n\nPlayback speed is its OWN setting, separate from the dot/dash cut-off — decided 2026-09-03. Settings already offered both; the code was wrongly reusing the tap threshold for playback.\n\nDefault is 10 WPM = 120ms (PARIS: a unit is 1200/wpm). Hello world is 111 units, so 13.3s instead of the 20s the tap threshold gave. The 5/10/15 WPM chips are 240/120/80ms, and 15 WPM lands exactly on the 80ms floor."
     }
   ],
   "launch": {

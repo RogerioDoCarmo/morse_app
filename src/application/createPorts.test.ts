@@ -1,5 +1,13 @@
 import { createPorts } from './createPorts';
 
+// expo-audio reads its native module's prototype the moment it is imported,
+// and that module does not exist under Jest. The adapter is covered by its own
+// tests; here it only has to load so the composition root can be built.
+jest.mock('expo-audio', () => ({
+  createAudioPlayer: jest.fn(),
+  setAudioModeAsync: jest.fn(),
+}));
+
 const mockIsEnabled = jest.fn<boolean, []>();
 
 jest.mock('@/adapters/crash/firebaseCrashReportingAdapter', () => ({

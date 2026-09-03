@@ -144,6 +144,74 @@ export function normaliseForMorse(text: string): string {
     .trim();
 }
 
+/**
+ * The letter at `index`, counting straight through every word.
+ *
+ * This flat numbering is the one identity a letter has outside the message:
+ * the rendered output labels its cells with it, and `letterSpans` times them
+ * by it. Returns null for an index that names no letter, so a stale selection
+ * cannot resurrect a letter that has since been typed away.
+ *
+ * Negative, fractional and NaN indices need no guard of their own: none of
+ * them can match a slot, and the lookup already answers null for anything it
+ * cannot find. A guard would be unreachable code — mutation testing is what
+ * showed that the one written here first could not change any outcome.
+ */
+export function letterAt(message: MorseMessage, index: number): MorseLetter | null {
+  let remaining = index;
+  for (const word of message.words) {
+    if (remaining < word.letters.length) return word.letters[remaining] ?? null;
+    remaining -= word.letters.length;
+  }
+  return null;
+}
+
+/**
+ * Wraps one letter as a message of its own, so it can be encoded, timed or
+ * played exactly the way a whole message is.
+ */
+export function messageOfLetter(letter: MorseLetter): MorseMessage {
+  return { words: [{ letters: [letter] }] };
+}
+
+/**
+ * Characters in `text` that Morse cannot carry, each listed once in the order
+ * it first appears.
+ *
+ * {@link normaliseForMorse} drops these, which is the right thing for the
+ * encoder — there is no code to emit — but dropping them SILENTLY is not: the
+ * reader gets a message with holes in it and the sender is never told. This
+ * reports exactly what {@link encode} will discard, so a caller can say so.
+ *
+ * Whitespace is not dropped, it is collapsed, so it is never reported here.
+ * Neither are diacritics that fold onto an encodable letter: `Ã` is sent as
+ * `A`, which is a substitution the recipient can read, not a loss. Only what
+ * ends up with no code at all is reported, and it is reported as it was typed
+ * rather than after folding — the user needs to recognise their own text.
+ */
+export function unsupportedCharacters(text: string): readonly string[] {
+  const seen = new Set<string>();
+  const dropped: string[] = [];
+
+  // Uppercased first, exactly as normaliseForMorse does, so a character whose
+  // uppercase form IS encodable (ß becomes SS) is not reported as lost.
+  Array.from(text.normalize('NFC').toUpperCase()).forEach((char) => {
+    if (/\s/u.test(char)) return;
+
+    // A lone combining mark folds away to nothing, and nothing is not a key in
+    // the table, so the empty case needs no guard of its own — it falls through
+    // and is reported, which is correct: the encoder drops it too.
+    const folded = ACCENTS_WITH_CODES.has(char) ? char : foldDiacritics(char);
+    if (folded in CHARACTER_TO_CODE) return;
+    if (seen.has(char)) return;
+
+    seen.add(char);
+    dropped.push(char);
+  });
+
+  return dropped;
+}
+
 /** Splits a code string into its marks. Assumes the code came from the table. */
 const toSymbols = (code: string): readonly MorseSymbol[] =>
   Array.from(code).filter((mark): mark is MorseSymbol => mark === '.' || mark === '-');

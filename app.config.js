@@ -50,6 +50,31 @@ module.exports = () => {
   // the app to dynamic linking.
   plugins.push(['expo-build-properties', { ios: { useFrameworks: 'static' } }]);
 
+  // expo-audio is configured HERE rather than in app.json so its microphone
+  // string can be read from the one place that owns it.
+  //
+  // ⚠️ The plugin OVERWRITES ios.infoPlist.NSMicrophoneUsageDescription with a
+  // generic default, and `microphonePermission: false` does not opt out — it
+  // just looks like no value and the default wins. Passing the real string is
+  // the only way to keep it, and sourcing it from infoPlist means the two
+  // cannot drift into disagreeing about why this app wants a microphone.
+  //
+  // Background playback is off deliberately: a Morse message is short and
+  // plays in the foreground. Leaving it on adds UIBackgroundModes, a
+  // MediaSessionService and two FOREGROUND_SERVICE permissions, all of which
+  // would have to be justified at review for a feature the app does not have.
+  plugins.push([
+    'expo-audio',
+    {
+      microphonePermission: base.expo.ios.infoPlist.NSMicrophoneUsageDescription,
+      // The microphone is for speech input, declared in app.json. Nothing here
+      // records anything.
+      recordAudioAndroid: false,
+      enableBackgroundPlayback: false,
+      enableBackgroundRecording: false,
+    },
+  ]);
+
   if (hasAndroid || hasIos) {
     plugins.push('@react-native-firebase/app', '@react-native-firebase/crashlytics');
   }

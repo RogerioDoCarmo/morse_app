@@ -8,6 +8,12 @@ type Props = Readonly<{
   message: MorseMessage;
   /** Index of the selected letter, counted across the whole message. */
   selectedIndex?: number | null;
+  /**
+   * Index of the letter the playhead is on, or null when nothing is playing.
+   * Letters before it read as already played, which is what turns the output
+   * itself into the progress indicator.
+   */
+  soundingIndex?: number | null;
   /** Called with that same flat index when a letter is pressed. */
   onSelectLetter?: (index: number) => void;
   /** Test identifier. Also the Maestro selector — never assert on localised text. */
@@ -24,6 +30,7 @@ type Props = Readonly<{
 export function MorseText({
   message,
   selectedIndex = null,
+  soundingIndex = null,
   onSelectLetter,
   testID = 'morse-output',
 }: Props): React.JSX.Element {
@@ -50,17 +57,25 @@ export function MorseText({
         <View key={`w${String(wordIndex)}`} style={styles.word}>
           {word.letters.map((letter, letterIndex) => {
             const index = (wordOffsets[wordIndex] ?? 0) + letterIndex;
-            const selected = selectedIndex === index;
-            const markColor = selected ? theme.color.onAccent : theme.color.accent;
+            // Playback owns the highlight while it runs: a selection left over
+            // from a tap would otherwise sit lit in the middle of a message.
+            const playing = soundingIndex !== null;
+            const played = playing && index < soundingIndex;
+            const lit = playing ? index === soundingIndex : selectedIndex === index;
+            const markColor = lit ? theme.color.onAccent : theme.color.accent;
             return (
               <Pressable
                 key={`l${String(letterIndex)}`}
                 testID="morse-letter"
                 accessibilityRole="button"
-                accessibilityState={{ selected }}
+                accessibilityState={{ selected: lit }}
                 accessibilityLabel={`morse-letter-${letter.char}`}
                 onPress={() => onSelectLetter?.(index)}
-                style={[styles.letter, selected && styles.letterSelected]}
+                style={[
+                  styles.letter,
+                  played && styles.letterPlayed,
+                  lit && styles.letterSelected,
+                ]}
               >
                 <View style={styles.marks}>
                   {letter.symbols.map((symbol, symbolIndex) => (
@@ -73,7 +88,11 @@ export function MorseText({
                     />
                   ))}
                 </View>
-                <Text style={selected ? styles.charSelected : styles.char}>
+                <Text
+                  style={
+                    lit ? styles.charSelected : played ? styles.charPlayed : styles.char
+                  }
+                >
                   {letter.char}
                 </Text>
               </Pressable>
@@ -100,9 +119,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.color.groundAlt,
   },
   letterSelected: { backgroundColor: theme.color.accent },
+  letterPlayed: { backgroundColor: theme.color.accentTint },
   marks: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   dash: { width: 21, height: 8, borderRadius: 4 },
   char: { ...theme.type.letter, color: theme.color.muted },
   charSelected: { ...theme.type.letter, color: theme.color.onAccent },
+  charPlayed: { ...theme.type.letter, color: theme.color.accentDeep },
 });

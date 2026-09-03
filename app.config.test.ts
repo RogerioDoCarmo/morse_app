@@ -59,6 +59,43 @@ describe('app.config', () => {
     expect(buildProperties[0]?.[1]).toEqual({ ios: { useFrameworks: 'static' } });
   });
 
+  // The expo-audio plugin overwrites NSMicrophoneUsageDescription with a
+  // generic default unless it is handed the real string, and `false` does not
+  // opt out. If these two ever disagree, the App Store review text silently
+  // becomes "Allow $(PRODUCT_NAME) to access your microphone".
+  it('gives expo-audio the same microphone reason app.json declares', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const appJson = require('./app.json') as {
+      expo: { ios: { infoPlist: { NSMicrophoneUsageDescription: string } } };
+    };
+    const audio = loadConfig([]).expo.plugins.find(
+      (plugin): plugin is [string, Record<string, unknown>] =>
+        Array.isArray(plugin) && plugin[0] === 'expo-audio',
+    );
+
+    expect(audio?.[1]?.microphonePermission).toBe(
+      appJson.expo.ios.infoPlist.NSMicrophoneUsageDescription,
+    );
+    expect(audio?.[1]?.microphonePermission).not.toBe(false);
+  });
+
+  // Background playback would add UIBackgroundModes, a MediaSessionService and
+  // two FOREGROUND_SERVICE permissions for a feature the app does not have.
+  it('keeps expo-audio in the foreground and out of the microphone', () => {
+    const audio = loadConfig([]).expo.plugins.find(
+      (plugin): plugin is [string, Record<string, unknown>] =>
+        Array.isArray(plugin) && plugin[0] === 'expo-audio',
+    );
+
+    expect(audio?.[1]).toEqual(
+      expect.objectContaining({
+        recordAudioAndroid: false,
+        enableBackgroundPlayback: false,
+        enableBackgroundRecording: false,
+      }),
+    );
+  });
+
   it('adds the Firebase plugins only once credentials exist', () => {
     expect(loadConfig([]).expo.plugins.map(nameOf)).not.toContain(
       '@react-native-firebase/app',
