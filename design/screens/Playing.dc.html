@@ -167,11 +167,19 @@
         Stop
       </button>
     </sc-if>
-    <sc-if value="{{ idle }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ ready }}" hint-placeholder-val="{{ true }}">
       <button onClick="{{ start }}" style="flex-grow: 1; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>
-        Send it
+        Signal
       </button>
+    </sc-if>
+    <!-- Every channel off: there is nothing for it to drive, and saying so is
+         better than running a progress bar over silence. -->
+    <sc-if value="{{ blocked }}" hint-placeholder-val="{{ false }}">
+      <div style="flex-grow: 1; height: 54px; background: #e8ebef; color: #9aa3ad; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>
+        Signal
+      </div>
     </sc-if>
     <button style="width: 54px; height: 54px; background: #ffffff; border-radius: 16px; color: #101820; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -206,9 +214,10 @@ class Component extends DCLogic {
     this.state = {
       playing: false,
       elapsedMs: 0,
-      // Sound on by default; the others are opt-in. Light needs the camera,
-      // and the phone is usually face-down or in a pocket for the rest.
-      on: { sound: true, light: true, screen: false, buzz: false },
+      // Light is OFF by default: switching it on is what raises the camera
+      // permission, and a brand-new user's first press should not open a
+      // system dialog before they have heard or seen anything.
+      on: { sound: true, light: false, screen: false, buzz: false },
     };
     this.timer = null;
   }
@@ -309,6 +318,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const laid = this.layout();
+    const on = this.state.on;
     const unit = this.unit();
     const playing = this.state.playing;
     const elapsedUnits = this.state.elapsedMs / unit;
@@ -330,11 +340,13 @@ class Component extends DCLogic {
 
     const pct = totalMs === 0 ? 0 : Math.min(100, (this.state.elapsedMs / totalMs) * 100);
 
-    const on = this.state.on;
+    const anyOn = this.outputs().some((o) => on[o.key]);
 
     return {
       playing: playing,
       idle: !playing,
+      ready: !playing && anyOn,
+      blocked: !playing && !anyOn,
       channels: this.outputs().map((o) => ({
         label: o.label,
         path: o.path,
