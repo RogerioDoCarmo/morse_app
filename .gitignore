@@ -49,3 +49,9 @@ reports/
 *.apk
 *.aab
 *.ipa
+
+# Firebase credentials. Not secret exactly, but they are per-project and per
+# developer — app.config.js treats their absence as "Firebase not configured"
+# and builds a working, uninstrumented app.
+google-services.json
+GoogleService-Info.plist

@@ -41,6 +41,22 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The Firebase config plugins only apply when this file is present, so
+      # without it CI would build a different app from the one that ships —
+      # exactly the divergence that hid three iOS build failures. Injected from
+      # a secret rather than committed, since the repo is public.
+      - name: Write Firebase credentials
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Secret GOOGLE_SERVICES_JSON is not set. Add it with: base64 -i google-services.json | pbcopy"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > google-services.json
+          jq -e '.project_info.project_id' google-services.json > /dev/null \
+            || { echo "::error::GOOGLE_SERVICES_JSON did not decode to a valid google-services.json."; exit 1; }
+
       - name: Prebuild Android
         run: pnpm expo prebuild --platform android --no-install
 
@@ -97,10 +113,34 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Not optional on iOS: @react-native-firebase/crashlytics autolinks a
+      # build phase that reads GOOGLE_APP_ID out of this file, so the app fails
+      # to build without it whether or not the Expo config plugins run.
+      - name: Write Firebase credentials
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "::error::Secret GOOGLE_SERVICE_INFO_PLIST is not set. Add it with: base64 -i GoogleService-Info.plist | pbcopy"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
+          plutil -lint GoogleService-Info.plist > /dev/null \
+            || { echo "::error::GOOGLE_SERVICE_INFO_PLIST did not decode to a valid plist."; exit 1; }
+
       # No --no-install here: the .xcworkspace only exists once CocoaPods has
       # run, and xcodebuild needs the workspace rather than the bare project.
       - name: Prebuild iOS
-        run: pnpm expo prebuild --platform ios
+        run: |
+          pnpm expo prebuild --platform ios
+          # `expo prebuild` reports "Command `pod install` failed" and still
+          # exits 0. Without this check the job carried on to xcodebuild, which
+          # failed with "'' is not a workspace file" — an opaque error 500 lines
+          # below the one that mattered. Fail where the fault actually is.
+          if ! ls -d ios/*.xcworkspace >/dev/null 2>&1; then
+            echo "::error::pod install produced no ios/*.xcworkspace. The real failure is in the prebuild output above."
+            exit 1
+          fi
 
       - name: Build for the simulator
         run: |

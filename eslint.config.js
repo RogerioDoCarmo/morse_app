@@ -93,9 +93,32 @@ module.exports = tseslint.config(
         {
           patterns: [
             {
-              group: ['expo-*'],
+              group: ['expo-*', '@react-native-firebase/*'],
               message:
-                'Only src/adapters/** may import expo-*. Put the dependency behind a port and inject it.',
+                'Only src/adapters/** may import expo-* or @react-native-firebase/*. Put the dependency behind a port and inject it.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Adapters may depend on PORTS, never on each other. The torch and TTS
+  // adapters report errors through ICrashReportingPort; importing the Firebase
+  // adapter directly would point a dependency sideways instead of inward and
+  // drag a vendor SDK into their tests.
+  {
+    files: ['src/adapters/**/*.ts'],
+    ignores: ['src/adapters/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/adapters/*', '../*/'],
+              message:
+                'Adapters must not import other adapters. Depend on the port interface and let the composition root inject it.',
             },
           ],
         },
@@ -112,9 +135,16 @@ module.exports = tseslint.config(
         {
           patterns: [
             {
-              group: ['react', 'react-native', 'expo', 'expo-*', '@/adapters/*'],
+              group: [
+                'react',
+                'react-native',
+                'expo',
+                'expo-*',
+                '@react-native-firebase/*',
+                '@/adapters/*',
+              ],
               message:
-                'core/ must stay pure — no React, no Expo, no adapters. Put the dependency behind a port instead.',
+                'core/ must stay pure — no React, no Expo, no vendor SDKs, no adapters. Put the dependency behind a port instead.',
             },
           ],
         },
