@@ -206,6 +206,14 @@
       "y": -250,
       "w": 390,
       "text": "SCREEN — the flicker surface (a disc)\n\nWhile Screen is on and a message runs, the Morse chips give way to a disc that flips between near-black and white on the signal. The chips are a reading aid; at that moment the square IS the message.\n\n⚠️ THE SIZE IS A SAFETY CONSTRAINT, not a layout preference. Morse flashes at 4.2Hz at 10 WPM and 6.3Hz at 15 — both far past WCAG 2.3.1's limit of three flashes per second. The only compliant route left is keeping the flashing area under 25% of the visual field. A 240pt disc is 13.7% of a 390x844 screen — a circle covers only pi/4 of its bounding box, so the shape buys headroom the square did not have.\n\nSo full-screen is NOT available, however much more legible it would be across a room. If it ever gets bigger, it needs a photosensitivity warning ahead of it and probably a setting.\n\nIt is also sized against the space it is given rather than fixed, after a fixed 240 overflowed the card and was clipped. The artboard flips by button rather than animating, for the same reason — a design canvas is not the place to strobe at 6Hz.\n\nKeeping the screen awake: done. The app holds it for the length of a run and lets it go at the end, so a long message no longer hits auto-lock part-way through."
+    },
+    {
+      "id": "built-vs-drawn",
+      "page": "phone",
+      "x": 0,
+      "y": 2400,
+      "w": 820,
+      "text": "WHAT IS BUILT — reconciled 2026-09-04\n\nThese artboards now describe the app as it actually is. Three things were drawn here and never built, and have been taken out rather than left standing as promises:\n\n• Speech had a language switcher. The screen listens in the interface language and offers no second choice; changing language is the Language screen's job. Worth revisiting if a bilingual user asks.\n• Speech had a Flash it button and a re-record button. Flash it was a leftover of the Translator action row that no longer exists anywhere, and tapping the mic again already re-records.\n• Tap gained a Clear action the artboard did not have.\n\nOne thing went the other way: the Tap key had drifted in CODE into a full-width rounded rectangle. The artboard had settled it as a 186pt disc with a ring, and the code now matches the design rather than the design being rewritten around the drift.\n\nStill drawn as the finished app rather than as today's build:\n• The Learn tab is greyed and inert in the running app because that screen does not exist yet. The artboards show it normal on purpose — the design is the finished thing, and encoding a build-order artefact into it would be wrong the week Learn lands.\n• The Translator's \"no code for\" notice only appears when unencodable characters are typed, so it is not in the idle artboard.\n\nNot built at all yet: Settings, Learn, Tips, Permissions, Language, and both tablet layouts."
     }
   ],
   "launch": {

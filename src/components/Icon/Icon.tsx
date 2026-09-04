@@ -17,6 +17,8 @@ export type IconName =
   | 'play'
   | 'screen'
   | 'vibrate'
+  | 'minus'
+  | 'plus'
   | 'volume'
   | 'copy'
   | 'book'
@@ -82,6 +84,15 @@ function glyph(name: IconName): React.JSX.Element {
       return <Rect x="5" y="5" width="14" height="14" rx="3" />;
     case 'play':
       return <Polygon points="7 4 20 12 7 20 7 4" />;
+    case 'minus':
+      return <Path d="M5 12h14" />;
+    case 'plus':
+      return (
+        <>
+          <Path d="M12 5v14" />
+          <Path d="M5 12h14" />
+        </>
+      );
     case 'screen':
       return (
         <>

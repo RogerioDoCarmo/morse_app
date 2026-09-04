@@ -10,6 +10,7 @@ import { TorchHost } from '@/components/TorchHost';
 import type { TabName } from '@/components/TabBar';
 import { FirstRunScreen } from '@/screens/FirstRunScreen';
 import { SpeechScreen } from '@/screens/SpeechScreen';
+import { TapScreen } from '@/screens/TapScreen';
 import { TranslatorScreen } from '@/screens/TranslatorScreen';
 import { useAppFonts } from '@/adapters/fonts/expoFontsAdapter';
 import { useFirstRun } from '@/application/useFirstRun';
@@ -54,7 +55,7 @@ export default function App(): React.JSX.Element {
  * settled, and a bar that grew as screens landed would move under people who
  * had learned where things are. Greyed and inert is the honest state.
  */
-const UNBUILT: readonly TabName[] = ['tap', 'learn'];
+const UNBUILT: readonly TabName[] = ['learn'];
 
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
@@ -80,6 +81,8 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
       <StatusBar style="dark" />
       {tab === 'speak' ? (
         <SpeechScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
+      ) : tab === 'tap' ? (
+        <TapScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       ) : (
         <TranslatorScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       )}
