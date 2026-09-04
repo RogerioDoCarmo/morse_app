@@ -1,0 +1,56 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- runFlow: ../dismiss-first-run.yaml
+
+- tapOn:
+    id: 'tab-tap'
+- assertVisible:
+    id: 'tap-screen'
+- assertVisible:
+    id: 'tap-key'
+# Nothing keyed yet, so the card holds the hint rather than a decoding.
+- assertVisible:
+    id: 'tap-empty'
+- assertNotVisible:
+    id: 'tap-clear'
+
+# A quick tap is under the 180ms cut-off, so it is a dot.
+- tapOn:
+    id: 'tap-key'
+- assertVisible:
+    id: 'tap-decoded'
+- assertVisible:
+    id: 'tap-mark-dot'
+
+# A hold is over it, so it is a dash. Press DURATION is the entire input here,
+# which is why this flow is worth having on a real device: a simulator and a
+# thumb do not press for the same length of time.
+- longPressOn:
+    id: 'tap-key'
+- assertVisible:
+    id: 'tap-mark-dash'
+
+# The cut-off is a setting because "long" is relative to the operator.
+- assertVisible:
+    id: 'cutoff-value'
+- tapOn:
+    id: 'cutoff-down'
+- tapOn:
+    id: 'cutoff-up'
+
+- tapOn:
+    id: 'tap-clear'
+- assertVisible:
+    id: 'tap-empty'
+- assertNotVisible:
+    id: 'tap-clear'
+
+# And back, which is the half of navigation that usually breaks.
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'
