@@ -12,6 +12,7 @@ export type FakePorts = Ports &
       awake: boolean[];
       vibrated: { atMs: number; durationMs: number; long: boolean }[][];
       vibrationStops: number;
+      stored: { key: string; value: string }[];
       audioStopped: number;
       requested: PermissionKind[];
       settingsOpened: number;
@@ -32,6 +33,7 @@ export function createFakePorts(
     awake: [],
     vibrated: [],
     vibrationStops: 0,
+    stored: [],
     audioStopped: 0,
     requested: [],
     settingsOpened: 0,
@@ -71,6 +73,12 @@ export function createFakePorts(
       },
       stop: async () => {
         calls.vibrationStops += 1;
+      },
+    },
+    preferences: {
+      read: async () => null,
+      write: async (key, value) => {
+        calls.stored.push({ key, value });
       },
     },
     tts: {

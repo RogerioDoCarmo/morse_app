@@ -22,6 +22,18 @@ export const es: TranslationMap = {
   'translator.unsupported': 'Sin código: {{chars}}',
   'translator.signal': 'Emitir',
   'translator.stop': 'Detener',
+  'firstRun.skip': 'Saltar',
+  'firstRun.next': 'Siguiente',
+  'firstRun.start': 'Empezar',
+  'firstRun.oneTitle': 'Escribe y míralo',
+  'firstRun.oneBody':
+    'Todo lo que escribes se vuelve Morse al instante, letra por letra. También funciona al revés: pulsa los puntos y rayas y obtén las palabras.',
+  'firstRun.twoTitle': 'Elige cómo sale',
+  'firstRun.twoBody':
+    'El sonido está activado. La luz está apagada hasta que la enciendas, porque la linterna necesita la cámara. Pantalla y vibración también están ahí. Cambia cualquiera cuando quieras, incluso con un mensaje en curso.',
+  'firstRun.threeTitle': 'Escucha una letra a la vez',
+  'firstRun.threeBody':
+    'Toca cualquier letra para oír solo esa. Es la forma más rápida de aprender el ritmo, y la pestaña Aprender tiene el alfabeto entero cuando lo quieras.',
   'translator.channelSound': 'Sonido',
   'translator.channelLight': 'Luz',
   'translator.channelScreen': 'Pantalla',

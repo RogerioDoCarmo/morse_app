@@ -23,6 +23,18 @@ export const ptBR: TranslationMap = {
   'translator.unsupported': 'Sem código: {{chars}}',
   'translator.signal': 'Emitir',
   'translator.stop': 'Parar',
+  'firstRun.skip': 'Pular',
+  'firstRun.next': 'Avançar',
+  'firstRun.start': 'Começar',
+  'firstRun.oneTitle': 'Escreva e veja',
+  'firstRun.oneBody':
+    'Tudo que você escreve vira Morse na hora, letra por letra. Também funciona ao contrário: toque os pontos e traços e receba as palavras.',
+  'firstRun.twoTitle': 'Escolha como sai',
+  'firstRun.twoBody':
+    'O som está ligado. A luz fica desligada até você ligá-la, porque a lanterna precisa da câmera. Tela e vibração também estão ali. Mude qualquer uma a qualquer momento, mesmo com uma mensagem em andamento.',
+  'firstRun.threeTitle': 'Ouça uma letra por vez',
+  'firstRun.threeBody':
+    'Toque em qualquer letra para ouvir só ela. É o jeito mais rápido de aprender o ritmo, e a aba Aprender tem o alfabeto inteiro quando você quiser.',
   'translator.channelSound': 'Som',
   'translator.channelLight': 'Luz',
   'translator.channelScreen': 'Tela',

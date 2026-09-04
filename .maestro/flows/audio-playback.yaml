@@ -4,6 +4,7 @@ appId: com.rogeriodocarmo.morse
 ---
 - launchApp:
     clearState: true
+- runFlow: ../dismiss-first-run.yaml
 - assertVisible:
     id: 'translator-screen'
 

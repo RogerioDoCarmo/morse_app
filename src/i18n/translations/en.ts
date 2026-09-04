@@ -23,6 +23,18 @@ export const en: TranslationMap = {
   'translator.unsupported': 'No code for: {{chars}}',
   'translator.signal': 'Signal',
   'translator.stop': 'Stop',
+  'firstRun.skip': 'Skip',
+  'firstRun.next': 'Next',
+  'firstRun.start': 'Start',
+  'firstRun.oneTitle': 'Type it, see it',
+  'firstRun.oneBody':
+    'Anything you type becomes Morse as you go, letter by letter. It reads back the other way too — tap in the dots and dashes and get the words.',
+  'firstRun.twoTitle': 'Choose how it goes out',
+  'firstRun.twoBody':
+    'Sound is on. Light is off until you switch it on, because the torch needs the camera. Screen and vibration are there too. Change any of them at any time, even while a message is running.',
+  'firstRun.threeTitle': 'Hear one letter at a time',
+  'firstRun.threeBody':
+    'Tap any letter to hear just that one. It is the quickest way to learn the rhythm — and the Learn tab has the whole alphabet whenever you want it.',
   'translator.channelSound': 'Sound',
   'translator.channelLight': 'Light',
   'translator.channelScreen': 'Screen',

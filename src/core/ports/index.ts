@@ -2,6 +2,7 @@ export type { ITorchPort } from './ITorchPort';
 export type { IAudioPlaybackPort } from './IAudioPlaybackPort';
 export type { IKeepAwakePort } from './IKeepAwakePort';
 export type { IVibrationPort, VibrationMark } from './IVibrationPort';
+export type { IPreferencesPort } from './IPreferencesPort';
 export type { ITextToSpeechPort } from './ITextToSpeechPort';
 export type { ISpeechRecognitionPort, SpeechResult } from './ISpeechRecognitionPort';
 export type { ILocalePort } from './ILocalePort';
@@ -15,6 +16,7 @@ import type { ITorchPort } from './ITorchPort';
 import type { IAudioPlaybackPort } from './IAudioPlaybackPort';
 import type { IKeepAwakePort } from './IKeepAwakePort';
 import type { IVibrationPort } from './IVibrationPort';
+import type { IPreferencesPort } from './IPreferencesPort';
 import type { ICrashReportingPort } from './ICrashReportingPort';
 
 /**
@@ -26,6 +28,7 @@ export type Ports = Readonly<{
   audio: IAudioPlaybackPort;
   keepAwake: IKeepAwakePort;
   vibration: IVibrationPort;
+  preferences: IPreferencesPort;
   tts: ITextToSpeechPort;
   speech: ISpeechRecognitionPort;
   locale: ILocalePort;
