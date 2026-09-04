@@ -1,0 +1,38 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- runFlow: ../dismiss-first-run.yaml
+- assertVisible:
+    id: 'translator-screen'
+
+# The tab bar was decorative until now.
+- tapOn:
+    id: 'tab-speak'
+- assertVisible:
+    id: 'speech-screen'
+- assertVisible:
+    id: 'mic-button'
+- assertVisible:
+    id: 'speech-title'
+
+# Nothing has been said yet, so there is nothing to show.
+- assertNotVisible:
+    id: 'speech-transcript'
+
+# Tap and Learn have no screen yet: they stay in the bar, greyed, rather than
+# moving the bar as they land.
+- assertVisible:
+    id: 'tab-tap'
+- assertVisible:
+    id: 'tab-learn'
+
+# And back, which is the half of navigation that usually breaks.
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'
+- assertNotVisible:
+    id: 'speech-screen'

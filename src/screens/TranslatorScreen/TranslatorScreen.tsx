@@ -8,7 +8,7 @@ import { MorseText } from '@/components/MorseText';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
 import { SignalSurface } from '@/components/SignalSurface';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
-import { TabBar } from '@/components/TabBar';
+import { TabBar, type TabName } from '@/components/TabBar';
 import {
   decode,
   encode,
@@ -39,6 +39,12 @@ function clock(ms: number): string {
   return `${String(Math.floor(seconds / 60))}:${rest < 10 ? '0' : ''}${String(rest)}`;
 }
 
+/** Both optional so the screen can still be rendered on its own in a test. */
+type Props = Readonly<{
+  onSelectTab?: ((tab: TabName) => void) | undefined;
+  unavailableTabs?: readonly TabName[] | undefined;
+}>;
+
 /**
  * The Translator screen — built from `design/screens/Main.dc.html`.
  *
@@ -47,7 +53,10 @@ function clock(ms: number): string {
  * is extracted into components rather than copied per screen the way the
  * artboards necessarily do.
  */
-export function TranslatorScreen(): React.JSX.Element {
+export function TranslatorScreen({
+  onSelectTab,
+  unavailableTabs,
+}: Props = {}): React.JSX.Element {
   const { t, locale } = useLocale();
   const { tts } = usePorts();
   const insets = useSafeAreaInsets();
@@ -340,7 +349,7 @@ export function TranslatorScreen(): React.JSX.Element {
         </View>
       </View>
 
-      <TabBar active="translate" />
+      <TabBar active="translate" onSelect={onSelectTab} unavailable={unavailableTabs} />
     </View>
   );
 }
