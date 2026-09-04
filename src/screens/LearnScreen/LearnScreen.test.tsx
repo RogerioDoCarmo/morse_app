@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { encode } from '@/core/domain/morse';
 import { LearnScreen } from './LearnScreen';
@@ -45,6 +45,38 @@ describe('LearnScreen', () => {
     show('pt-BR');
     expect(screen.getByText('O que é o código Morse')).toBeOnTheScreen();
     expect(screen.getByText('O ALFABETO')).toBeOnTheScreen();
+  });
+});
+
+describe('LearnScreen — the three silences', () => {
+  // Literal counts, not `PLAYBACK_UNITS.letterGap` — a test that reads the
+  // constant it is checking would follow it wherever it went. These are the
+  // ITU-R M.1677-1 lengths, and they are not free to change.
+  it('draws one bar per unit of silence', () => {
+    show();
+    const bars = (row: string): number =>
+      within(screen.getByTestId(row)).getAllByTestId('learn-gap-bar').length;
+
+    expect(bars('learn-gap-Marks')).toBe(1);
+    expect(bars('learn-gap-Letters')).toBe(3);
+    expect(bars('learn-gap-Words')).toBe(7);
+
+    expect(screen.getByText('1 unit')).toBeOnTheScreen();
+    expect(screen.getByText('3 units')).toBeOnTheScreen();
+    expect(screen.getByText('7 units')).toBeOnTheScreen();
+  });
+
+  it('says what each silence means', () => {
+    show();
+    expect(screen.getByText('Same letter carries on')).toBeOnTheScreen();
+    expect(screen.getByText('That letter is finished')).toBeOnTheScreen();
+    expect(screen.getByText('Start a new word')).toBeOnTheScreen();
+  });
+
+  it('counts the singular unit as a unit, not units', () => {
+    show('es');
+    expect(screen.getByText('1 unidad')).toBeOnTheScreen();
+    expect(screen.getByText('3 unidades')).toBeOnTheScreen();
   });
 });
 

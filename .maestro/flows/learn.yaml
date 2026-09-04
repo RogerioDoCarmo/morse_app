@@ -12,6 +12,10 @@ appId: com.rogeriodocarmo.morse
     id: 'learn-screen'
 - assertVisible:
     id: 'learn-alphabet'
+- scrollUntilVisible:
+    element:
+      id: 'learn-gaps'
+    direction: DOWN
 
 # Tips has no tab of its own — Learn is the only route in. The card sits under
 # the alphabet, so on a phone it starts below the fold: scroll to it rather

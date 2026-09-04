@@ -25,6 +25,7 @@ export type IconName =
   | 'translate'
   | 'tap'
   | 'chevronDown'
+  | 'chevronRight'
   | 'arrowLeft';
 
 type Props = Readonly<{
@@ -157,5 +158,7 @@ function glyph(name: IconName): React.JSX.Element {
       );
     case 'chevronDown':
       return <Polyline points="6 9 12 15 18 9" />;
+    case 'chevronRight':
+      return <Polyline points="9 18 15 12 9 6" />;
   }
 }

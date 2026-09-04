@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon';
 import { TabBar, type TabName } from '@/components/TabBar';
 import { TipsScreen } from '@/screens/TipsScreen';
 import { encode, type MorseSymbol } from '@/core/domain/morse';
+import { PLAYBACK_UNITS } from '@/core/domain/timeline';
 import { theme } from '@/theme';
 
 /**
@@ -18,6 +19,17 @@ const REFERENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÇÉÑ1234567890';
 
 /** The example the silence section turns on. */
 const AMBIGUOUS = '···---···';
+
+/**
+ * The three silences, in the order they grow. The lengths come from
+ * `PLAYBACK_UNITS` rather than the artboard's prose, so the bars drawn here
+ * are the same gaps the player actually leaves.
+ */
+const GAPS = [
+  { key: 'Marks', units: PLAYBACK_UNITS.symbolGap },
+  { key: 'Letters', units: PLAYBACK_UNITS.letterGap },
+  { key: 'Words', units: PLAYBACK_UNITS.wordGap },
+] as const;
 
 type Props = Readonly<{
   onSelectTab: (tab: TabName) => void;
@@ -62,9 +74,15 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('learn.whatTitle')}</Text>
-          <Text style={styles.body}>{t('learn.whatBody')}</Text>
+        <View style={styles.hero} testID="learn-what">
+          <View style={styles.heroMarks}>
+            <View style={styles.heroDot} />
+            <View style={styles.heroDash} />
+            <View style={[styles.heroDot, styles.heroPale]} />
+            <View style={[styles.heroDash, styles.heroPale]} />
+          </View>
+          <Text style={styles.heroTitle}>{t('learn.whatTitle')}</Text>
+          <Text style={styles.heroBody}>{t('learn.whatBody')}</Text>
         </View>
 
         <View style={styles.block}>
@@ -96,6 +114,28 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
               {t('learn.silenceBody')} <Text style={styles.example}>{AMBIGUOUS}</Text>{' '}
               {t('learn.silenceAfter')}
             </Text>
+            <View style={styles.gaps} testID="learn-gaps">
+              {GAPS.map((gap) => (
+                <View key={gap.key} style={styles.gap} testID={`learn-gap-${gap.key}`}>
+                  <View style={styles.bars}>
+                    {Array.from({ length: gap.units }, (_, index) => (
+                      <View
+                        key={`b${String(index)}`}
+                        style={styles.bar}
+                        testID="learn-gap-bar"
+                      />
+                    ))}
+                  </View>
+                  <View style={styles.gapCopy}>
+                    <Text style={styles.gapName}>{t(`learn.gap${gap.key}`)}</Text>
+                    <Text style={styles.gapMeans}>{t(`learn.gap${gap.key}Means`)}</Text>
+                  </View>
+                  <Text style={styles.gapLen}>
+                    {gap.units} {t(gap.units === 1 ? 'learn.unit' : 'learn.units')}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -113,7 +153,7 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
             <Text style={styles.tipsSubtitle}>{t('learn.tipsSubtitle')}</Text>
           </View>
           <Icon
-            name="chevronDown"
+            name="chevronRight"
             size={20}
             color={theme.color.accentDeep}
             strokeWidth={2.2}
@@ -146,7 +186,35 @@ const styles = StyleSheet.create({
     boxShadow: theme.shadow.card,
     gap: theme.spacing.md,
   },
-  sectionTitle: { ...theme.type.action, fontSize: 16, color: theme.color.ink },
+  hero: {
+    padding: 22,
+    backgroundColor: theme.color.ink,
+    borderRadius: theme.radius.card,
+    gap: 10,
+  },
+  heroMarks: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
+  heroDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: theme.color.accent,
+  },
+  heroDash: {
+    width: 24,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: theme.color.accent,
+  },
+  // The second pair is the same shape in white — the motif is one letter said
+  // twice, once in the accent and once in the ink the card is printed on.
+  heroPale: { backgroundColor: theme.color.surface },
+  heroTitle: {
+    ...theme.type.wordmark,
+    fontSize: 24,
+    lineHeight: 29,
+    color: theme.color.surface,
+  },
+  heroBody: { ...theme.type.body, fontSize: 15, lineHeight: 23, color: '#b7c0c9' },
   body: { ...theme.type.body, fontSize: 15, lineHeight: 22, color: theme.color.muted },
   example: { ...theme.type.monoLarge, fontSize: 15, color: theme.color.accent },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
@@ -170,6 +238,16 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.color.accent },
   dash: { width: 11, height: 6, borderRadius: 3, backgroundColor: theme.color.accent },
   char: { ...theme.type.letter, color: theme.color.muted },
+  gaps: { gap: 10 },
+  gap: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+  // A fixed width, so the three rows' copy lines up however many bars each
+  // draws — the point of the row is that the gaps differ in length.
+  bars: { flexDirection: 'row', alignItems: 'center', gap: 3, width: 76 },
+  bar: { width: 7, height: 18, borderRadius: 2, backgroundColor: '#dfe3e8' },
+  gapCopy: { flex: 1 },
+  gapName: { ...theme.type.action, fontSize: 14, color: theme.color.ink },
+  gapMeans: { ...theme.type.body, fontSize: 13, color: theme.color.muted },
+  gapLen: { ...theme.type.mono, fontSize: 13, color: theme.color.accent },
   note: { ...theme.type.hint, lineHeight: 18, color: theme.color.muted },
   tipsCard: {
     flexDirection: 'row',
