@@ -5,7 +5,7 @@ import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashRepor
 import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizationAdapter';
 import { createExpoPermissionAdapter } from '@/adapters/permission/expoPermissionAdapter';
 import { createAsyncStoragePreferencesAdapter } from '@/adapters/preferences/asyncStoragePreferencesAdapter';
-import { createUnavailableSpeechRecognitionAdapter } from '@/adapters/speech/unavailableSpeechRecognitionAdapter';
+import { createExpoSpeechRecognitionAdapter } from '@/adapters/speech/expoSpeechRecognitionAdapter';
 import {
   createExpoTorchAdapter,
   type TorchAdapter,
@@ -45,7 +45,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
       vibration: createPlatformVibrationAdapter(crash),
       preferences: createAsyncStoragePreferencesAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
-      speech: createUnavailableSpeechRecognitionAdapter(),
+      speech: createExpoSpeechRecognitionAdapter(crash),
       locale: createExpoLocalizationAdapter(),
       permission: createExpoPermissionAdapter(),
       crash,

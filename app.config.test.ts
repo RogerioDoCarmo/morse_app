@@ -79,6 +79,34 @@ describe('app.config', () => {
     expect(audio?.[1]?.microphonePermission).not.toBe(false);
   });
 
+  // This plugin keeps an infoPlist string that is already there rather than
+  // overwriting it, unlike expo-audio. Passing ours anyway means the review
+  // text does not depend on someone else's `||` chain staying that way.
+  it('gives expo-speech-recognition the reasons app.json declares', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const appJson = require('./app.json') as {
+      expo: {
+        ios: {
+          infoPlist: {
+            NSMicrophoneUsageDescription: string;
+            NSSpeechRecognitionUsageDescription: string;
+          };
+        };
+      };
+    };
+    const speech = loadConfig([]).expo.plugins.find(
+      (plugin): plugin is [string, Record<string, unknown>] =>
+        Array.isArray(plugin) && plugin[0] === 'expo-speech-recognition',
+    );
+
+    expect(speech?.[1]?.microphonePermission).toBe(
+      appJson.expo.ios.infoPlist.NSMicrophoneUsageDescription,
+    );
+    expect(speech?.[1]?.speechRecognitionPermission).toBe(
+      appJson.expo.ios.infoPlist.NSSpeechRecognitionUsageDescription,
+    );
+  });
+
   // Background playback would add UIBackgroundModes, a MediaSessionService and
   // two FOREGROUND_SERVICE permissions for a feature the app does not have.
   it('keeps expo-audio in the foreground and out of the microphone', () => {

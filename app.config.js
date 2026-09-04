@@ -63,6 +63,18 @@ module.exports = () => {
   // plays in the foreground. Leaving it on adds UIBackgroundModes, a
   // MediaSessionService and two FOREGROUND_SERVICE permissions, all of which
   // would have to be justified at review for a feature the app does not have.
+  // Unlike expo-audio, this plugin KEEPS an infoPlist string that is already
+  // there. Passing ours anyway makes that explicit rather than load-bearing on
+  // someone else's `||` chain, and the app.config test pins both.
+  plugins.push([
+    'expo-speech-recognition',
+    {
+      microphonePermission: base.expo.ios.infoPlist.NSMicrophoneUsageDescription,
+      speechRecognitionPermission:
+        base.expo.ios.infoPlist.NSSpeechRecognitionUsageDescription,
+    },
+  ]);
+
   plugins.push([
     'expo-audio',
     {
