@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SURFACE_SIZE, SignalSurface } from './SignalSurface';
 
 describe('SignalSurface', () => {
@@ -34,11 +34,38 @@ describe('SignalSurface', () => {
     expect(SURFACE_SIZE * SURFACE_SIZE).toBeLessThan(phone * 0.25);
   });
 
-  it('is the size it says it is', () => {
+  it('takes the full size when there is room for it', () => {
     render(<SignalSurface lit={false} />);
+    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+      nativeEvent: { layout: { width: 320, height: 400 } },
+    });
+
     expect(screen.getByTestId('signal-surface')).toHaveStyle({
       width: SURFACE_SIZE,
       height: SURFACE_SIZE,
     });
+  });
+
+  // The bug this exists for: a fixed 240 inside a shorter card overflowed it
+  // and was clipped, so the square that IS the message went half missing.
+  it('shrinks to the room it is given rather than overflowing it', () => {
+    render(<SignalSurface lit={false} />);
+    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+      nativeEvent: { layout: { width: 300, height: 150 } },
+    });
+
+    expect(screen.getByTestId('signal-surface')).toHaveStyle({
+      width: 150,
+      height: 150,
+    });
+  });
+
+  it('stays square when the room it is given is not', () => {
+    render(<SignalSurface lit={false} />);
+    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+      nativeEvent: { layout: { width: 90, height: 400 } },
+    });
+
+    expect(screen.getByTestId('signal-surface')).toHaveStyle({ width: 90, height: 90 });
   });
 });
