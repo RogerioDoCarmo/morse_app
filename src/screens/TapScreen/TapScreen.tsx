@@ -21,6 +21,9 @@ import { theme } from '@/theme';
 /** How much one press of the stepper moves the cut-off. */
 const STEP_MS = 20;
 
+/** The key's diameter, from the artboard. */
+const KEY_SIZE = 186;
+
 type Props = Readonly<{
   onSelectTab: (tab: TabName) => void;
   unavailableTabs: readonly TabName[];
@@ -195,9 +198,13 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
             onPressOut={onUp}
             style={[styles.key, down && styles.keyDown]}
           >
-            <Text style={[styles.keyLabel, down && styles.keyLabelDown]}>
-              {t('tap.key')}
-            </Text>
+            {/* A dot and a dash on the key itself: the two things it makes,
+                drawn at the size the output draws them. */}
+            <View style={styles.keyMarks}>
+              <View style={styles.keyDot} />
+              <View style={styles.keyDash} />
+            </View>
+            <Text style={styles.keyLabel}>{t('tap.key')}</Text>
           </Pressable>
         </View>
       </View>
@@ -286,16 +293,65 @@ const styles = StyleSheet.create({
     minWidth: 58,
     textAlign: 'center',
   },
-  keyStage: { flex: 1, justifyContent: 'center', paddingBottom: theme.spacing.md },
-  key: {
+  keyStage: {
     flex: 1,
-    maxHeight: 220,
-    borderRadius: theme.radius.card,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.color.ink,
+    paddingBottom: theme.spacing.md,
   },
-  keyDown: { backgroundColor: theme.color.accent },
-  keyLabel: { ...theme.type.action, color: theme.color.onInk },
-  keyLabelDown: { color: theme.color.onAccent },
+  /**
+   * A 186pt disc, per `design/screens/TapDecode.dc.html`.
+   *
+   * It was a full-width rounded rectangle until Rogério asked twice for it to
+   * be narrower — the artboard had settled this and the screen had drifted.
+   * The ring is the design's, and it is what makes a flat disc read as a key
+   * rather than a circle drawn on the page.
+   */
+  key: {
+    width: KEY_SIZE,
+    height: KEY_SIZE,
+    borderRadius: KEY_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: theme.color.accent,
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 0,
+        blurRadius: 0,
+        spreadDistance: 10,
+        color: 'rgba(18, 165, 148, 0.12)',
+      },
+      { offsetX: 0, offsetY: 14, blurRadius: 34, color: 'rgba(18, 165, 148, 0.32)' },
+    ],
+  },
+  // The artboard's :active state, which has no CSS equivalent here.
+  keyDown: {
+    transform: [{ scale: 0.965 }],
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 0,
+        blurRadius: 0,
+        spreadDistance: 12,
+        color: 'rgba(18, 165, 148, 0.16)',
+      },
+      { offsetX: 0, offsetY: 6, blurRadius: 16, color: 'rgba(18, 165, 148, 0.28)' },
+    ],
+  },
+  keyMarks: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  keyDot: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: theme.color.onAccent,
+  },
+  keyDash: {
+    width: 36,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: theme.color.onAccent,
+  },
+  keyLabel: { ...theme.type.control, color: theme.color.onAccent },
 });
