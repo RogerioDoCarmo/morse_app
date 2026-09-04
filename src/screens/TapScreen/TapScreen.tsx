@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
@@ -7,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { TabBar, type TabName } from '@/components/TabBar';
 import {
   MAX_UNIT_MS,
+  UNITS,
   MIN_UNIT_MS,
   classifyGap,
   classifyPress,
@@ -44,10 +45,20 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
   const [unitMs, setUnitMs] = useState(clampUnitMs(180));
   const [presses, setPresses] = useState<readonly TapPress[]>([]);
   const [down, setDown] = useState(false);
+  /**
+   * True once the silence has run long enough to close the letter.
+   *
+   * The decoded text has already taken that letter by then, so leaving its
+   * marks sitting in the row reads as a letter still being keyed — the text
+   * says A while the row still looks half-finished.
+   */
+  const [closed, setClosed] = useState(false);
 
   /** When the key went down, and when it last came up. */
   const pressedAt = useRef(0);
   const releasedAt = useRef(0);
+  /** Fires when the silence since the last release closes the letter. */
+  const closing = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const morse = useMemo(() => tapsToMorse(presses, unitMs), [presses, unitMs]);
   const text = useMemo(() => decodeTaps(presses, unitMs), [presses, unitMs]);
@@ -70,10 +81,20 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
     return marks;
   }, [presses, unitMs]);
 
+  const stopClosing = useCallback((): void => {
+    if (closing.current !== null) clearTimeout(closing.current);
+    closing.current = null;
+  }, []);
+
+  /** What the row actually shows: nothing once the letter has been committed. */
+  const shown = closed ? [] : letter;
+
   const onDown = useCallback((): void => {
+    stopClosing();
+    setClosed(false);
     pressedAt.current = Date.now();
     setDown(true);
-  }, []);
+  }, [stopClosing]);
 
   const onUp = useCallback((): void => {
     const now = Date.now();
@@ -85,16 +106,29 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
     releasedAt.current = now;
     setDown(false);
     setPresses((previous) => [...previous, { durationMs, gapBeforeMs }]);
-  }, []);
+
+    // Same threshold the domain uses to decide the gap has closed a letter,
+    // so the row empties at exactly the moment the letter was committed.
+    stopClosing();
+    closing.current = setTimeout(() => {
+      setClosed(true);
+    }, UNITS.letterGap * unitMs);
+  }, [stopClosing, unitMs]);
 
   const step = useCallback((by: number): void => {
     setUnitMs((current) => clampUnitMs(current + by));
   }, []);
 
   const clear = useCallback((): void => {
+    stopClosing();
+    setClosed(false);
     setPresses([]);
     releasedAt.current = 0;
-  }, []);
+  }, [stopClosing]);
+
+  // Leaving the screen must not leave a timer running over a screen that has
+  // gone.
+  useEffect(() => stopClosing, [stopClosing]);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]} testID="tap-screen">
@@ -135,13 +169,13 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
         <View style={styles.letterRow}>
           <Text style={styles.label}>{t('tap.letter')}</Text>
           <View style={styles.marks} testID="tap-letter">
-            {letter.length === 0 ? (
+            {shown.length === 0 ? (
               <>
                 <View style={[styles.dot, styles.markEmpty]} />
                 <View style={[styles.dash, styles.markEmpty]} />
               </>
             ) : (
-              letter.map((mark, index) => (
+              shown.map((mark, index) => (
                 <View
                   key={`m${String(index)}`}
                   testID={mark === '.' ? 'tap-mark-dot' : 'tap-mark-dash'}

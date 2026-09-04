@@ -19,20 +19,31 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-clear'
 
 # A quick tap is under the 180ms cut-off, so it is a dot.
+#
+# What this asserts is the DECODING, not the live letter row. Maestro's delay
+# between steps is longer than the 540ms that closes a letter, so by the time
+# it looks the row has already emptied — correctly. The row is covered by unit
+# tests, which can hold the clock still; asserting it here only ever passed
+# because the marks used to linger forever, which was the bug.
 - tapOn:
     id: 'tap-key'
 - assertVisible:
     id: 'tap-decoded'
 - assertVisible:
+    id: 'tap-clear'
+
+# And the row empties once the letter is committed, which IS stable to assert
+# for exactly the reason above.
+- assertNotVisible:
     id: 'tap-mark-dot'
 
-# A hold is over it, so it is a dash. Press DURATION is the entire input here,
-# which is why this flow is worth having on a real device: a simulator and a
-# thumb do not press for the same length of time.
+# A hold is over the cut-off, so it is a dash. Press DURATION is the entire
+# input here, which is why this flow is worth having on a real device: a
+# simulator and a thumb do not press for the same length of time.
 - longPressOn:
     id: 'tap-key'
 - assertVisible:
-    id: 'tap-mark-dash'
+    id: 'tap-decoded'
 
 # The cut-off is a setting because "long" is relative to the operator.
 - assertVisible:

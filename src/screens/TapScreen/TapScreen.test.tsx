@@ -219,3 +219,67 @@ describe('TapScreen — starting over', () => {
     expect(screen.getByText('Toque ou segure')).toBeOnTheScreen();
   });
 });
+
+describe('TapScreen — the letter row empties when the letter is done', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // The decoded text has already taken the letter by then, so leaving its
+  // marks in the row reads as a letter still being keyed.
+  it('clears once the silence has closed the letter', () => {
+    show();
+    hold(100);
+    expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
+
+    // Three units at the 180ms default is 540ms.
+    wait(600);
+
+    expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
+    // The letter itself is not lost — it is in the decoding.
+    expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
+  });
+
+  it('holds the marks while the silence is still short enough', () => {
+    show();
+    hold(100);
+
+    wait(400);
+
+    expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
+  });
+
+  it('starts showing again the moment the next key goes down', () => {
+    show();
+    hold(100);
+    wait(600);
+    expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
+
+    hold(300);
+
+    expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
+    expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
+  });
+
+  it('keeps showing a letter that is still being keyed', () => {
+    show();
+    hold(100);
+    wait(200);
+    hold(300);
+    wait(400);
+
+    expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
+    expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
+  });
+
+  it('empties when everything is cleared', () => {
+    show();
+    hold(100);
+    fireEvent.press(screen.getByTestId('tap-clear'));
+
+    expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
+  });
+});
