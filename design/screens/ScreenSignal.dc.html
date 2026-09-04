@@ -70,7 +70,7 @@
         </sc-if>
       </div>
 
-      <!-- THE SIGNAL SURFACE — 240x240, which is 17.5% of a 390x844 screen.
+      <!-- THE SIGNAL SURFACE — a 240pt disc, 13.7% of a 390x844 screen.
            The size is a SAFETY constraint, not a layout preference: Morse
            flashes at 4.2Hz at 10 WPM and 6.3Hz at 15, both far past WCAG's
            limit of three per second, so the only compliant route is keeping
@@ -78,10 +78,10 @@
            an option however much more legible it would be at distance. -->
       <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
         <sc-if value="{{ lit }}" hint-placeholder-val="{{ true }}">
-          <div style="width: 240px; height: 240px; border-radius: 28px; background: #ffffff; border: 1px solid #eef0f3;"></div>
+          <div style="width: 240px; height: 240px; border-radius: 50%; background: #ffffff; border: 1px solid #eef0f3;"></div>
         </sc-if>
         <sc-if value="{{ dark }}" hint-placeholder-val="{{ false }}">
-          <div style="width: 240px; height: 240px; border-radius: 28px; background: #101820;"></div>
+          <div style="width: 240px; height: 240px; border-radius: 50%; background: #101820;"></div>
         </sc-if>
       </div>
 
