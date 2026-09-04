@@ -1,14 +1,17 @@
 import { createExpoAudioAdapter } from '@/adapters/audio/expoAudioAdapter';
 import { createFirebaseCrashReportingAdapter } from '@/adapters/crash/firebaseCrashReportingAdapter';
+import { createExpoKeepAwakeAdapter } from '@/adapters/keepAwake/expoKeepAwakeAdapter';
 import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashReportingAdapter';
 import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizationAdapter';
 import { createExpoPermissionAdapter } from '@/adapters/permission/expoPermissionAdapter';
+import { createAsyncStoragePreferencesAdapter } from '@/adapters/preferences/asyncStoragePreferencesAdapter';
 import { createUnavailableSpeechRecognitionAdapter } from '@/adapters/speech/unavailableSpeechRecognitionAdapter';
 import {
   createExpoTorchAdapter,
   type TorchAdapter,
 } from '@/adapters/torch/expoTorchAdapter';
 import { createExpoSpeechAdapter } from '@/adapters/tts/expoSpeechAdapter';
+import { createPlatformVibrationAdapter } from '@/adapters/vibration/platformVibrationAdapter';
 import type { Ports } from '@/core/ports';
 
 /**
@@ -38,6 +41,9 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
     ports: {
       torch,
       audio: createExpoAudioAdapter(crash),
+      keepAwake: createExpoKeepAwakeAdapter(crash),
+      vibration: createPlatformVibrationAdapter(crash),
+      preferences: createAsyncStoragePreferencesAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
       speech: createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),

@@ -14,6 +14,9 @@ export type IconName =
   | 'mic'
   | 'zap'
   | 'stop'
+  | 'play'
+  | 'screen'
+  | 'vibrate'
   | 'volume'
   | 'copy'
   | 'book'
@@ -29,7 +32,7 @@ type Props = Readonly<{
   strokeWidth?: number;
 }>;
 
-const FILLED: ReadonlySet<IconName> = new Set<IconName>(['zap', 'stop']);
+const FILLED: ReadonlySet<IconName> = new Set<IconName>(['zap', 'stop', 'play']);
 
 /** Renders one icon from the design's set. */
 export function Icon({
@@ -77,6 +80,23 @@ function glyph(name: IconName): React.JSX.Element {
       return <Polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />;
     case 'stop':
       return <Rect x="5" y="5" width="14" height="14" rx="3" />;
+    case 'play':
+      return <Polygon points="7 4 20 12 7 20 7 4" />;
+    case 'screen':
+      return (
+        <>
+          <Rect x="3" y="4" width="18" height="12" />
+          <Path d="M8 20h8" />
+        </>
+      );
+    case 'vibrate':
+      return (
+        <>
+          <Rect x="8" y="4" width="8" height="16" />
+          <Path d="M4 9v6" />
+          <Path d="M20 9v6" />
+        </>
+      );
     case 'volume':
       return (
         <>

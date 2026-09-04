@@ -4,53 +4,119 @@ appId: com.rogeriodocarmo.morse
 ---
 - launchApp:
     clearState: true
+- runFlow: ../dismiss-first-run.yaml
 - assertVisible:
     id: 'translator-screen'
 
-# The seeded sample is long enough that playback is still running on the next
-# assertion. A short message would finish before the flow could look at it.
+# A long message rather than the seeded sample: the sample follows the device
+# locale, and at the 120ms default it lasts about eleven seconds — less than
+# this flow takes. This one runs for roughly half a minute.
+#
+# Each section below STARTS ITS OWN RUN and stops it. Letting many assertions
+# ride one run is what made this flaky: the message ended underneath them, and
+# a check that had passed moments earlier began to fail.
 - tapOn:
-    id: 'play-audio'
+    id: 'translator-input'
+- eraseText
+- inputText: 'SOS SOS SOS SOS SOS SOS SOS SOS'
+- hideKeyboard
 
-# The three things that only exist while a message is playing.
+# --- what only exists while a message is running ---
+- tapOn:
+    id: 'signal-button'
 - assertVisible:
     id: 'playing-badge'
 - assertVisible:
     id: 'playback-progress'
 - assertVisible:
     id: 'playback-clock'
-
-# Pressing it again stops: the same control, now showing a stop glyph.
 - tapOn:
-    id: 'play-audio'
+    id: 'signal-button'
 - assertNotVisible:
     id: 'playback-progress'
 - assertNotVisible:
     id: 'playing-badge'
 
-# The Morse output survives playback rather than being replaced by it.
+# --- tapping a letter mid-message is ignored ---
+# The port plays one thing at a time, so a preview would replace the message.
+- tapOn:
+    id: 'signal-button'
+- tapOn:
+    id: 'morse-letter'
+    index: 0
+- assertVisible:
+    id: 'playback-progress'
+- tapOn:
+    id: 'signal-button'
+
+# --- one run, several channels ---
+# Light joins the message already in progress rather than starting a second
+# one beside it.
+- tapOn:
+    id: 'signal-button'
+- tapOn:
+    id: 'channel-light'
+- assertVisible:
+    id: 'playback-progress'
+- tapOn:
+    id: 'signal-button'
+- assertNotVisible:
+    id: 'playback-progress'
+
+# --- a letter preview, now that nothing is running ---
+- tapOn:
+    id: 'morse-letter'
+    index: 1
+- assertNotVisible:
+    id: 'playback-progress'
+- assertNotVisible:
+    id: 'playing-badge'
+
+# --- the screen channel takes the card over while it carries the message ---
+# The chips are a reading aid; the square IS the message at that moment.
+- tapOn:
+    id: 'channel-screen'
+- tapOn:
+    id: 'signal-button'
+- assertVisible:
+    id: 'signal-surface'
+- assertNotVisible:
+    id: 'morse-output'
+- tapOn:
+    id: 'signal-button'
+- assertVisible:
+    id: 'morse-output'
+- assertNotVisible:
+    id: 'signal-surface'
+- tapOn:
+    id: 'channel-screen'
+
+# --- vibration is a channel like any other ---
+# On iOS it cannot vary a vibration's LENGTH, so it fires a pulse at each
+# mark's start with intensity carrying dot from dash. Nothing to assert
+# visually; this is here so the path runs on a real device.
+- tapOn:
+    id: 'channel-buzz'
+- tapOn:
+    id: 'signal-button'
+- assertVisible:
+    id: 'playback-progress'
+- tapOn:
+    id: 'signal-button'
+- tapOn:
+    id: 'channel-buzz'
+
+# --- nothing switched on means nothing to signal with ---
+- tapOn:
+    id: 'channel-light'
+- tapOn:
+    id: 'channel-sound'
+- assertVisible:
+    id: 'signal-button'
+    enabled: false
+
+# The output survives all of it rather than being replaced.
 - assertVisible:
     id: 'morse-output'
 - assertVisible:
     id: 'morse-string'
-
-# Tapping a letter previews just that letter — the card has always said "tap a
-# letter to hear it". Type a known message first: the seeded sample follows the
-# device locale, and the CI device's locale is not guaranteed.
-- tapOn:
-    id: 'translator-input'
-- eraseText
-- inputText: 'SOS'
-- hideKeyboard
-- tapOn:
-    id: 'morse-letter'
-    index: 1
-
-# A preview reports no progress. One letter is at most eleven units, and a bar
-# that appeared and vanished inside a second would read as a glitch.
-- assertNotVisible:
-    id: 'playback-progress'
-- assertNotVisible:
-    id: 'playing-badge'
-- assertVisible:
-    id: 'morse-output'

@@ -95,6 +95,111 @@ export type MorseTimeline = Readonly<{
   totalUnits: number;
 }>;
 
+/** A moment the output flips on or off. */
+export type SignalChange = Readonly<{ atUnit: number; on: boolean }>;
+
+/**
+ * The message as a list of moments the output changes state.
+ *
+ * This is what an on/off output consumes — a torch, a flickering screen, a
+ * motor. Segments say how long each stretch lasts; changes say when to act,
+ * which is what a scheduler actually needs. A trailing `off` closes the last
+ * mark, so nothing is left switched on at the end.
+ */
+export function signalChanges(timeline: MorseTimeline): readonly SignalChange[] {
+  if (timeline.segments.length === 0) return [];
+
+  const changes: SignalChange[] = [];
+  let atUnit = 0;
+  timeline.segments.forEach((segment) => {
+    changes.push({ atUnit, on: segment.on });
+    atUnit += segment.units;
+  });
+  changes.push({ atUnit, on: false });
+
+  return changes;
+}
+
+/** One mark to be felt or seen: when it starts, how long, and which it is. */
+export type SignalMark = Readonly<{
+  atUnit: number;
+  units: number;
+  /**
+   * True for a dash. Carried rather than inferred, so an output that cannot
+   * vary duration can still tell the two apart by some other means.
+   */
+  long: boolean;
+}>;
+
+/**
+ * Just the marks, without the silences between them.
+ *
+ * An output that fires a pulse rather than holding a state needs the starts,
+ * not the transitions — and it needs to know which mark it is firing, because
+ * a device that cannot vary the length of a pulse has to carry the difference
+ * some other way.
+ */
+export function signalMarks(timeline: MorseTimeline): readonly SignalMark[] {
+  const marks: SignalMark[] = [];
+  let atUnit = 0;
+
+  timeline.segments.forEach((segment) => {
+    if (segment.on) {
+      marks.push({
+        atUnit,
+        units: segment.units,
+        long: segment.units === PLAYBACK_UNITS.dash,
+      });
+    }
+    atUnit += segment.units;
+  });
+
+  return marks;
+}
+
+/**
+ * Whether the output should be on at `atUnit`.
+ *
+ * A driver polls this rather than firing a chain of timers: a poll that is
+ * late still lands on the right state, whereas a backlog of timers fires a
+ * burst of stale ones. Off before the message starts and after it ends.
+ */
+export function signalAt(changes: readonly SignalChange[], atUnit: number): boolean {
+  let on = false;
+  changes.forEach((change) => {
+    if (atUnit >= change.atUnit) on = change.on;
+  });
+  return on;
+}
+
+/**
+ * The part of a message still to come at `fromUnit`.
+ *
+ * Lets an output join a run already in progress: render this and it starts
+ * exactly where the others are, rather than from the beginning. A mark that
+ * is mid-way through when the tail begins is truncated, not restarted — the
+ * listener hears the rest of it, which is what the other channels are doing.
+ */
+export function timelineFrom(timeline: MorseTimeline, fromUnit: number): MorseTimeline {
+  const segments: TimelineSegment[] = [];
+  let start = 0;
+
+  timeline.segments.forEach((segment) => {
+    const end = start + segment.units;
+    if (end > fromUnit) {
+      // Whole segment when it starts after the cut, the remainder when the cut
+      // falls inside it — `Math.max` says both without a branch to get wrong.
+      segments.push({ on: segment.on, units: end - Math.max(start, fromUnit) });
+    }
+    start = end;
+  });
+
+  return {
+    segments,
+    totalUnits: segments.reduce((sum, segment) => sum + segment.units, 0),
+  };
+}
+
 /** One stretch of playback in real time. */
 export type TimedSegment = Readonly<{ on: boolean; ms: number }>;
 

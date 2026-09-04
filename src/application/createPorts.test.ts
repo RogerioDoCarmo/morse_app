@@ -3,6 +3,14 @@ import { createPorts } from './createPorts';
 // expo-audio reads its native module's prototype the moment it is imported,
 // and that module does not exist under Jest. The adapter is covered by its own
 // tests; here it only has to load so the composition root can be built.
+// AsyncStorage throws at import when its native module is absent, which it
+// always is under Jest. Same shape as expo-audio below: the adapter has its
+// own tests; here it only has to load.
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+}));
+
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(),
   setAudioModeAsync: jest.fn(),

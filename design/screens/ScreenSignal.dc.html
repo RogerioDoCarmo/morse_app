@@ -63,66 +63,26 @@
           </span>
         </sc-if>
         <sc-if value="{{ idle }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ flip }}" style="height: 44px; padding: 0 12px; margin: -6px -6px -6px 0; color: #12a594; font-size: 12px; font-weight: 700;">Flip the square</button>
+        </sc-if>
+        <sc-if value="{{ idle }}" hint-placeholder-val="{{ false }}">
           <span style="font-size: 12px; font-weight: 500; color: #9aa3ad; min-width: 0; text-align: right;">Tap a letter to hear it</span>
         </sc-if>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 18px;">
-        <sc-for list="{{ words }}" as="word" hint-placeholder-count="2">
-          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-            <sc-for list="{{ word.letters }}" as="ltr" hint-placeholder-count="5">
-
-              <sc-if value="{{ ltr.now }}" hint-placeholder-val="{{ false }}">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #12a594; border-radius: 14px;">
-                  <div style="display: flex; gap: 4px; align-items: center; height: 8px;">
-                    <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
-                      <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #ffffff;"></div>
-                      </sc-if>
-                      <sc-if value="{{ mark.dash }}" hint-placeholder-val="{{ false }}">
-                        <div style="width: 21px; height: 8px; border-radius: 4px; background: #ffffff;"></div>
-                      </sc-if>
-                    </sc-for>
-                  </div>
-                  <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #ffffff;">{{ ltr.char }}</div>
-                </div>
-              </sc-if>
-
-              <sc-if value="{{ ltr.done }}" hint-placeholder-val="{{ false }}">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #e7f6f3; border-radius: 14px;">
-                  <div style="display: flex; gap: 4px; align-items: center; height: 8px;">
-                    <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
-                      <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div>
-                      </sc-if>
-                      <sc-if value="{{ mark.dash }}" hint-placeholder-val="{{ false }}">
-                        <div style="width: 21px; height: 8px; border-radius: 4px; background: #12a594;"></div>
-                      </sc-if>
-                    </sc-for>
-                  </div>
-                  <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #0d7d70;">{{ ltr.char }}</div>
-                </div>
-              </sc-if>
-
-              <sc-if value="{{ ltr.todo }}" hint-placeholder-val="{{ true }}">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #f2f4f7; border-radius: 14px;">
-                  <div style="display: flex; gap: 4px; align-items: center; height: 8px;">
-                    <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
-                      <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div>
-                      </sc-if>
-                      <sc-if value="{{ mark.dash }}" hint-placeholder-val="{{ false }}">
-                        <div style="width: 21px; height: 8px; border-radius: 4px; background: #12a594;"></div>
-                      </sc-if>
-                    </sc-for>
-                  </div>
-                  <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #6a7480;">{{ ltr.char }}</div>
-                </div>
-              </sc-if>
-
-            </sc-for>
-          </div>
-        </sc-for>
+      <!-- THE SIGNAL SURFACE — 240x240, which is 17.5% of a 390x844 screen.
+           The size is a SAFETY constraint, not a layout preference: Morse
+           flashes at 4.2Hz at 10 WPM and 6.3Hz at 15, both far past WCAG's
+           limit of three per second, so the only compliant route is keeping
+           the flashing area under 25% of the visual field. Full-screen is not
+           an option however much more legible it would be at distance. -->
+      <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+        <sc-if value="{{ lit }}" hint-placeholder-val="{{ true }}">
+          <div style="width: 240px; height: 240px; border-radius: 28px; background: #ffffff; border: 1px solid #eef0f3;"></div>
+        </sc-if>
+        <sc-if value="{{ dark }}" hint-placeholder-val="{{ false }}">
+          <div style="width: 240px; height: 240px; border-radius: 28px; background: #101820;"></div>
+        </sc-if>
       </div>
 
       <div style="border-top: 1px solid #eef0f3; padding-top: 12px; display: flex; flex-direction: column; gap: 11px;">
@@ -212,12 +172,13 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     this.state = {
+      lit: true,
       playing: false,
       elapsedMs: 0,
       // Light is OFF by default: switching it on is what raises the camera
       // permission, and a brand-new user's first press should not open a
       // system dialog before they have heard or seen anything.
-      on: { sound: true, light: false, screen: false, buzz: false },
+      on: { sound: true, light: false, screen: true, buzz: false },
     };
     this.timer = null;
   }
@@ -345,6 +306,9 @@ class Component extends DCLogic {
     return {
       playing: playing,
       idle: !playing,
+      lit: this.state.lit,
+      dark: !this.state.lit,
+      flip: () => this.setState({ lit: !this.state.lit }),
       ready: !playing && anyOn,
       blocked: !playing && !anyOn,
       channels: this.outputs().map((o) => ({

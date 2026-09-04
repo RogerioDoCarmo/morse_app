@@ -1,0 +1,13 @@
+# The first-run guide appears on every clearState launch, because clearing
+# state is exactly what makes a device look brand new. Flows that are not
+# about the guide walk past it here rather than each repeating the steps.
+appId: com.rogeriodocarmo.morse
+---
+- assertVisible:
+    id: 'first-run'
+- tapOn:
+    id: 'first-run-skip'
+- tapOn:
+    id: 'first-run-next'
+- assertNotVisible:
+    id: 'first-run'
