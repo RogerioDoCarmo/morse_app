@@ -12,6 +12,8 @@ const NAMES: readonly IconName[] = [
   'translate',
   'tap',
   'chevronDown',
+  'chevronRight',
+  'arrowLeft',
 ];
 
 describe('Icon', () => {

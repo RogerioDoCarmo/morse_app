@@ -51,6 +51,48 @@ export const es: TranslationMap = {
   'tap.cutoffHint': 'Más que esto es una raya',
   'tap.key': 'Toca o mantén',
   'tap.clear': 'Borrar',
+  'learn.title': 'Aprender',
+  'learn.whatTitle': 'Qué es el código Morse',
+  'learn.whatBody':
+    'Una forma de enviar texto con dos duraciones de señal: una corta y una larga. Samuel Morse y Alfred Vail lo idearon en la década de 1830 para el telégrafo eléctrico, y todavía se puede leer de oído, con una lámpara o con un solo dedo sobre una llave.',
+  'learn.alphabet': 'EL ALFABETO',
+  'learn.accents':
+    'Ç, É y Ñ tienen códigos propios. Cualquier otro acento — ã, õ, â, ê, ô, á, í, ó, ú — se envía como su letra sin acento.',
+  'learn.silence': 'EL SILENCIO TAMBIÉN CUENTA',
+  'learn.silenceBody':
+    'Todo se mide en una unidad: la duración de un punto. Una raya vale tres. Las pausas son lo que separa letras y palabras, y por eso',
+  'learn.silenceAfter': 'sin los espacios podría leerse como SOS o como EEETTTEEE.',
+  'learn.gapMarks': 'Entre marcas',
+  'learn.gapMarksMeans': 'La misma letra continúa',
+  'learn.gapLetters': 'Entre letras',
+  'learn.gapLettersMeans': 'Esa letra ha terminado',
+  'learn.gapWords': 'Entre palabras',
+  'learn.gapWordsMeans': 'Empieza una palabra nueva',
+  'learn.unit': 'unidad',
+  'learn.units': 'unidades',
+  'learn.tipsTitle': 'Cómo memorizarlo de verdad',
+  'learn.tipsSubtitle': 'Cinco cosas que funcionan, y una que no',
+  'tips.title': 'Consejos',
+  'tips.intro':
+    'El Morse es una habilidad de escucha antes que de lectura. Estas cinco se sostienen; la última tarjeta es el hábito a evitar.',
+  'tips.oneTitle': 'Aprende el sonido, no el dibujo',
+  'tips.oneBody':
+    'Dilo como ritmo: “di-da” para A, “da-di-da-dit” para C. Memorizar filas de puntos y rayas significa traducir dos veces, siempre.',
+  'tips.twoTitle': 'Empieza por E, T, A, N, I y M',
+  'tips.twoBody':
+    'Los códigos más cortos y las letras más comunes. Seis caracteres ya bastan para enviar palabras reales, lo que evita que la práctica se sienta abstracta.',
+  'tips.threeTitle': 'Usa el método Koch',
+  'tips.threeBody':
+    'Velocidad final desde la primera sesión, pero solo con dos caracteres. Añade el siguiente cuando aciertes cerca del 90%. Empezar despacio crea un hábito de contar que tendrás que romper después.',
+  'tips.fourTitle': 'Alarga las pausas, no los caracteres',
+  'tips.fourBody':
+    'Espaciado Farnsworth: envía cada letra a velocidad completa y deja silencios más largos entre ellas. Tu oído aprende las formas correctas mientras tu cabeza se pone al día.',
+  'tips.fiveTitle': 'Envía además de recibir',
+  'tips.fiveBody':
+    'Teclear tú mismo una letra la fija mucho más rápido que oírla. Dos minutos al día en la llave valen más que una hora de escucha pasiva a la semana.',
+  'tips.avoidTitle': 'No cuentes los puntos',
+  'tips.avoidBody':
+    'Contar funciona hasta unas cinco palabras por minuto y luego choca con un muro que tendrás que desaprender. Oye da-di-da-dit como una sola forma llamada C, igual que oyes una sílaba hablada.',
   'translator.channelSound': 'Sonido',
   'translator.channelLight': 'Luz',
   'translator.channelScreen': 'Pantalla',

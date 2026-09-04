@@ -1,0 +1,54 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- runFlow: ../dismiss-first-run.yaml
+
+- tapOn:
+    id: 'tab-learn'
+- assertVisible:
+    id: 'learn-screen'
+- assertVisible:
+    id: 'learn-alphabet'
+- scrollUntilVisible:
+    element:
+      id: 'learn-gaps'
+    direction: DOWN
+
+# Tips has no tab of its own — Learn is the only route in. The card sits under
+# the alphabet, so on a phone it starts below the fold: scroll to it rather
+# than asserting it is already on screen.
+- scrollUntilVisible:
+    element:
+      id: 'learn-tips'
+    direction: DOWN
+- tapOn:
+    id: 'learn-tips'
+- assertVisible:
+    id: 'tips-screen'
+- assertVisible:
+    id: 'tip-1'
+# Last card in a scroll of six, so it needs the same treatment.
+- scrollUntilVisible:
+    element:
+      id: 'tip-avoid'
+    direction: DOWN
+- assertNotVisible:
+    id: 'learn-screen'
+
+# And back out, which is the half of navigation that usually breaks — more so
+# here, where the way back is a single arrow rather than a tab.
+- tapOn:
+    id: 'tips-back'
+- assertVisible:
+    id: 'learn-screen'
+- assertNotVisible:
+    id: 'tips-screen'
+
+# Every tab reaches a screen now; none are greyed.
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'
