@@ -21,7 +21,16 @@ const TABS: readonly Readonly<{ name: TabName; icon: IconName; key: TranslationK
 
 type Props = Readonly<{
   active: TabName;
-  onSelect?: (tab: TabName) => void;
+  // Explicitly `| undefined`: exactOptionalPropertyTypes is on, and a screen
+  // that takes these as optional props has to be able to pass them straight
+  // through without knowing whether it was given them.
+  onSelect?: ((tab: TabName) => void) | undefined;
+  /**
+   * Destinations that do not exist yet. They stay in the bar — the shape of
+   * the app is settled and hiding them would make it move as screens land —
+   * but they are greyed and inert rather than answering a press with nothing.
+   */
+  unavailable?: readonly TabName[] | undefined;
 }>;
 
 /**
@@ -30,7 +39,7 @@ type Props = Readonly<{
  * The artboards repeat this markup in all seven phone screens; here it exists
  * once. On tablet it becomes a side rail — same destinations, different shell.
  */
-export function TabBar({ active, onSelect }: Props): React.JSX.Element {
+export function TabBar({ active, onSelect, unavailable = [] }: Props): React.JSX.Element {
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
   return (
@@ -40,15 +49,21 @@ export function TabBar({ active, onSelect }: Props): React.JSX.Element {
     >
       {TABS.map((tab) => {
         const selected = tab.name === active;
+        const missing = unavailable.includes(tab.name);
         return (
           <Pressable
             key={tab.name}
             testID={`tab-${tab.name}`}
             accessibilityRole="tab"
-            accessibilityState={{ selected }}
+            accessibilityState={{ selected, disabled: missing }}
             accessibilityLabel={`tab-${tab.name}`}
+            disabled={missing}
             onPress={() => onSelect?.(tab.name)}
-            style={[styles.tab, selected && styles.tabActive]}
+            style={[
+              styles.tab,
+              selected && styles.tabActive,
+              missing && styles.tabMissing,
+            ]}
           >
             <Icon
               name={tab.icon}
@@ -75,6 +90,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
   },
+  tabMissing: { opacity: 0.38 },
   tab: {
     flex: 1,
     minHeight: 48,

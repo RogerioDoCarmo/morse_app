@@ -43,3 +43,33 @@ describe('TabBar', () => {
     }
   });
 });
+
+describe('TabBar — destinations that do not exist yet', () => {
+  it('still shows them, so the bar does not move as screens land', () => {
+    renderWithProviders(<TabBar active="translate" unavailable={['tap', 'learn']} />);
+    expect(screen.getByTestId('tab-tap')).toBeOnTheScreen();
+    expect(screen.getByTestId('tab-learn')).toBeOnTheScreen();
+  });
+
+  it('greys them out rather than answering a press with nothing', () => {
+    const onSelect = jest.fn();
+    renderWithProviders(
+      <TabBar active="translate" onSelect={onSelect} unavailable={['learn']} />,
+    );
+
+    expect(screen.getByTestId('tab-learn')).toBeDisabled();
+    fireEvent.press(screen.getByTestId('tab-learn'));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('leaves the reachable ones alone', () => {
+    const onSelect = jest.fn();
+    renderWithProviders(
+      <TabBar active="translate" onSelect={onSelect} unavailable={['learn']} />,
+    );
+
+    expect(screen.getByTestId('tab-speak')).not.toBeDisabled();
+    fireEvent.press(screen.getByTestId('tab-speak'));
+    expect(onSelect).toHaveBeenCalledWith('speak');
+  });
+});

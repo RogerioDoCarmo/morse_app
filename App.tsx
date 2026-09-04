@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View } from 'react-native';
@@ -7,7 +7,9 @@ import type { TorchAdapter } from '@/adapters/torch/expoTorchAdapter';
 import { LocaleProvider } from '@/application/providers/LocaleProvider';
 import { PortsProvider } from '@/application/providers/PortsProvider';
 import { TorchHost } from '@/components/TorchHost';
+import type { TabName } from '@/components/TabBar';
 import { FirstRunScreen } from '@/screens/FirstRunScreen';
+import { SpeechScreen } from '@/screens/SpeechScreen';
 import { TranslatorScreen } from '@/screens/TranslatorScreen';
 import { useAppFonts } from '@/adapters/fonts/expoFontsAdapter';
 import { useFirstRun } from '@/application/useFirstRun';
@@ -45,8 +47,18 @@ export default function App(): React.JSX.Element {
  * a live screen invites taps at what is behind it, and the Translator would
  * be holding a torch and a clock it cannot be seen to control.
  */
+/**
+ * Destinations the tab bar shows but cannot reach yet.
+ *
+ * They stay in the bar rather than being hidden: the shape of the app is
+ * settled, and a bar that grew as screens landed would move under people who
+ * had learned where things are. Greyed and inert is the honest state.
+ */
+const UNBUILT: readonly TabName[] = ['tap', 'learn'];
+
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
+  const [tab, setTab] = useState<TabName>('translate');
 
   // Nothing at all until the stored answer is in: showing the Translator for a
   // frame and then covering it is worse than a beat of empty ground.
@@ -54,17 +66,26 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
     return <View style={styles.root} testID="app-loading" />;
   }
 
+  if (firstRun.show) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        <FirstRunScreen onDone={firstRun.dismiss} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
-      {firstRun.show ? (
-        <FirstRunScreen onDone={firstRun.dismiss} />
+      {tab === 'speak' ? (
+        <SpeechScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       ) : (
-        <>
-          <TranslatorScreen />
-          <TorchHost adapter={torch} />
-        </>
+        <TranslatorScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       )}
+      {/* Outside the screens: the torch keeps burning across a tab change, and
+          a host that unmounted with the screen would drop it mid-message. */}
+      <TorchHost adapter={torch} />
     </View>
   );
 }

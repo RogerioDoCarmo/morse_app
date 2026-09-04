@@ -39,8 +39,14 @@ appId: com.rogeriodocarmo.morse
 
 # --- tapping a letter mid-message is ignored ---
 # The port plays one thing at a time, so a preview would replace the message.
+#
+# Every start and every stop is asserted before the next step. Two taps in a
+# row on the same control is how this flow went flaky: the second landed
+# before the first had taken effect, and a later assertion paid for it.
 - tapOn:
     id: 'signal-button'
+- assertVisible:
+    id: 'playback-progress'
 - tapOn:
     id: 'morse-letter'
     index: 0
@@ -48,12 +54,16 @@ appId: com.rogeriodocarmo.morse
     id: 'playback-progress'
 - tapOn:
     id: 'signal-button'
+- assertNotVisible:
+    id: 'playback-progress'
 
 # --- one run, several channels ---
 # Light joins the message already in progress rather than starting a second
 # one beside it.
 - tapOn:
     id: 'signal-button'
+- assertVisible:
+    id: 'playback-progress'
 - tapOn:
     id: 'channel-light'
 - assertVisible:
@@ -103,6 +113,8 @@ appId: com.rogeriodocarmo.morse
     id: 'playback-progress'
 - tapOn:
     id: 'signal-button'
+- assertNotVisible:
+    id: 'playback-progress'
 - tapOn:
     id: 'channel-buzz'
 
