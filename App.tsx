@@ -6,10 +6,12 @@ import { createPorts } from '@/application/createPorts';
 import type { TorchAdapter } from '@/adapters/torch/expoTorchAdapter';
 import { LocaleProvider } from '@/application/providers/LocaleProvider';
 import { PortsProvider } from '@/application/providers/PortsProvider';
+import { SettingsProvider } from '@/application/providers/SettingsProvider';
 import { TorchHost } from '@/components/TorchHost';
 import type { TabName } from '@/components/TabBar';
 import { FirstRunScreen } from '@/screens/FirstRunScreen';
 import { LearnScreen } from '@/screens/LearnScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen';
 import { SpeechScreen } from '@/screens/SpeechScreen';
 import { TapScreen } from '@/screens/TapScreen';
 import { TranslatorScreen } from '@/screens/TranslatorScreen';
@@ -35,7 +37,9 @@ export default function App(): React.JSX.Element {
     <SafeAreaProvider>
       <PortsProvider ports={ports}>
         <LocaleProvider>
-          <Shell torch={torch} />
+          <SettingsProvider>
+            <Shell torch={torch} />
+          </SettingsProvider>
         </LocaleProvider>
       </PortsProvider>
     </SafeAreaProvider>
@@ -61,6 +65,9 @@ const UNBUILT: readonly TabName[] = [];
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
   const [tab, setTab] = useState<TabName>('translate');
+  // Settings is not a tab — it opens over whichever one you were on, and the
+  // back arrow returns you there rather than to a fixed home.
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Nothing at all until the stored answer is in: showing the Translator for a
   // frame and then covering it is worse than a beat of empty ground.
@@ -77,6 +84,24 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
     );
   }
 
+  if (settingsOpen) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        <SettingsScreen
+          onBack={() => {
+            setSettingsOpen(false);
+          }}
+          onOpenLearn={() => {
+            setSettingsOpen(false);
+            setTab('learn');
+          }}
+        />
+        <TorchHost adapter={torch} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
@@ -87,7 +112,13 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
       ) : tab === 'learn' ? (
         <LearnScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       ) : (
-        <TranslatorScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
+        <TranslatorScreen
+          onSelectTab={setTab}
+          unavailableTabs={UNBUILT}
+          onOpenSettings={() => {
+            setSettingsOpen(true);
+          }}
+        />
       )}
       {/* Outside the screens: the torch keeps burning across a tab change, and
           a host that unmounted with the screen would drop it mid-message. */}

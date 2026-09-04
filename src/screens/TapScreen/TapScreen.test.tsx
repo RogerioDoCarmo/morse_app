@@ -1,5 +1,6 @@
 import React from 'react';
-import { act, fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { TapScreen } from './TapScreen';
 
@@ -281,5 +282,43 @@ describe('TapScreen — the letter row empties when the letter is done', () => {
     fireEvent.press(screen.getByTestId('tap-clear'));
 
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
+  });
+});
+
+describe('the cut-off is a saved preference, not screen state', () => {
+  const holding = (stored: Readonly<Record<string, string>>): FakePorts => {
+    const ports = createFakePorts();
+    return {
+      ...ports,
+      preferences: {
+        ...ports.preferences,
+        read: async (key: string) => stored[key] ?? null,
+      },
+    };
+  };
+
+  it('starts from what was stored rather than the shipped default', async () => {
+    const ports = holding({ 'settings.tapUnitMs': '300' });
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('cutoff-value')).toHaveTextContent('300 ms');
+    });
+  });
+
+  // The same value the Settings slider moves, so the stepper must write it
+  // through rather than keep a copy of its own.
+  it('writes the stepper through to storage', async () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    fireEvent.press(screen.getByTestId('cutoff-up'));
+    await waitFor(() => {
+      expect(ports.calls.stored.some((row) => row.key === 'settings.tapUnitMs')).toBe(
+        true,
+      );
+    });
   });
 });

@@ -1,0 +1,69 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- runFlow: ../dismiss-first-run.yaml
+
+# Settings is not a tab: the gear on the Translator is the only way in.
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'
+- assertNotVisible:
+    id: 'tab-translate'
+
+# The cut-off the tap key reads. Nudged through the slider's accessibility
+# action rather than by dragging, so the assertion does not depend on where a
+# gesture happens to land on this device's width.
+- assertVisible:
+    id: 'settings-cutoff'
+
+# Speed is the setting with the furthest reach — it changes what the audio
+# renderer is handed — so it is the one worth pressing here.
+- tapOn:
+    id: 'segment-15'
+
+# Both switches, off and on again. A switch that cannot come back is the
+# failure that would strand a user who turned crash reports off by accident.
+# Five sections deep, so scroll to it rather than trusting the fold.
+- scrollUntilVisible:
+    element:
+      id: 'settings-crash-reports'
+    direction: DOWN
+- tapOn:
+    id: 'settings-crash-reports'
+- tapOn:
+    id: 'settings-crash-reports'
+
+# ABOUT leaves for Learn, which is a different screen rather than a modal.
+- scrollUntilVisible:
+    element:
+      id: 'settings-about-morse'
+    direction: DOWN
+- tapOn:
+    id: 'settings-about-morse'
+- assertVisible:
+    id: 'learn-screen'
+- assertNotVisible:
+    id: 'settings-screen'
+
+# Back in, and out by the arrow this time, which is the half of navigation
+# that usually breaks.
+- tapOn:
+    id: 'tab-translate'
+- tapOn:
+    id: 'open-settings'
+- tapOn:
+    id: 'settings-back'
+- assertVisible:
+    id: 'translator-screen'
+- assertNotVisible:
+    id: 'settings-screen'
+
+# The choice survives leaving the screen — the point of storing it at all.
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'

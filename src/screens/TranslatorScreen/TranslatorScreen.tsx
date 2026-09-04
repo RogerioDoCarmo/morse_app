@@ -17,8 +17,10 @@ import {
 } from '@/core/domain/morse';
 import type { AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { useSettings } from '@/application/providers/SettingsProvider';
 import { useMorsePlayback } from '@/application/useMorsePlayback';
 import { usePorts } from '@/application/providers/PortsProvider';
+import { unitMsForWpm } from '@/core/domain/timeline';
 import { theme } from '@/theme';
 
 /**
@@ -43,6 +45,7 @@ function clock(ms: number): string {
 type Props = Readonly<{
   onSelectTab?: ((tab: TabName) => void) | undefined;
   unavailableTabs?: readonly TabName[] | undefined;
+  onOpenSettings?: (() => void) | undefined;
 }>;
 
 /**
@@ -56,6 +59,7 @@ type Props = Readonly<{
 export function TranslatorScreen({
   onSelectTab,
   unavailableTabs,
+  onOpenSettings,
 }: Props = {}): React.JSX.Element {
   const { t, locale } = useLocale();
   const { tts } = usePorts();
@@ -79,7 +83,9 @@ export function TranslatorScreen({
   // to send — but dropping it without saying so leaves the sender believing a
   // message went out whole.
   const unsupported = useMemo(() => unsupportedCharacters(source), [source]);
-  const playback = useMorsePlayback(message);
+  // Playback speed is a saved preference; the hook wants a dot length.
+  const { settings } = useSettings();
+  const playback = useMorsePlayback(message, unitMsForWpm(settings.playbackWpm));
   // One decimal is enough to look continuous and keeps the style object stable.
   const progressPercent = Math.round(playback.progress * 1000) / 10;
 
@@ -191,6 +197,7 @@ export function TranslatorScreen({
             accessibilityRole="button"
             accessibilityLabel="open-settings"
             testID="open-settings"
+            onPress={onOpenSettings}
             style={styles.iconOnly}
           >
             <Icon name="settings" size={21} color={theme.color.muted} strokeWidth={1.7} />
@@ -263,23 +270,28 @@ export function TranslatorScreen({
               <Text testID="decoded-text" style={styles.decoded}>
                 {decoded}
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="read-aloud"
-                testID="read-aloud"
-                onPress={() => {
-                  void readAloud();
-                }}
-                style={styles.readAloud}
-              >
-                <Icon
-                  name="volume"
-                  size={17}
-                  color={theme.color.accentDeep}
-                  strokeWidth={2}
-                />
-                <Text style={styles.readAloudLabel}>{t('translator.readAloud')}</Text>
-              </Pressable>
+              {/* Offered only when the setting is on. Speaking is the one
+                  output here that carries the message in words rather than in
+                  code, so it is the one a user may not want at all. */}
+              {settings.speakDecoded ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="read-aloud"
+                  testID="read-aloud"
+                  onPress={() => {
+                    void readAloud();
+                  }}
+                  style={styles.readAloud}
+                >
+                  <Icon
+                    name="volume"
+                    size={17}
+                    color={theme.color.accentDeep}
+                    strokeWidth={2}
+                  />
+                  <Text style={styles.readAloudLabel}>{t('translator.readAloud')}</Text>
+                </Pressable>
+              ) : null}
             </View>
           )}
 
