@@ -24,7 +24,8 @@ export type IconName =
   | 'book'
   | 'translate'
   | 'tap'
-  | 'chevronDown';
+  | 'chevronDown'
+  | 'arrowLeft';
 
 type Props = Readonly<{
   name: IconName;
@@ -145,6 +146,13 @@ function glyph(name: IconName): React.JSX.Element {
           <Circle cx="12" cy="12" r="2.5" />
           <Path d="M7.05 16.95a7 7 0 0 1 0-9.9" />
           <Path d="M16.95 7.05a7 7 0 0 1 0 9.9" />
+        </>
+      );
+    case 'arrowLeft':
+      return (
+        <>
+          <Line x1="19" y1="12" x2="5" y2="12" />
+          <Polyline points="12 19 5 12 12 5" />
         </>
       );
     case 'chevronDown':

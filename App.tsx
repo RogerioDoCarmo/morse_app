@@ -9,6 +9,7 @@ import { PortsProvider } from '@/application/providers/PortsProvider';
 import { TorchHost } from '@/components/TorchHost';
 import type { TabName } from '@/components/TabBar';
 import { FirstRunScreen } from '@/screens/FirstRunScreen';
+import { LearnScreen } from '@/screens/LearnScreen';
 import { SpeechScreen } from '@/screens/SpeechScreen';
 import { TapScreen } from '@/screens/TapScreen';
 import { TranslatorScreen } from '@/screens/TranslatorScreen';
@@ -51,11 +52,11 @@ export default function App(): React.JSX.Element {
 /**
  * Destinations the tab bar shows but cannot reach yet.
  *
- * They stay in the bar rather than being hidden: the shape of the app is
- * settled, and a bar that grew as screens landed would move under people who
- * had learned where things are. Greyed and inert is the honest state.
+ * Empty now that Learn exists — every tab goes somewhere. Kept rather than
+ * deleted because Settings, Language, Tips and the permission gates are still
+ * unbuilt, and the next thing that needs a placeholder will want it back.
  */
-const UNBUILT: readonly TabName[] = ['learn'];
+const UNBUILT: readonly TabName[] = [];
 
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
@@ -83,6 +84,8 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
         <SpeechScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       ) : tab === 'tap' ? (
         <TapScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
+      ) : tab === 'learn' ? (
+        <LearnScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       ) : (
         <TranslatorScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       )}

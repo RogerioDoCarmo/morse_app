@@ -43,6 +43,8 @@ const BUDGETS: Partial<Record<TranslationKey, number>> = {
   'tap.letter': 12,
   'tap.key': 18,
   'tap.clear': 12,
+  'learn.title': 12,
+  'tips.title': 12,
   'tap.cutoff': 24,
   'tap.cutoffHint': 32,
   'firstRun.skip': 12,

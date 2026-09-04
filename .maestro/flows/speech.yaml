@@ -22,8 +22,7 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'speech-transcript'
 
-# Tap and Learn have no screen yet: they stay in the bar, greyed, rather than
-# moving the bar as they land.
+# Every destination in the bar now reaches a screen; none are greyed.
 - assertVisible:
     id: 'tab-tap'
 - assertVisible:

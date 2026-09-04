@@ -52,6 +52,40 @@ export const ptBR: TranslationMap = {
   'tap.cutoffHint': 'Mais que isso é um traço',
   'tap.key': 'Toque ou segure',
   'tap.clear': 'Limpar',
+  'learn.title': 'Aprender',
+  'learn.whatTitle': 'O que é o código Morse',
+  'learn.whatBody':
+    'Um jeito de enviar texto com dois comprimentos de sinal: um curto e um longo. Samuel Morse e Alfred Vail criaram isso nos anos 1830 para o telégrafo elétrico, e ainda dá para ler de ouvido, por lanterna ou com um dedo só numa chave.',
+  'learn.alphabet': 'O ALFABETO',
+  'learn.accents':
+    'Ç, É e Ñ têm códigos próprios. Qualquer outro acento — ã, õ, â, ê, ô, á, í, ó, ú — é enviado como a letra sem acento.',
+  'learn.silence': 'O SILÊNCIO TAMBÉM CONTA',
+  'learn.silenceBody':
+    'Tudo é medido em uma unidade: a duração de um ponto. Um traço vale três. As pausas são o que separa letras e palavras, e é por isso que',
+  'learn.silenceAfter': 'sem os espaços poderia ser lido como SOS ou como EEETTTEEE.',
+  'learn.tipsTitle': 'Como memorizar de verdade',
+  'learn.tipsSubtitle': 'Cinco coisas que funcionam, e uma que não',
+  'tips.title': 'Dicas',
+  'tips.intro':
+    'Morse é uma habilidade de escuta antes de ser de leitura. Estas cinco se sustentam; o último card é o hábito a evitar.',
+  'tips.oneTitle': 'Aprenda o som, não o desenho',
+  'tips.oneBody':
+    'Fale como ritmo: “di-dá” para A, “dá-di-dá-dit” para C. Decorar fileiras de pontos e traços significa traduzir duas vezes, sempre.',
+  'tips.twoTitle': 'Comece por E, T, A, N, I e M',
+  'tips.twoBody':
+    'Os códigos mais curtos e as letras mais comuns. Seis caracteres já bastam para enviar palavras de verdade, o que evita que a prática pareça abstrata.',
+  'tips.threeTitle': 'Use o método Koch',
+  'tips.threeBody':
+    'Velocidade final desde a primeira sessão, mas só com dois caracteres. Adicione o próximo quando acertar uns 90%. Começar devagar cria um hábito de contar que você terá de quebrar depois.',
+  'tips.fourTitle': 'Estique as pausas, não os caracteres',
+  'tips.fourBody':
+    'Espaçamento Farnsworth: envie cada letra em velocidade cheia e deixe silêncios maiores entre elas. Seu ouvido aprende as formas certas enquanto a cabeça acompanha.',
+  'tips.fiveTitle': 'Envie além de receber',
+  'tips.fiveBody':
+    'Bater você mesmo uma letra fixa muito mais rápido do que ouvi-la. Dois minutos por dia na chave valem mais que uma hora de escuta passiva por semana.',
+  'tips.avoidTitle': 'Não conte os pontos',
+  'tips.avoidBody':
+    'Contar funciona até umas cinco palavras por minuto e depois trava numa parede que você terá de desaprender. Ouça dá-di-dá-dit como uma forma só chamada C, do jeito que você ouve uma sílaba falada.',
   'translator.channelSound': 'Som',
   'translator.channelLight': 'Luz',
   'translator.channelScreen': 'Tela',

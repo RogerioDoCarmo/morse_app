@@ -52,6 +52,41 @@ export const en: TranslationMap = {
   'tap.cutoffHint': 'Longer than this is a dash',
   'tap.key': 'Tap or hold',
   'tap.clear': 'Clear',
+  'learn.title': 'Learn',
+  'learn.whatTitle': 'What Morse code is',
+  'learn.whatBody':
+    'A way of sending text as two signal lengths — a short one and a long one. Samuel Morse and Alfred Vail worked it out in the 1830s for the electric telegraph, and it is still readable by ear, by lamp, or by a single finger on a key.',
+  'learn.alphabet': 'THE ALPHABET',
+  'learn.accents':
+    'Ç, É and Ñ have codes of their own. Any other accent — ã, õ, â, ê, ô, á, í, ó, ú — is sent as its plain letter.',
+  'learn.silence': 'THE SILENCE COUNTS TOO',
+  'learn.silenceBody':
+    'Everything is measured in one unit — the length of a dot. A dash is three. The gaps are what tell letters and words apart, which is why',
+  'learn.silenceAfter':
+    'with the spacing stripped out could be read as SOS or as EEETTTEEE.',
+  'learn.tipsTitle': 'How to actually memorise it',
+  'learn.tipsSubtitle': "Five things that work, and one that doesn't",
+  'tips.title': 'Tips',
+  'tips.intro':
+    'Morse is a listening skill before it is a reading skill. These five hold up; the last card is the habit to avoid.',
+  'tips.oneTitle': 'Learn the sound, not the picture',
+  'tips.oneBody':
+    'Say it as rhythm — “di-dah” for A, “dah-di-dah-dit” for C. Memorising rows of dots and dashes means translating twice, every time.',
+  'tips.twoTitle': 'Start with E, T, A, N, I and M',
+  'tips.twoBody':
+    'The shortest codes and the commonest letters. Six characters is already enough to send real words, which keeps the practice from feeling abstract.',
+  'tips.threeTitle': 'Use the Koch method',
+  'tips.threeBody':
+    'Full target speed from the first session, but only two characters. Add the next one when you are hitting about 90%. Starting slow builds a counting habit you will have to break later.',
+  'tips.fourTitle': 'Stretch the gaps, not the characters',
+  'tips.fourBody':
+    'Farnsworth spacing: send each letter at full speed and leave longer silences between them. Your ear learns the right shapes while your brain catches up.',
+  'tips.fiveTitle': 'Send as well as receive',
+  'tips.fiveBody':
+    'Tapping a letter yourself fixes it far faster than hearing it. Two minutes a day on the key beats an hour of passive listening once a week.',
+  'tips.avoidTitle': "Don't count the dots",
+  'tips.avoidBody':
+    'Counting works up to about five words a minute and then hits a wall you have to unlearn. Hear dah-di-dah-dit as one shape called C, the way you hear a spoken syllable.',
   'translator.channelSound': 'Sound',
   'translator.channelLight': 'Light',
   'translator.channelScreen': 'Screen',
