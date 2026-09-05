@@ -241,3 +241,53 @@ describe('which language it listens for', () => {
     });
   });
 });
+
+describe('the microphone permission stands in front of the recogniser', () => {
+  const DENIED = { granted: false, canAskAgain: true } as const;
+
+  it('asks why before the recogniser can ask on its own', async () => {
+    const ports = createFakePorts({}, DENIED);
+    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    fireEvent.press(screen.getByTestId('mic-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
+    });
+  });
+
+  it('never starts listening when the rationale is dismissed', async () => {
+    const isAvailable = jest.fn(async () => true);
+    const ports = createFakePorts({}, DENIED);
+    ports.speech.isAvailable = isAvailable;
+    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    fireEvent.press(screen.getByTestId('mic-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('permission-microphone')).toBeNull();
+    });
+    expect(isAvailable).not.toHaveBeenCalled();
+  });
+
+  it('goes on to listen once the permission is granted', async () => {
+    const isAvailable = jest.fn(async () => true);
+    const ports = createFakePorts({}, DENIED);
+    ports.speech.isAvailable = isAvailable;
+    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    fireEvent.press(screen.getByTestId('mic-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('permission-primary'));
+    await waitFor(() => {
+      expect(isAvailable).toHaveBeenCalled();
+    });
+  });
+});

@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { createPorts } from '@/application/createPorts';
 import type { TorchAdapter } from '@/adapters/torch/expoTorchAdapter';
 import { LocaleProvider } from '@/application/providers/LocaleProvider';
+import { PermissionGate } from '@/application/providers/PermissionGate';
 import { PortsProvider } from '@/application/providers/PortsProvider';
 import { SettingsProvider } from '@/application/providers/SettingsProvider';
 import { TorchHost } from '@/components/TorchHost';
@@ -39,7 +40,9 @@ export default function App(): React.JSX.Element {
       <PortsProvider ports={ports}>
         <LocaleProvider>
           <SettingsProvider>
-            <Shell torch={torch} />
+            <PermissionGate>
+              <Shell torch={torch} />
+            </PermissionGate>
           </SettingsProvider>
         </LocaleProvider>
       </PortsProvider>
@@ -57,9 +60,9 @@ export default function App(): React.JSX.Element {
 /**
  * Destinations the tab bar shows but cannot reach yet.
  *
- * Empty now that Learn exists — every tab goes somewhere. Kept rather than
- * deleted because Settings, Language, Tips and the permission gates are still
- * unbuilt, and the next thing that needs a placeholder will want it back.
+ * Empty, and every screen the tab bar can reach now exists. Kept rather than
+ * deleted because the tablet layouts are still unbuilt, and the next thing
+ * that needs a placeholder will want it back.
  */
 const UNBUILT: readonly TabName[] = [];
 

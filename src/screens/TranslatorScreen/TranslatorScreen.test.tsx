@@ -8,6 +8,34 @@ import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { TranslatorScreen } from './TranslatorScreen';
 
+/**
+ * Light is gated on the camera permission now, so the toggle resolves a
+ * promise before the channel changes. Flush it before asserting.
+ */
+/**
+ * Light is gated on the camera permission now, so the toggle resolves a
+ * promise before the channel changes. Wait for the change rather than
+ * assuming it has already happened.
+ */
+const enableLight = async (): Promise<void> => {
+  fireEvent.press(screen.getByTestId('channel-light'));
+  await waitFor(() => {
+    expect(screen.getByTestId('channel-light')).toBeSelected();
+  });
+};
+
+const disableLight = async (): Promise<void> => {
+  fireEvent.press(screen.getByTestId('channel-light'));
+  await waitFor(() => {
+    expect(screen.getByTestId('channel-light')).not.toBeSelected();
+  });
+};
+
+/** Presses it where the permission gate is expected to stop the toggle. */
+const pressLight = (): void => {
+  fireEvent.press(screen.getByTestId('channel-light'));
+};
+
 describe('TranslatorScreen', () => {
   it('encodes what is typed', () => {
     renderWithProviders(<TranslatorScreen />);
@@ -539,7 +567,7 @@ describe('TranslatorScreen — output channels', () => {
   it('carries the message on the torch when light is on', async () => {
     const { ports } = renderWithProviders(<TranslatorScreen />);
     typeE();
-    fireEvent.press(screen.getByTestId('channel-light'));
+    await enableLight();
 
     fireEvent.press(screen.getByTestId('signal-button'));
     await advance(30);
@@ -552,7 +580,7 @@ describe('TranslatorScreen — output channels', () => {
   it('never leaves the torch on when the run is stopped part-way', async () => {
     const { ports } = renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('channel-light'));
+    await enableLight();
 
     fireEvent.press(screen.getByTestId('signal-button'));
     await advance(30);
@@ -572,7 +600,7 @@ describe('TranslatorScreen — output channels', () => {
     await advance(200);
     expect(ports.calls.torchEnabled).toEqual([]);
 
-    fireEvent.press(screen.getByTestId('channel-light'));
+    await enableLight();
     await advance(60);
     expect(ports.calls.torchEnabled.length).toBeGreaterThan(0);
   });
@@ -614,7 +642,7 @@ describe('TranslatorScreen — output channels', () => {
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     typeE();
 
-    fireEvent.press(screen.getByTestId('channel-light'));
+    await enableLight();
     fireEvent.press(screen.getByTestId('channel-sound'));
     fireEvent.press(screen.getByTestId('signal-button'));
 
@@ -643,14 +671,14 @@ describe('TranslatorScreen — output channels', () => {
     expect(screen.getByTestId('signal-button')).toBeDisabled();
   });
 
-  it('offers the button again as soon as a channel comes back', () => {
+  it('offers the button again as soon as a channel comes back', async () => {
     renderWithProviders(<TranslatorScreen />);
     typeE();
 
     fireEvent.press(screen.getByTestId('channel-sound'));
     expect(screen.getByTestId('signal-button')).toBeDisabled();
 
-    fireEvent.press(screen.getByTestId('channel-light'));
+    await enableLight();
     expect(screen.getByTestId('signal-button')).not.toBeDisabled();
   });
 });
@@ -936,5 +964,55 @@ describe('what Settings changes here', () => {
     expect(ports.calls.played[0]).toStrictEqual(
       renderWav(toTimeline(encode('E')), { unitMs: 240 }),
     );
+  });
+});
+
+describe('the camera permission stands in front of the light channel', () => {
+  const DENIED = { granted: false, canAskAgain: true } as const;
+
+  it('asks why before the OS does, and leaves the channel off meanwhile', async () => {
+    const ports = createFakePorts({}, DENIED);
+    renderWithProviders(<TranslatorScreen />, { ports });
+    pressLight();
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
+    });
+    expect(screen.getByTestId('channel-light')).not.toBeSelected();
+    expect(ports.calls.requested).toEqual([]);
+  });
+
+  it('turns the channel on once the permission is granted', async () => {
+    const ports = createFakePorts({}, DENIED);
+    renderWithProviders(<TranslatorScreen />, { ports });
+    pressLight();
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('permission-primary'));
+    await waitFor(() => {
+      expect(screen.getByTestId('channel-light')).toBeSelected();
+    });
+  });
+
+  it('leaves the channel off when the rationale is dismissed', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: createFakePorts({}, DENIED) });
+    pressLight();
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('permission-camera')).toBeNull();
+    });
+    expect(screen.getByTestId('channel-light')).not.toBeSelected();
+  });
+
+  // Turning it back off is not a permission question — the app already has it.
+  it('asks nothing when switching the channel off again', async () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TranslatorScreen />, { ports });
+    await enableLight();
+    await disableLight();
+    expect(screen.queryByTestId('permission-camera')).toBeNull();
   });
 });

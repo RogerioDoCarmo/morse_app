@@ -147,4 +147,9 @@ export const en: TranslationMap = {
     'This stays off until you grant access in the system settings. Everything else in the app keeps working.',
   'permission.openSettings': 'Open Settings',
   'permission.notNow': 'Not now',
+  'permission.cameraHeadline': 'Morse needs the torch',
+  'permission.microphoneHeadline': 'Speaking needs the microphone',
+  'permission.cameraBlocked': 'Camera access is off',
+  'permission.microphoneBlocked': 'Microphone access is off',
+  'permission.goBack': 'Go back',
 };

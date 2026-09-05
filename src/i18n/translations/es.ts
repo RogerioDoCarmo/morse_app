@@ -145,4 +145,9 @@ export const es: TranslationMap = {
     'Esto seguirá desactivado hasta que concedas el acceso en los ajustes del sistema. El resto de la aplicación sigue funcionando.',
   'permission.openSettings': 'Abrir ajustes',
   'permission.notNow': 'Ahora no',
+  'permission.cameraHeadline': 'El Morse necesita la linterna',
+  'permission.microphoneHeadline': 'Hablar necesita el micrófono',
+  'permission.cameraBlocked': 'El acceso a la cámara está desactivado',
+  'permission.microphoneBlocked': 'El acceso al micrófono está desactivado',
+  'permission.goBack': 'Volver',
 };
