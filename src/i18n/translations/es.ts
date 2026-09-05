@@ -119,6 +119,8 @@ export const es: TranslationMap = {
     'Diagnóstico anónimo cuando la app falla. Nunca tus mensajes.',
   'settings.aboutSection': 'ACERCA DE',
   'settings.aboutMorse': '¿Qué es el código Morse?',
+  'settings.showGuide': 'Ver la guía de bienvenida',
+  'settings.showGuideHint': 'Las tres diapositivas de la primera vez',
   'language.title': 'Idioma',
   'language.interface': 'INTERFAZ',
   'language.speech': 'RECONOCIMIENTO DE VOZ',

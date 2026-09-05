@@ -16,6 +16,15 @@ export type FirstRun = Readonly<{
   ready: boolean;
   show: boolean;
   dismiss: () => void;
+  /**
+   * Shows the guide again on request.
+   *
+   * The version gate answers "has this device seen THIS guide", which is the
+   * right question for showing it unasked. It is the wrong question for a
+   * user who tapped Skip and wants it back: they have seen it, and still want
+   * it. Nothing is stored, so the automatic gate is left exactly as it was.
+   */
+  replay: () => void;
 }>;
 
 /** Decides whether to show the first-run guide, and remembers the answer. */
@@ -43,5 +52,9 @@ export function useFirstRun(): FirstRun {
     void preferences.write(FIRST_RUN_KEY, String(FIRST_RUN_VERSION));
   }, [preferences]);
 
-  return { ready, show, dismiss };
+  const replay = useCallback((): void => {
+    setShow(true);
+  }, []);
+
+  return { ready, show, dismiss, replay };
 }
