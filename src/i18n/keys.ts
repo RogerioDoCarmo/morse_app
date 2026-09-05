@@ -53,6 +53,7 @@ export type TranslationKey =
   | 'tap.cutoffHint'
   | 'tap.key'
   | 'tap.clear'
+  | 'tap.read'
   | 'learn.title'
   | 'learn.whatTitle'
   | 'learn.whatBody'

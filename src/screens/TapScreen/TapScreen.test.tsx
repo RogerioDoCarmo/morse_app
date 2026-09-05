@@ -2,6 +2,7 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
+import { DEFAULT_UNIT_MS, UNITS } from '@/core/domain/tapping';
 import { TapScreen } from './TapScreen';
 
 const show = (locale?: 'en' | 'pt-BR' | 'es'): void => {
@@ -27,14 +28,17 @@ const wait = (ms: number): void => {
   });
 };
 
-describe('TapScreen', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+// File-level, not inside one describe: press duration and the silence between
+// presses ARE the input on this screen, so every block here needs the clock
+// under its control. A block that missed this would read every hold as a dot.
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+afterEach(() => {
+  jest.useRealTimers();
+});
 
+describe('TapScreen', () => {
   it('invites a tap before anything has been keyed', () => {
     show();
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
@@ -320,5 +324,141 @@ describe('the cut-off is a saved preference, not screen state', () => {
         true,
       );
     });
+  });
+});
+
+describe('reading the decoded text aloud', () => {
+  const holding = (stored: Readonly<Record<string, string>>): FakePorts => {
+    const ports = createFakePorts();
+    return {
+      ...ports,
+      preferences: {
+        ...ports.preferences,
+        read: async (key: string) => stored[key] ?? null,
+      },
+    };
+  };
+
+  /** Keys E, which is one dot — the shortest thing that decodes to a letter. */
+  const keyE = (): void => {
+    hold(100);
+    wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
+  };
+
+  it('offers nothing to read until something has been keyed', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    expect(screen.queryByTestId('tap-read')).toBeNull();
+  });
+
+  it('offers it once there is a decoded letter', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    keyE();
+    expect(screen.getByTestId('tap-read')).toBeOnTheScreen();
+  });
+
+  it('speaks what was decoded, in the app language', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+      locale: 'pt-BR',
+    });
+    keyE();
+    fireEvent.press(screen.getByTestId('tap-read'));
+    expect(ports.calls.spoken).toStrictEqual([{ text: 'E', locale: 'pt-BR' }]);
+  });
+
+  // The same switch that governs the Translator's control, because it is the
+  // same promise: speaking is the one output that says the message in words.
+  it('withholds it when the setting is off', async () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports: holding({ 'settings.speakDecoded': 'false' }),
+    });
+    keyE();
+    await waitFor(() => {
+      expect(screen.queryByTestId('tap-read')).toBeNull();
+    });
+    expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
+  });
+
+  it('goes away again when the message is cleared', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    keyE();
+    fireEvent.press(screen.getByTestId('tap-clear'));
+    expect(screen.queryByTestId('tap-read')).toBeNull();
+  });
+});
+
+describe('undoing the last thing keyed', () => {
+  /** Past the 540ms the letter needs to close at the 180ms default. */
+  const settle = (): void => {
+    wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
+  };
+
+  it('offers nothing to undo on an empty screen', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    expect(screen.queryByTestId('tap-back')).toBeNull();
+  });
+
+  // One press, not one letter: everything here is derived from the press
+  // list, so the last press is exactly what the operator did last.
+  it('takes back one mark of a letter still being keyed', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    hold(100);
+    hold(100);
+    expect(screen.getByTestId('tap-morse')).toHaveTextContent('..');
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
+  });
+
+  it('takes back into a letter that has already been committed', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    hold(100);
+    settle();
+    expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
+  });
+
+  // The row comes back, so a correction can be seen before it is continued.
+  it('shows the letter again rather than leaving the row empty', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    hold(100);
+    hold(100);
+    settle();
+    expect(screen.queryByTestId('tap-mark-dot')).toBeNull();
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
+  });
+
+  // And closes again on its own, exactly as it would have after a real press.
+  it('closes the letter again once the silence has run', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    hold(100);
+    hold(100);
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
+    settle();
+    expect(screen.queryByTestId('tap-mark-dot')).toBeNull();
+  });
+
+  it('goes away once there is nothing left to undo', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    hold(100);
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.queryByTestId('tap-back')).toBeNull();
+    expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
+  });
+
+  it('can be pressed repeatedly back to nothing', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    hold(100);
+    hold(300);
+    hold(100);
+    expect(screen.getByTestId('tap-morse')).toHaveTextContent('.-.');
+    fireEvent.press(screen.getByTestId('tap-back'));
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
+    fireEvent.press(screen.getByTestId('tap-back'));
+    expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
   });
 });

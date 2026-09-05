@@ -52,6 +52,7 @@ export const ptBR: TranslationMap = {
   'tap.cutoffHint': 'Mais que isso é um traço',
   'tap.key': 'Toque ou segure',
   'tap.clear': 'Limpar',
+  'tap.read': 'Ler',
   'learn.title': 'Aprender',
   'learn.whatTitle': 'O que é o código Morse',
   'learn.whatBody':

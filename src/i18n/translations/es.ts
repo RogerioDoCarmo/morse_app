@@ -51,6 +51,7 @@ export const es: TranslationMap = {
   'tap.cutoffHint': 'Más que esto es una raya',
   'tap.key': 'Toca o mantén',
   'tap.clear': 'Borrar',
+  'tap.read': 'Leer',
   'learn.title': 'Aprender',
   'learn.whatTitle': 'Qué es el código Morse',
   'learn.whatBody':

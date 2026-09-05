@@ -53,12 +53,36 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'cutoff-up'
 
+# Undoing the last mark. One press back, not one letter — everything on this
+# screen is derived from the press list.
+- assertVisible:
+    id: 'tap-back'
+- tapOn:
+    id: 'tap-back'
+- assertVisible:
+    id: 'tap-decoded'
+
+# Reading it back. AGENTS.md asks for this on tap input specifically: keying
+# a message you cannot hear is how you find out you keyed it wrong only after
+# reading it. Nothing to assert about the sound itself — the port is what a
+# unit test checks — so this asserts the control is reachable and survives
+# being used.
+- assertVisible:
+    id: 'tap-read'
+- tapOn:
+    id: 'tap-read'
+- assertVisible:
+    id: 'tap-decoded'
+
 - tapOn:
     id: 'tap-clear'
 - assertVisible:
     id: 'tap-empty'
 - assertNotVisible:
     id: 'tap-clear'
+# It goes with the message it was going to read.
+- assertNotVisible:
+    id: 'tap-read'
 
 # And back, which is the half of navigation that usually breaks.
 - tapOn:
