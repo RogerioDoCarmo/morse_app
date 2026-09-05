@@ -29,3 +29,14 @@ describe('isAppLocale', () => {
     expect(isAppLocale('fr')).toBe(false);
   });
 });
+
+describe('isAppLocale on values that are not strings at all', () => {
+  // Callers read from storage and from the OS, both of which can answer with
+  // nothing. Handling that here saves every caller a null check.
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+  ])('rejects %s', (_label, value) => {
+    expect(isAppLocale(value)).toBe(false);
+  });
+});

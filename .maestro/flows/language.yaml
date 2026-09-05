@@ -1,0 +1,66 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+#
+# The one exception is deliberate: after tapping `interface-en` the interface
+# IS English whatever the device says, so English text is a fair assertion
+# there — and the only way to prove the tap did anything, since a language
+# switch changes no testID.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- runFlow: ../dismiss-first-run.yaml
+
+# Language has no tab and no gear — Settings is the only route in.
+- tapOn:
+    id: 'open-settings'
+- scrollUntilVisible:
+    element:
+      id: 'settings-language'
+    direction: DOWN
+- tapOn:
+    id: 'settings-language'
+- assertVisible:
+    id: 'language-screen'
+- assertVisible:
+    id: 'language-interface'
+
+# Force English, then read it back.
+- tapOn:
+    id: 'interface-en'
+- assertVisible: 'Language'
+- assertVisible: 'SPEECH RECOGNITION'
+
+# The recogniser list is hidden while speech follows the interface, and that
+# is the whole behaviour of this section.
+- assertNotVisible:
+    id: 'language-recogniser'
+- tapOn:
+    id: 'speech-follows'
+- assertVisible:
+    id: 'language-recogniser'
+- scrollUntilVisible:
+    element:
+      id: 'recogniser-es'
+    direction: DOWN
+- tapOn:
+    id: 'recogniser-es'
+
+# Following again puts the list away — a switch that cannot come back would
+# strand a user who opened it by accident.
+- tapOn:
+    id: 'speech-follows'
+- assertNotVisible:
+    id: 'language-recogniser'
+
+# Back out through Settings, which is where it was opened from.
+- tapOn:
+    id: 'language-back'
+- assertVisible:
+    id: 'settings-screen'
+- assertNotVisible:
+    id: 'language-screen'
+- tapOn:
+    id: 'settings-back'
+- assertVisible:
+    id: 'translator-screen'

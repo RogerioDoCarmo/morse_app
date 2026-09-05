@@ -4,14 +4,31 @@ import { SettingsScreen } from './SettingsScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 
+/** A fake whose storage already holds values. */
+function portsHolding(stored: Readonly<Record<string, string>>): FakePorts {
+  const ports = createFakePorts();
+  return {
+    ...ports,
+    preferences: {
+      ...ports.preferences,
+      read: async (key: string) => stored[key] ?? null,
+    },
+  };
+}
+
 function show(ports: FakePorts = createFakePorts()) {
   const onBack = jest.fn();
   const onOpenLearn = jest.fn();
+  const onOpenLanguage = jest.fn();
   const view = renderWithProviders(
-    <SettingsScreen onBack={onBack} onOpenLearn={onOpenLearn} />,
+    <SettingsScreen
+      onBack={onBack}
+      onOpenLearn={onOpenLearn}
+      onOpenLanguage={onOpenLanguage}
+    />,
     { ports },
   );
-  return { ...view, onBack, onOpenLearn };
+  return { ...view, onBack, onOpenLearn, onOpenLanguage };
 }
 
 describe('SettingsScreen', () => {
@@ -65,20 +82,29 @@ describe('SettingsScreen', () => {
     });
   });
 
-  // Endonyms: a language is offered the way its own speakers write it, so a
-  // user who cannot read the current interface can still find their own.
-  it('lists each language in its own words', () => {
+  // Settings shows what each locale currently is and hands the choosing to
+  // the Language screen — one owner per value.
+  it('shows the current languages without offering to change them here', () => {
     show();
-    expect(screen.getByText('English')).toBeOnTheScreen();
-    expect(screen.getByText('Português')).toBeOnTheScreen();
-    expect(screen.getByText('Español')).toBeOnTheScreen();
+    expect(screen.getByTestId('settings-language')).toHaveTextContent(/English/u);
+    expect(screen.getByTestId('settings-speech-locale')).toHaveTextContent(/English/u);
   });
 
-  it('switches the interface language', () => {
-    show();
-    fireEvent.press(screen.getByTestId('segment-es'));
-    expect(screen.getByText('Ajustes')).toBeOnTheScreen();
+  it('shows the recogniser language when it no longer follows the interface', () => {
+    show(portsHolding({ 'settings.speechLocale': 'es' }));
+    return waitFor(() => {
+      expect(screen.getByTestId('settings-speech-locale')).toHaveTextContent(/Español/u);
+    });
   });
+
+  it.each(['settings-language', 'settings-speech-locale'])(
+    '%s opens the Language screen',
+    (testID) => {
+      const { onOpenLanguage } = show();
+      fireEvent.press(screen.getByTestId(testID));
+      expect(onOpenLanguage).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it.each([
     ['settings-read-aloud', 'settings.speakDecoded'],

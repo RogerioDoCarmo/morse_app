@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { useSettings } from '@/application/providers/SettingsProvider';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
@@ -56,6 +57,10 @@ type Props = Readonly<{
 export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.Element {
   const { t, locale } = useLocale();
   const { speech } = usePorts();
+  // The recogniser follows the interface unless Language has pointed it
+  // somewhere else — a device may not have every voice pack installed.
+  const { settings } = useSettings();
+  const speechLocale = settings.speechLocale ?? locale;
   const insets = useSafeAreaInsets();
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -76,7 +81,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
   useEffect(() => letGo, [letGo]);
 
   const listen = useCallback(async (): Promise<void> => {
-    if (!(await speech.isAvailable(locale))) {
+    if (!(await speech.isAvailable(speechLocale))) {
       setPhase('missing');
       return;
     }
@@ -85,7 +90,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
     setPhase('listening');
 
     release.current = await speech.start(
-      locale,
+      speechLocale,
       (result) => {
         setHeard(result.transcript);
         if (result.isFinal) setPhase('done');
@@ -95,7 +100,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
         setPhase(reason === 'permission' ? 'denied' : 'failed');
       },
     );
-  }, [letGo, locale, speech]);
+  }, [letGo, speechLocale, speech]);
 
   const finish = useCallback(async (): Promise<void> => {
     // stop, not release: the final transcript is the point of tapping again.

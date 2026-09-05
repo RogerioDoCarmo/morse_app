@@ -5,8 +5,10 @@ import {
   parseFlag,
   parsePlaybackWpm,
   parseSettings,
+  parseSpeechLocale,
   parseTapUnitMs,
   serialiseFlag,
+  serialiseSpeechLocale,
 } from './settings';
 
 describe('the shipped defaults', () => {
@@ -22,6 +24,10 @@ describe('the shipped defaults', () => {
     expect(DEFAULT_SETTINGS.crashReports).toBe(true);
   });
 
+  it('starts with speech recognition following the interface', () => {
+    expect(DEFAULT_SETTINGS.speechLocale).toBeNull();
+  });
+
   it('offers three speeds', () => {
     expect(PLAYBACK_WPM_CHOICES).toStrictEqual([5, 10, 15]);
   });
@@ -32,6 +38,7 @@ describe('the shipped defaults', () => {
       'settings.playbackWpm',
       'settings.speakDecoded',
       'settings.crashReports',
+      'settings.speechLocale',
     ]);
   });
 });
@@ -101,6 +108,34 @@ describe('parseFlag', () => {
   });
 });
 
+describe('parseSpeechLocale', () => {
+  it.each([['en'], ['pt-BR'], ['es']])('keeps %s, which the app speaks', (raw) => {
+    expect(parseSpeechLocale(raw)).toBe(raw);
+  });
+
+  // Following is the one answer always usable, since the interface locale is
+  // always a language the app has.
+  it.each([
+    ['the follow sentinel', 'follow'],
+    ['nothing stored', null],
+    ['an empty string', ''],
+    ['a locale this build dropped', 'fr'],
+    ['a regional tag it does not carry', 'en-GB'],
+  ])('follows the interface on %s', (_label, raw) => {
+    expect(parseSpeechLocale(raw)).toBeNull();
+  });
+
+  it('writes the sentinel for following, and the tag otherwise', () => {
+    expect(serialiseSpeechLocale(null)).toBe('follow');
+    expect(serialiseSpeechLocale('pt-BR')).toBe('pt-BR');
+  });
+
+  it('reads back exactly what it wrote', () => {
+    expect(parseSpeechLocale(serialiseSpeechLocale(null))).toBeNull();
+    expect(parseSpeechLocale(serialiseSpeechLocale('es'))).toBe('es');
+  });
+});
+
 describe('parseSettings', () => {
   it('rebuilds every field from storage', () => {
     expect(
@@ -109,12 +144,14 @@ describe('parseSettings', () => {
         'settings.playbackWpm': '15',
         'settings.speakDecoded': 'false',
         'settings.crashReports': 'false',
+        'settings.speechLocale': 'pt-BR',
       }),
     ).toStrictEqual({
       tapUnitMs: 220,
       playbackWpm: 15,
       speakDecoded: false,
       crashReports: false,
+      speechLocale: 'pt-BR',
     });
   });
 
@@ -124,6 +161,7 @@ describe('parseSettings', () => {
       playbackWpm: 10,
       speakDecoded: true,
       crashReports: true,
+      speechLocale: null,
     });
   });
 
@@ -139,6 +177,7 @@ describe('parseSettings', () => {
       playbackWpm: 15,
       speakDecoded: true,
       crashReports: true,
+      speechLocale: null,
     });
   });
 });

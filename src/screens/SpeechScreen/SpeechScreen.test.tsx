@@ -195,3 +195,49 @@ describe('SpeechScreen', () => {
     });
   });
 });
+
+describe('which language it listens for', () => {
+  const holding = (stored: Readonly<Record<string, string>>): FakePorts => {
+    const ports = createFakePorts();
+    return {
+      ...ports,
+      preferences: {
+        ...ports.preferences,
+        read: async (key: string) => stored[key] ?? null,
+      },
+    };
+  };
+
+  it('follows the interface when nothing has been chosen', async () => {
+    const isAvailable = jest.fn(async () => true);
+    const ports = createFakePorts();
+    ports.speech.isAvailable = isAvailable;
+    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+      locale: 'pt-BR',
+    });
+    fireEvent.press(screen.getByTestId('mic-button'));
+    await waitFor(() => {
+      expect(isAvailable).toHaveBeenCalledWith('pt-BR');
+    });
+  });
+
+  // The whole point of the setting: a device may have no recogniser for the
+  // language the interface is in.
+  it('listens for the chosen recogniser instead, when there is one', async () => {
+    const isAvailable = jest.fn(async () => true);
+    const ports = holding({ 'settings.speechLocale': 'en' });
+    ports.speech.isAvailable = isAvailable;
+    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+      locale: 'pt-BR',
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('speech-screen')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('mic-button'));
+    await waitFor(() => {
+      expect(isAvailable).toHaveBeenCalledWith('en');
+    });
+  });
+});

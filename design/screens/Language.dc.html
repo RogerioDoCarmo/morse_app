@@ -16,7 +16,7 @@
     .lrow + .lrow { border-top: 1px solid #eef0f3; }
   </style>
 </helmet>
-<div style="width: 390px; height: 844px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+<div style="width: 390px; height: 960px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
 
   <div style="height: 54px; flex-shrink: 0;"></div>
 
@@ -70,14 +70,26 @@
             </span>
           </sc-if>
         </button>
+        <!-- Opened in place rather than pushed to a screen of its own: three
+             options do not earn a fourth screen, and the choice is only
+             meaningful next to the switch that reveals it. -->
         <sc-if value="{{ notFollows }}" hint-placeholder-val="{{ false }}">
-          <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 12px 18px; border-top: 1px solid #eef0f3;">
-            <span style="font-size: 15px; font-weight: 600;">{{ recogniserLabel }}</span>
-            <span style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: #6a7480;">
-              {{ recogniserValue }}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b3bac2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </span>
-          </button>
+          <div style="border-top: 1px solid #eef0f3;">
+            <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; padding: 14px 18px 2px;">{{ recogniserLabel }}</div>
+            <sc-for list="{{ recognisers }}" as="rec" hint-placeholder-count="3">
+              <button onClick="{{ rec.pick }}" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 64px; padding: 12px 18px;">
+                <span style="font-size: 16px; font-weight: 600;">{{ rec.label }}</span>
+                <sc-if value="{{ rec.on }}" hint-placeholder-val="{{ false }}">
+                  <span style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #12a594; display: flex; align-items: center; justify-content: center;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </span>
+                </sc-if>
+                <sc-if value="{{ rec.off }}" hint-placeholder-val="{{ true }}">
+                  <span style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #dfe3e8;"></span>
+                </sc-if>
+              </button>
+            </sc-for>
+          </div>
         </sc-if>
       </div>
     </div>
@@ -95,11 +107,11 @@
 
 </div>
 </x-dc>
-<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":960}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { locale: 'en', follows: true };
+    this.state = { locale: 'en', follows: true, speech: 'en' };
   }
 
   copy() {
@@ -111,7 +123,6 @@ class Component extends DCLogic {
         followTitle: 'Match the interface',
         followHint: 'Recognise speech in English',
         recogniserLabel: 'Recognise speech in',
-        recogniserValue: 'English (US)',
         footnote: 'Which languages the microphone can recognise depends on what your device has installed. The interface itself is fully translated either way.',
       },
       pt: {
@@ -121,7 +132,6 @@ class Component extends DCLogic {
         followTitle: 'Acompanhar a interface',
         followHint: 'Reconhecer fala em português',
         recogniserLabel: 'Reconhecer fala em',
-        recogniserValue: 'Português (Brasil)',
         footnote: 'Os idiomas que o microfone reconhece dependem do que está instalado no seu aparelho. A interface é totalmente traduzida de qualquer forma.',
       },
       es: {
@@ -131,7 +141,6 @@ class Component extends DCLogic {
         followTitle: 'Seguir la interfaz',
         followHint: 'Reconocer la voz en español',
         recogniserLabel: 'Reconocer la voz en',
-        recogniserValue: 'Español (España)',
         footnote: 'Los idiomas que el micrófono reconoce dependen de lo que tenga instalado tu dispositivo. La interfaz está totalmente traducida en cualquier caso.',
       },
     }[this.state.locale];
@@ -152,7 +161,16 @@ class Component extends DCLogic {
       followTitle: c.followTitle,
       followHint: c.followHint,
       recogniserLabel: c.recogniserLabel,
-      recogniserValue: c.recogniserValue,
+      recognisers: [
+        { key: 'en', label: 'English (US)' },
+        { key: 'pt', label: 'Portugu\u00eas (Brasil)' },
+        { key: 'es', label: 'Espa\u00f1ol (Espa\u00f1a)' },
+      ].map((r) => ({
+        label: r.label,
+        on: r.key === this.state.speech,
+        off: r.key !== this.state.speech,
+        pick: () => this.setState({ speech: r.key }),
+      })),
       footnote: c.footnote,
       follows: this.state.follows,
       notFollows: !this.state.follows,

@@ -9,6 +9,7 @@
  * The interface language is deliberately absent: `LocaleProvider` already owns
  * it, and two owners for one value is how they drift apart.
  */
+import { isAppLocale, type AppLocale } from './locale';
 import { clampUnitMs, DEFAULT_UNIT_MS } from './tapping';
 import { DEFAULT_PLAYBACK_WPM } from './timeline';
 
@@ -21,7 +22,17 @@ export const SETTINGS_KEYS = Object.freeze({
   playbackWpm: 'settings.playbackWpm',
   speakDecoded: 'settings.speakDecoded',
   crashReports: 'settings.crashReports',
+  speechLocale: 'settings.speechLocale',
 });
+
+/**
+ * What is stored when speech recognition follows the interface.
+ *
+ * A sentinel rather than an absent key: the port can write but not delete, so
+ * "follow" has to be a value a user can go back to, not just the state of
+ * never having chosen.
+ */
+export const SPEECH_FOLLOWS_INTERFACE = 'follow';
 
 /** The speeds the picker offers, in words per minute. */
 export const PLAYBACK_WPM_CHOICES: readonly number[] = Object.freeze([5, 10, 15]);
@@ -36,6 +47,12 @@ export type Settings = Readonly<{
   speakDecoded: boolean;
   /** Send crash reports off the device. */
   crashReports: boolean;
+  /**
+   * Which language the microphone listens for, or `null` to follow the
+   * interface. Separate from the interface language because a device may
+   * simply not have a given recogniser installed.
+   */
+  speechLocale: AppLocale | null;
 }>;
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
@@ -43,6 +60,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   playbackWpm: DEFAULT_PLAYBACK_WPM,
   speakDecoded: true,
   crashReports: true,
+  speechLocale: null,
 });
 
 /**
@@ -85,6 +103,23 @@ export function serialiseFlag(value: boolean): string {
   return value ? 'true' : 'false';
 }
 
+/**
+ * Reads a stored speech locale.
+ *
+ * Everything that is not a language this app speaks means "follow the
+ * interface" — including the sentinel, an unset key, and a locale dropped in
+ * a later release. Falling back to following is the one answer that is always
+ * usable, since the interface locale is always one the app has.
+ */
+export function parseSpeechLocale(raw: string | null): AppLocale | null {
+  return isAppLocale(raw) ? raw : null;
+}
+
+/** The inverse of {@link parseSpeechLocale}. */
+export function serialiseSpeechLocale(locale: AppLocale | null): string {
+  return locale ?? SPEECH_FOLLOWS_INTERFACE;
+}
+
 /** Rebuilds the whole settings object from what storage returned. */
 export function parseSettings(stored: Readonly<Record<string, string | null>>): Settings {
   return {
@@ -98,5 +133,6 @@ export function parseSettings(stored: Readonly<Record<string, string | null>>): 
       stored[SETTINGS_KEYS.crashReports] ?? null,
       DEFAULT_SETTINGS.crashReports,
     ),
+    speechLocale: parseSpeechLocale(stored[SETTINGS_KEYS.speechLocale] ?? null),
   };
 }

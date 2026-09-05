@@ -19,9 +19,14 @@ export const SUPPORTED_LOCALES: readonly AppLocale[] = Object.freeze([
   'es',
 ]);
 
-/** Narrows an arbitrary string to a supported locale. */
-export const isAppLocale = (value: string): value is AppLocale =>
-  (SUPPORTED_LOCALES as readonly string[]).includes(value);
+/**
+ * Narrows an arbitrary value to a supported locale.
+ *
+ * Accepts null and undefined so callers reading from storage or the OS do not
+ * need a null check of their own — an absent value is simply not a locale.
+ */
+export const isAppLocale = (value: string | null | undefined): value is AppLocale =>
+  (SUPPORTED_LOCALES as readonly string[]).includes(value as string);
 
 /**
  * Maps an OS locale tag onto a supported one.
