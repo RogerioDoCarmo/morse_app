@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { useLayout } from '@/application/useLayout';
 import type { IconName } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
@@ -70,14 +71,89 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
   const sampleMessage = useMemo(() => encode(sample), [sample]);
   const oneLetter = useMemo(() => encode(sample.slice(0, 3)), [sample]);
 
+  // Two columns only where both halves fit; a tablet in portrait keeps one
+  // column, capped so it is not a phone layout stretched across an iPad.
+  const { tablet, twoColumns } = useLayout();
+
   const slide = SLIDES[index] ?? SLIDES[0];
   const last = index === SLIDES.length - 1;
+
+  // Named so both layouts can compose the same markup without wrappers that
+  // would change the phone's flex arithmetic. An earlier version wrapped both
+  // groups in flex:1 containers, which split the screen in half and lifted the
+  // button off the bottom on EVERY device.
+  const stage = (
+    <View
+      style={[styles.stage, twoColumns && styles.stageWide]}
+      testID={`first-run-art-${slide?.show ?? 'chips'}`}
+    >
+      {slide?.show === 'chips' ? (
+        <View style={styles.card}>
+          <Text style={styles.sample}>{sample}</Text>
+          <MorseText message={sampleMessage} testID="first-run-chips" />
+        </View>
+      ) : null}
+
+      {slide?.show === 'channels' ? <OutputChannels cells={strip(t)} /> : null}
+
+      {slide?.show === 'letter' ? (
+        <View style={styles.card}>
+          <MorseText message={oneLetter} selectedIndex={1} testID="first-run-letter" />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const copy = (
+    <View style={styles.copy}>
+      <Text style={[styles.title, tablet && styles.titleWide]}>
+        {t(slide?.title ?? 'firstRun.oneTitle')}
+      </Text>
+      <Text style={[styles.body, tablet && styles.bodyWide]}>
+        {t(slide?.body ?? 'firstRun.oneBody')}
+      </Text>
+    </View>
+  );
+
+  const dots = (
+    <View style={[styles.dots, twoColumns && styles.dotsWide]} testID="first-run-dots">
+      {SLIDES.map((each, dot) => (
+        <View
+          key={each.title}
+          style={[styles.dot, dot === index && styles.dotOn]}
+          testID={dot === index ? 'first-run-dot-on' : 'first-run-dot'}
+        />
+      ))}
+    </View>
+  );
+
+  const next = (
+    <Pressable
+      testID="first-run-next"
+      accessibilityRole="button"
+      accessibilityLabel="first-run-next"
+      onPress={() => {
+        if (last) onDone();
+        else setIndex(index + 1);
+      }}
+      style={({ pressed }) => [
+        styles.next,
+        twoColumns && styles.nextWide,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={styles.nextLabel}>
+        {last ? t('firstRun.start') : t('firstRun.next')}
+      </Text>
+    </Pressable>
+  );
 
   return (
     <View
       testID="first-run"
       style={[
         styles.screen,
+        tablet && !twoColumns && styles.screenWide,
         { paddingTop: insets.top, paddingBottom: insets.bottom + 20 },
       ]}
     >
@@ -99,58 +175,54 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
         )}
       </View>
 
-      <View style={styles.stage} testID={`first-run-art-${slide?.show ?? 'chips'}`}>
-        {slide?.show === 'chips' ? (
-          <View style={styles.card}>
-            <Text style={styles.sample}>{sample}</Text>
-            <MorseText message={sampleMessage} testID="first-run-chips" />
+      {twoColumns ? (
+        <View style={styles.columns}>
+          {stage}
+          <View style={styles.side}>
+            {copy}
+            {dots}
+            {next}
           </View>
-        ) : null}
-
-        {slide?.show === 'channels' ? <OutputChannels cells={strip(t)} /> : null}
-
-        {slide?.show === 'letter' ? (
-          <View style={styles.card}>
-            <MorseText message={oneLetter} selectedIndex={1} testID="first-run-letter" />
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.copy}>
-        <Text style={styles.title}>{t(slide?.title ?? 'firstRun.oneTitle')}</Text>
-        <Text style={styles.body}>{t(slide?.body ?? 'firstRun.oneBody')}</Text>
-      </View>
-
-      <View style={styles.dots} testID="first-run-dots">
-        {SLIDES.map((each, dot) => (
-          <View
-            key={each.title}
-            style={[styles.dot, dot === index && styles.dotOn]}
-            testID={dot === index ? 'first-run-dot-on' : 'first-run-dot'}
-          />
-        ))}
-      </View>
-
-      <Pressable
-        testID="first-run-next"
-        accessibilityRole="button"
-        accessibilityLabel="first-run-next"
-        onPress={() => {
-          if (last) onDone();
-          else setIndex(index + 1);
-        }}
-        style={({ pressed }) => [styles.next, pressed && styles.pressed]}
-      >
-        <Text style={styles.nextLabel}>
-          {last ? t('firstRun.start') : t('firstRun.next')}
-        </Text>
-      </Pressable>
+        </View>
+      ) : (
+        <>
+          {stage}
+          {copy}
+          {dots}
+          {next}
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.ground },
+  // One column on a tablet still gets a cap: a measure drawn for 390pt read
+  // across 834 is not a layout, it is a phone screen stretched.
+  screenWide: { maxWidth: 620, width: '100%', alignSelf: 'center' },
+  // Side by side, capped so neither half becomes an unreadable measure on a
+  // wider iPad. Without this the carousel is a phone screen with empty bands
+  // above and below it.
+  columns: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 64,
+    paddingHorizontal: 72,
+    paddingBottom: 56,
+  },
+  side: { flex: 1, maxWidth: 480, justifyContent: 'center' },
+  stageWide: { maxWidth: 520, paddingHorizontal: 0 },
+  // The dots belong to the words they are pacing, so they line up with the
+  // copy rather than centring under a column that is only half the screen.
+  dotsWide: { justifyContent: 'flex-start', paddingHorizontal: theme.spacing.xl },
+  titleWide: { fontSize: 32 },
+  bodyWide: { fontSize: 17, lineHeight: 26 },
+  // Sized to its words rather than the column: a 480pt Start button reads as
+  // a banner, not something to press.
+  nextWide: { alignSelf: 'flex-start', minWidth: 200, paddingHorizontal: 32 },
   top: {
     height: 48,
     flexDirection: 'row',
