@@ -28,7 +28,8 @@ export type IconName =
   | 'chevronRight'
   | 'arrowLeft'
   | 'check'
-  | 'info';
+  | 'info'
+  | 'backspace';
 
 type Props = Readonly<{
   name: IconName;
@@ -160,6 +161,14 @@ function glyph(name: IconName): React.JSX.Element {
       );
     case 'check':
       return <Polyline points="20 6 9 17 4 12" />;
+    case 'backspace':
+      return (
+        <>
+          <Path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+          <Line x1="18" y1="9" x2="12" y2="15" />
+          <Line x1="12" y1="9" x2="18" y2="15" />
+        </>
+      );
     case 'info':
       return (
         <>

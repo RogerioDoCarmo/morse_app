@@ -52,6 +52,7 @@ export const en: TranslationMap = {
   'tap.cutoffHint': 'Longer than this is a dash',
   'tap.key': 'Tap or hold',
   'tap.clear': 'Clear',
+  'tap.read': 'Read',
   'learn.title': 'Learn',
   'learn.whatTitle': 'What Morse code is',
   'learn.whatBody':
