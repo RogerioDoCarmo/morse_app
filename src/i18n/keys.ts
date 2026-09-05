@@ -128,7 +128,12 @@ export type TranslationKey =
   | 'permission.microphoneGrant'
   | 'permission.blockedHint'
   | 'permission.openSettings'
-  | 'permission.notNow';
+  | 'permission.notNow'
+  | 'permission.cameraHeadline'
+  | 'permission.microphoneHeadline'
+  | 'permission.cameraBlocked'
+  | 'permission.microphoneBlocked'
+  | 'permission.goBack';
 
 /** A complete set of translations. Missing a key is a compile error. */
 export type TranslationMap = Record<TranslationKey, string>;

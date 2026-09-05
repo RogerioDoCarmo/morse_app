@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { usePermissionGate } from '@/application/providers/PermissionGate';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { Card } from '@/components/Card';
@@ -61,6 +62,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
   // somewhere else — a device may not have every voice pack installed.
   const { settings } = useSettings();
   const speechLocale = settings.speechLocale ?? locale;
+  const { ensure } = usePermissionGate();
   const insets = useSafeAreaInsets();
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -81,6 +83,10 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
   useEffect(() => letGo, [letGo]);
 
   const listen = useCallback(async (): Promise<void> => {
+    // Rationale before the OS prompt. The recogniser would otherwise ask on
+    // its own, and its dialog gets one sentence to explain a microphone.
+    if (!(await ensure('microphone'))) return;
+
     if (!(await speech.isAvailable(speechLocale))) {
       setPhase('missing');
       return;
@@ -100,7 +106,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
         setPhase(reason === 'permission' ? 'denied' : 'failed');
       },
     );
-  }, [letGo, speechLocale, speech]);
+  }, [ensure, letGo, speechLocale, speech]);
 
   const finish = useCallback(async (): Promise<void> => {
     // stop, not release: the final transcript is the point of tapping again.

@@ -17,6 +17,7 @@ import {
 } from '@/core/domain/morse';
 import type { AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { usePermissionGate } from '@/application/providers/PermissionGate';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { useMorsePlayback } from '@/application/useMorsePlayback';
 import { usePorts } from '@/application/providers/PortsProvider';
@@ -110,6 +111,18 @@ export function TranslatorScreen({
     [playback],
   );
 
+  // Switching Light on is what raises the camera permission, so the rationale
+  // belongs here rather than at playback: a user who says no should be told
+  // why it was asked, not watch a channel silently refuse to light.
+  const { ensure } = usePermissionGate();
+  const lightToggled = useCallback(async (): Promise<void> => {
+    if (playback.channels.light) {
+      playback.toggleChannel('light');
+      return;
+    }
+    if (await ensure('camera')) playback.toggleChannel('light');
+  }, [ensure, playback]);
+
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
   }, [decoded, locale, tts]);
@@ -134,7 +147,7 @@ export function TranslatorScreen({
       label: t('translator.channelLight'),
       on: playback.channels.light,
       onToggle: () => {
-        playback.toggleChannel('light');
+        void lightToggled();
       },
     },
     {

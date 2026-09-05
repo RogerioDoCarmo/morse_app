@@ -3,6 +3,7 @@ import { render, type RenderResult } from '@testing-library/react-native';
 import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 import type { AppLocale } from '@/core/domain/locale';
 import { LocaleProvider } from '@/application/providers/LocaleProvider';
+import { PermissionGate } from '@/application/providers/PermissionGate';
 import { PortsProvider } from '@/application/providers/PortsProvider';
 import { SettingsProvider } from '@/application/providers/SettingsProvider';
 import { createFakePorts, type FakePorts } from './fakePorts';
@@ -27,7 +28,9 @@ export function renderWithProviders(
     <SafeAreaProvider initialMetrics={METRICS}>
       <PortsProvider ports={ports}>
         <LocaleProvider initialLocale={options.locale ?? 'en'}>
-          <SettingsProvider>{children}</SettingsProvider>
+          <SettingsProvider>
+            <PermissionGate>{children}</PermissionGate>
+          </SettingsProvider>
         </LocaleProvider>
       </PortsProvider>
     </SafeAreaProvider>
