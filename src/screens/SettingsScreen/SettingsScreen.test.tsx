@@ -20,15 +20,17 @@ function show(ports: FakePorts = createFakePorts()) {
   const onBack = jest.fn();
   const onOpenLearn = jest.fn();
   const onOpenLanguage = jest.fn();
+  const onShowGuide = jest.fn();
   const view = renderWithProviders(
     <SettingsScreen
       onBack={onBack}
       onOpenLearn={onOpenLearn}
       onOpenLanguage={onOpenLanguage}
+      onShowGuide={onShowGuide}
     />,
     { ports },
   );
-  return { ...view, onBack, onOpenLearn, onOpenLanguage };
+  return { ...view, onBack, onOpenLearn, onOpenLanguage, onShowGuide };
 }
 
 describe('SettingsScreen', () => {
@@ -144,5 +146,31 @@ describe('SettingsScreen', () => {
   it('shows no tab bar', () => {
     show();
     expect(screen.queryByTestId('tab-translate')).toBeNull();
+  });
+});
+
+describe('getting the welcome guide back', () => {
+  // The version gate answers "has this device seen this guide", which is right
+  // for showing it unasked and wrong for someone who tapped Skip: they have
+  // seen it and still want it. Without this row there is no way back at all.
+  it('offers it, and says what it is', () => {
+    show();
+    expect(screen.getByTestId('settings-show-guide')).toHaveTextContent(
+      /Show the welcome guide/u,
+    );
+    expect(screen.getByTestId('settings-show-guide')).toHaveTextContent(/three slides/u);
+  });
+
+  it('asks for it', () => {
+    const { onShowGuide } = show();
+    fireEvent.press(screen.getByTestId('settings-show-guide'));
+    expect(onShowGuide).toHaveBeenCalledTimes(1);
+  });
+
+  // It sits with the other things that explain the app, not with the switches.
+  it('sits in ABOUT, beside the Morse explainer', () => {
+    show();
+    expect(screen.getByText('ABOUT')).toBeOnTheScreen();
+    expect(screen.getByTestId('settings-about-morse')).toBeOnTheScreen();
   });
 });

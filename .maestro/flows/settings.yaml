@@ -37,6 +37,25 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'settings-crash-reports'
 
+# The only way back to the welcome guide once it has been skipped. It opens
+# over Settings and returns here, rather than dropping the user somewhere else.
+- scrollUntilVisible:
+    element:
+      id: 'settings-show-guide'
+    direction: DOWN
+- tapOn:
+    id: 'settings-show-guide'
+- assertVisible:
+    id: 'first-run'
+- tapOn:
+    id: 'first-run-skip'
+- tapOn:
+    id: 'first-run-next'
+- assertNotVisible:
+    id: 'first-run'
+- assertVisible:
+    id: 'settings-screen'
+
 # ABOUT leaves for Learn, which is a different screen rather than a modal.
 - scrollUntilVisible:
     element:

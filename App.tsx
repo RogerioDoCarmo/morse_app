@@ -120,6 +120,9 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           onOpenLanguage={() => {
             setLanguageOpen(true);
           }}
+          // Settings stays open underneath: the guide was opened from here,
+          // so this is where dismissing it should land.
+          onShowGuide={firstRun.replay}
         />
         <TorchHost adapter={torch} />
       </View>

@@ -109,6 +109,8 @@ export type TranslationKey =
   | 'settings.crashReportsHint'
   | 'settings.aboutSection'
   | 'settings.aboutMorse'
+  | 'settings.showGuide'
+  | 'settings.showGuideHint'
   | 'language.title'
   | 'language.interface'
   | 'language.matchInterface'

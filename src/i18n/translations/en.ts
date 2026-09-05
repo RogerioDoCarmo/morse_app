@@ -121,6 +121,8 @@ export const en: TranslationMap = {
     'Anonymous diagnostics when the app fails. Never your messages.',
   'settings.aboutSection': 'ABOUT',
   'settings.aboutMorse': 'What is Morse code?',
+  'settings.showGuide': 'Show the welcome guide',
+  'settings.showGuideHint': 'The three slides from your first run',
   'language.title': 'Language',
   'language.interface': 'INTERFACE',
   'language.speech': 'SPEECH RECOGNITION',

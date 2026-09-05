@@ -24,6 +24,8 @@ type Props = Readonly<{
   onOpenLearn: () => void;
   /** Both LANGUAGE rows lead here; the Language screen owns both locales. */
   onOpenLanguage: () => void;
+  /** Shows the welcome guide again — the only way back to it after Skip. */
+  onShowGuide: () => void;
 }>;
 
 /**
@@ -36,6 +38,7 @@ export function SettingsScreen({
   onBack,
   onOpenLearn,
   onOpenLanguage,
+  onShowGuide,
 }: Props): React.JSX.Element {
   const { t, locale } = useLocale();
   const insets = useSafeAreaInsets();
@@ -156,13 +159,30 @@ export function SettingsScreen({
 
         <View style={styles.block}>
           <Text style={styles.label}>{t('settings.aboutSection')}</Text>
-          <View style={styles.card}>
+          <View style={styles.cardFlush}>
+            {/* The guide explains that Light and Sound can be changed at any
+                time, which is the one thing a user who skipped it will not
+                have been told anywhere else. */}
+            <Pressable
+              testID="settings-show-guide"
+              accessibilityRole="button"
+              accessibilityLabel="settings-show-guide"
+              onPress={onShowGuide}
+              style={({ pressed }) => [styles.settingRow, pressed && styles.pressedRow]}
+            >
+              <View style={styles.toggleCopy}>
+                <Text style={styles.rowTitle}>{t('settings.showGuide')}</Text>
+                <Text style={styles.hint}>{t('settings.showGuideHint')}</Text>
+              </View>
+              <Icon name="chevronRight" size={16} color={theme.color.faint} />
+            </Pressable>
+            <View style={styles.rule} />
             <Pressable
               testID="settings-about-morse"
               accessibilityRole="button"
               accessibilityLabel="settings-about-morse"
               onPress={onOpenLearn}
-              style={({ pressed }) => [styles.navRow, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.settingRow, pressed && styles.pressedRow]}
             >
               <Text style={styles.rowTitle}>{t('settings.aboutMorse')}</Text>
               <Icon name="chevronRight" size={16} color={theme.color.faint} />
@@ -303,11 +323,4 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   toggleCopy: { flex: 1, gap: 2 },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 24,
-  },
-  pressed: { opacity: 0.6 },
 });

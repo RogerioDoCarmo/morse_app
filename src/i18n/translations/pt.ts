@@ -120,6 +120,8 @@ export const ptBR: TranslationMap = {
     'Diagnóstico anônimo quando o app falha. Nunca suas mensagens.',
   'settings.aboutSection': 'SOBRE',
   'settings.aboutMorse': 'O que é o código Morse?',
+  'settings.showGuide': 'Ver o guia de boas-vindas',
+  'settings.showGuideHint': 'Os três slides da primeira vez',
   'language.title': 'Idioma',
   'language.interface': 'INTERFACE',
   'language.speech': 'RECONHECIMENTO DE FALA',
