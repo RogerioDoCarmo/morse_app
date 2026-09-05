@@ -58,16 +58,23 @@ appId: com.rogeriodocarmo.morse
     id: 'playback-progress'
 
 # --- one run, several channels ---
-# Light joins the message already in progress rather than starting a second
-# one beside it.
+# A channel switched on mid-message joins the run already in progress rather
+# than starting a second one beside it.
+#
+# Screen rather than Light: the torch sits behind the camera permission, and a
+# simulator has no camera for it to grant. permissions.yaml covers that gate.
+# Switched off again straight away so the sections below still start from the
+# strip they expect — sound on, everything else off.
 - tapOn:
     id: 'signal-button'
 - assertVisible:
     id: 'playback-progress'
 - tapOn:
-    id: 'channel-light'
+    id: 'channel-screen'
 - assertVisible:
     id: 'playback-progress'
+- tapOn:
+    id: 'channel-screen'
 - tapOn:
     id: 'signal-button'
 - assertNotVisible:
@@ -119,8 +126,8 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-buzz'
 
 # --- nothing switched on means nothing to signal with ---
-- tapOn:
-    id: 'channel-light'
+# Sound is the only one still on by now; every other section put its own
+# channel back.
 - tapOn:
     id: 'channel-sound'
 - assertVisible:

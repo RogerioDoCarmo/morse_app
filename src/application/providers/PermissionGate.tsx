@@ -91,7 +91,19 @@ export function PermissionGate({
   return (
     <GateContext.Provider value={value}>
       <View style={styles.root}>
-        {children}
+        {/* Covered is not the same as gone: without these the app behind the
+            gate stays in the accessibility tree, so a screen reader would
+            read the Translator through it and a tap would land on whatever
+            sat under the rationale. */}
+        <View
+          testID="gate-underlay"
+          style={styles.root}
+          accessibilityElementsHidden={pending !== null}
+          importantForAccessibility={pending === null ? 'auto' : 'no-hide-descendants'}
+          pointerEvents={pending === null ? 'auto' : 'none'}
+        >
+          {children}
+        </View>
         {pending === null ? null : (
           <View style={StyleSheet.absoluteFill}>
             <PermissionScreen

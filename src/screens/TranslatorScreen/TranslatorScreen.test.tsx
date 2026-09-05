@@ -977,7 +977,11 @@ describe('the camera permission stands in front of the light channel', () => {
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    expect(screen.getByTestId('channel-light')).not.toBeSelected();
+    // Explicitly past the gate: the app behind it is hidden from the
+    // accessibility tree while it is up, which is what makes it a gate.
+    expect(
+      screen.getByTestId('channel-light', { includeHiddenElements: true }),
+    ).not.toBeSelected();
     expect(ports.calls.requested).toEqual([]);
   });
 

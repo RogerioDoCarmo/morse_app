@@ -65,6 +65,14 @@ function portsAnswering(
   };
 }
 
+/**
+ * Queries past the gate on purpose. The app behind it is hidden from the
+ * accessibility tree while the gate is up — which is the point — so a test
+ * that wants to look at it has to say so.
+ */
+const behind = (testID: string): ReturnType<typeof screen.getByTestId> =>
+  screen.getByTestId(testID, { includeHiddenElements: true });
+
 const UNASKED: PermissionState = { granted: false, canAskAgain: true };
 const BLOCKED: PermissionState = { granted: false, canAskAgain: false };
 
@@ -102,7 +110,40 @@ describe('when the permission has not been asked for', () => {
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    expect(screen.getByTestId('behind')).toBeOnTheScreen();
+    expect(behind('behind')).toBeOnTheScreen();
+  });
+
+  // Covered is not the same as gone. Without this the app behind the gate is
+  // still in the accessibility tree: a screen reader would read the Translator
+  // through the rationale, and a tap would land on whatever sat underneath.
+  it('takes the app behind it out of reach while it is up', async () => {
+    mount(portsAnswering(UNASKED));
+    expect(screen.getByTestId('gate-underlay').props.accessibilityElementsHidden).toBe(
+      false,
+    );
+
+    fireEvent.press(screen.getByTestId('ask'));
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
+    });
+
+    const covered = behind('gate-underlay').props;
+    expect(covered.accessibilityElementsHidden).toBe(true);
+    expect(covered.importantForAccessibility).toBe('no-hide-descendants');
+    expect(covered.pointerEvents).toBe('none');
+  });
+
+  it('gives the app back once the gate closes', async () => {
+    mount(portsAnswering(UNASKED));
+    fireEvent.press(screen.getByTestId('ask'));
+    await waitFor(() => {
+      expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('permission-camera')).toBeNull();
+    });
+    expect(screen.getByTestId('gate-underlay').props.pointerEvents).toBe('auto');
   });
 
   it('prompts on allow, and answers yes once granted', async () => {
@@ -164,7 +205,7 @@ describe('when the permission has not been asked for', () => {
         'Camera access is off',
       );
     });
-    expect(screen.getByTestId('answer')).toHaveTextContent('unasked');
+    expect(behind('answer')).toHaveTextContent('unasked');
   });
 });
 

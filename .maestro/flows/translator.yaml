@@ -44,9 +44,13 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'unsupported-notice'
 
-# The torch is a CHANNEL now, not a switch you leave on. Turning it on arms
-# the light for the next run; it does not light anything by itself.
+# Output is a CHANNEL now, not a switch you leave on. Turning one on arms it
+# for the next run; it does not light or sound anything by itself.
+#
+# Screen rather than Light: the torch sits behind the camera permission, and a
+# simulator has no camera to grant. permissions.yaml covers that gate; this
+# flow is about the strip.
 - tapOn:
-    id: 'channel-light'
+    id: 'channel-screen'
 - assertVisible:
     id: 'signal-button'
