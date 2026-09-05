@@ -4,6 +4,7 @@ import { SafeAreaProvider, type Metrics } from 'react-native-safe-area-context';
 import type { AppLocale } from '@/core/domain/locale';
 import { LocaleProvider } from '@/application/providers/LocaleProvider';
 import { PortsProvider } from '@/application/providers/PortsProvider';
+import { SettingsProvider } from '@/application/providers/SettingsProvider';
 import { createFakePorts, type FakePorts } from './fakePorts';
 
 /**
@@ -25,7 +26,9 @@ export function renderWithProviders(
   const Wrapper = ({ children }: Readonly<{ children: ReactNode }>) => (
     <SafeAreaProvider initialMetrics={METRICS}>
       <PortsProvider ports={ports}>
-        <LocaleProvider initialLocale={options.locale ?? 'en'}>{children}</LocaleProvider>
+        <LocaleProvider initialLocale={options.locale ?? 'en'}>
+          <SettingsProvider>{children}</SettingsProvider>
+        </LocaleProvider>
       </PortsProvider>
     </SafeAreaProvider>
   );

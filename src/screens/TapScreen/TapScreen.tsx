@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { useSettings } from '@/application/providers/SettingsProvider';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { TabBar, type TabName } from '@/components/TabBar';
@@ -42,7 +43,10 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
 
-  const [unitMs, setUnitMs] = useState(clampUnitMs(180));
+  // The cut-off is a saved preference, not screen state: the stepper here and
+  // the slider in Settings move the same value, and it survives a relaunch.
+  const { settings, setTapUnitMs } = useSettings();
+  const unitMs = settings.tapUnitMs;
   const [presses, setPresses] = useState<readonly TapPress[]>([]);
   const [down, setDown] = useState(false);
   /**
@@ -115,9 +119,12 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
     }, UNITS.letterGap * unitMs);
   }, [stopClosing, unitMs]);
 
-  const step = useCallback((by: number): void => {
-    setUnitMs((current) => clampUnitMs(current + by));
-  }, []);
+  const step = useCallback(
+    (by: number): void => {
+      setTapUnitMs(clampUnitMs(unitMs + by));
+    },
+    [setTapUnitMs, unitMs],
+  );
 
   const clear = useCallback((): void => {
     stopClosing();

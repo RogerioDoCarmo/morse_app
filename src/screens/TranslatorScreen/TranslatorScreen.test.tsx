@@ -884,3 +884,57 @@ describe('TranslatorScreen — the vibration channel', () => {
     expect(screen.getByTestId('signal-button')).not.toBeDisabled();
   });
 });
+
+describe('what Settings changes here', () => {
+  const holding = (stored: Readonly<Record<string, string>>): FakePorts => {
+    const ports = createFakePorts();
+    return {
+      ...ports,
+      preferences: {
+        ...ports.preferences,
+        read: async (key: string) => stored[key] ?? null,
+      },
+    };
+  };
+
+  const decodeSomething = (): void => {
+    fireEvent.press(screen.getByTestId('segment-toText'));
+    fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
+  };
+
+  it('offers read-aloud while the setting is on', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    decodeSomething();
+    await waitFor(() => {
+      expect(screen.getByTestId('read-aloud')).toBeOnTheScreen();
+    });
+  });
+
+  it('withholds read-aloud once the setting is off', async () => {
+    renderWithProviders(<TranslatorScreen />, {
+      ports: holding({ 'settings.speakDecoded': 'false' }),
+    });
+    decodeSomething();
+    await waitFor(() => {
+      expect(screen.queryByTestId('read-aloud')).toBeNull();
+    });
+  });
+
+  // 5 WPM is a 240 ms dot against the default 120, so the rendered audio is
+  // twice as long — the check that the stored speed actually reaches playback.
+  it('plays at the stored speed rather than the default', async () => {
+    const ports = holding({ 'settings.playbackWpm': '5' });
+    renderWithProviders(<TranslatorScreen />, { ports });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await waitFor(() => {
+      expect(screen.getByTestId('signal-button')).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await waitFor(() => {
+      expect(ports.calls.played.length).toBe(1);
+    });
+    expect(ports.calls.played[0]).toStrictEqual(
+      renderWav(toTimeline(encode('E')), { unitMs: 240 }),
+    );
+  });
+});
