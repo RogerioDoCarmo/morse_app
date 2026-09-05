@@ -14,6 +14,7 @@ function Probe(): React.JSX.Element {
     setPlaybackWpm,
     setSpeakDecoded,
     setCrashReports,
+    setSpeechLocale,
   } = useSettings();
   return (
     <>
@@ -22,6 +23,7 @@ function Probe(): React.JSX.Element {
       <Text testID="wpm">{String(settings.playbackWpm)}</Text>
       <Text testID="speak">{String(settings.speakDecoded)}</Text>
       <Text testID="crash">{String(settings.crashReports)}</Text>
+      <Text testID="speech-locale">{String(settings.speechLocale)}</Text>
       <Pressable
         testID="set-cutoff"
         onPress={() => {
@@ -50,6 +52,18 @@ function Probe(): React.JSX.Element {
         testID="set-crash"
         onPress={() => {
           setCrashReports(false);
+        }}
+      />
+      <Pressable
+        testID="set-speech-locale"
+        onPress={() => {
+          setSpeechLocale('es');
+        }}
+      />
+      <Pressable
+        testID="set-speech-follows"
+        onPress={() => {
+          setSpeechLocale(null);
         }}
       />
     </>
@@ -92,6 +106,7 @@ describe('SettingsProvider', () => {
     expect(screen.getByTestId('wpm')).toHaveTextContent('10');
     expect(screen.getByTestId('speak')).toHaveTextContent('true');
     expect(screen.getByTestId('crash')).toHaveTextContent('true');
+    expect(screen.getByTestId('speech-locale')).toHaveTextContent('null');
   });
 
   it('restores what was stored', async () => {
@@ -122,6 +137,8 @@ describe('SettingsProvider', () => {
     ['set-wpm', 'wpm', '15', 'settings.playbackWpm', '15'],
     ['set-speak', 'speak', 'false', 'settings.speakDecoded', 'false'],
     ['set-crash', 'crash', 'false', 'settings.crashReports', 'false'],
+    ['set-speech-locale', 'speech-locale', 'es', 'settings.speechLocale', 'es'],
+    ['set-speech-follows', 'speech-locale', 'null', 'settings.speechLocale', 'follow'],
   ])('%s changes the value and writes it', async (button, label, shown, key, written) => {
     const ports = createFakePorts();
     mount(ports);

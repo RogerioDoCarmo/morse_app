@@ -6,7 +6,7 @@ import { useSettings } from '@/application/providers/SettingsProvider';
 import { Icon } from '@/components/Icon';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { Slider } from '@/components/Slider';
-import { SUPPORTED_LOCALES, type AppLocale } from '@/core/domain/locale';
+import type { AppLocale } from '@/core/domain/locale';
 import { PLAYBACK_WPM_CHOICES } from '@/core/domain/settings';
 import { MAX_UNIT_MS, MIN_UNIT_MS } from '@/core/domain/tapping';
 import { theme } from '@/theme';
@@ -22,6 +22,8 @@ type Props = Readonly<{
   onBack: () => void;
   /** The ABOUT row's destination — the Learn screen already answers it. */
   onOpenLearn: () => void;
+  /** Both LANGUAGE rows lead here; the Language screen owns both locales. */
+  onOpenLanguage: () => void;
 }>;
 
 /**
@@ -30,15 +32,15 @@ type Props = Readonly<{
  * No tab bar: Settings is reached from the gear on the Translator and left by
  * the arrow, so it sits above the tabs rather than beside them.
  */
-export function SettingsScreen({ onBack, onOpenLearn }: Props): React.JSX.Element {
-  const { t, locale, setLocale } = useLocale();
+export function SettingsScreen({
+  onBack,
+  onOpenLearn,
+  onOpenLanguage,
+}: Props): React.JSX.Element {
+  const { t, locale } = useLocale();
   const insets = useSafeAreaInsets();
   const { settings, setTapUnitMs, setPlaybackWpm, setSpeakDecoded, setCrashReports } =
     useSettings();
-
-  const localeSegments: readonly Segment<AppLocale>[] = SUPPORTED_LOCALES.map(
-    (value) => ({ value, label: LOCALE_LABELS[value] }),
-  );
 
   // Segment values are strings, so the speed round-trips through one.
   const speedSegments: readonly Segment<string>[] = PLAYBACK_WPM_CHOICES.map((wpm) => ({
@@ -94,15 +96,24 @@ export function SettingsScreen({ onBack, onOpenLearn }: Props): React.JSX.Elemen
           </View>
         </View>
 
+        {/* Both rows lead to the same screen: it holds the interface locale
+            and the recogniser locale, which are separate settings but one
+            decision to sit down and make. */}
         <View style={styles.block}>
           <Text style={styles.label}>{t('settings.languageSection')}</Text>
-          <View style={styles.card}>
-            <Text style={styles.rowTitle}>{t('settings.language')}</Text>
-            <SegmentedControl
-              testID="settings-locale"
-              segments={localeSegments}
-              value={locale}
-              onChange={setLocale}
+          <View style={styles.cardFlush}>
+            <NavRow
+              testID="settings-language"
+              title={t('settings.language')}
+              value={LOCALE_LABELS[locale]}
+              onPress={onOpenLanguage}
+            />
+            <View style={styles.rule} />
+            <NavRow
+              testID="settings-speech-locale"
+              title={t('settings.speechRecognition')}
+              value={LOCALE_LABELS[settings.speechLocale ?? locale]}
+              onPress={onOpenLanguage}
             />
           </View>
         </View>
@@ -160,6 +171,35 @@ export function SettingsScreen({ onBack, onOpenLearn }: Props): React.JSX.Elemen
         </View>
       </ScrollView>
     </View>
+  );
+}
+
+/** A title, the value it currently holds, and a chevron saying it opens. */
+function NavRow({
+  testID,
+  title,
+  value,
+  onPress,
+}: Readonly<{
+  testID: string;
+  title: string;
+  value: string;
+  onPress: () => void;
+}>): React.JSX.Element {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={testID}
+      onPress={onPress}
+      style={({ pressed }) => [styles.settingRow, pressed && styles.pressedRow]}
+    >
+      <Text style={styles.rowTitle}>{title}</Text>
+      <View style={styles.rowValue}>
+        <Text style={styles.valueText}>{value}</Text>
+        <Icon name="chevronRight" size={16} color={theme.color.faint} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -237,6 +277,25 @@ const styles = StyleSheet.create({
   ends: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -12 },
   end: { ...theme.type.mono, fontSize: 11, color: theme.color.faint },
   rule: { height: 1, backgroundColor: theme.color.border },
+  // Rows run to the card's edge, so the card carries no padding of its own.
+  cardFlush: {
+    backgroundColor: theme.color.surface,
+    borderRadius: theme.radius.card,
+    boxShadow: theme.shadow.card,
+    overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md,
+    minHeight: 58,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  pressedRow: { backgroundColor: theme.color.groundAlt },
+  rowValue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  valueText: { ...theme.type.body, fontSize: 15, color: theme.color.muted },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',

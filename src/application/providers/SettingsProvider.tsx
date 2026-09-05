@@ -13,8 +13,10 @@ import {
   SETTINGS_KEYS,
   parseSettings,
   serialiseFlag,
+  serialiseSpeechLocale,
   type Settings,
 } from '@/core/domain/settings';
+import type { AppLocale } from '@/core/domain/locale';
 import { clampUnitMs } from '@/core/domain/tapping';
 
 type SettingsContextValue = Readonly<{
@@ -28,6 +30,8 @@ type SettingsContextValue = Readonly<{
   setPlaybackWpm: (wpm: number) => void;
   setSpeakDecoded: (on: boolean) => void;
   setCrashReports: (on: boolean) => void;
+  /** `null` puts speech recognition back to following the interface. */
+  setSpeechLocale: (locale: AppLocale | null) => void;
 }>;
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -101,6 +105,14 @@ export function SettingsProvider({
     [crash, preferences],
   );
 
+  const setSpeechLocale = useCallback(
+    (locale: AppLocale | null): void => {
+      setSettings((current) => ({ ...current, speechLocale: locale }));
+      void preferences.write(SETTINGS_KEYS.speechLocale, serialiseSpeechLocale(locale));
+    },
+    [preferences],
+  );
+
   const value = useMemo(
     (): SettingsContextValue => ({
       settings,
@@ -109,8 +121,17 @@ export function SettingsProvider({
       setPlaybackWpm,
       setSpeakDecoded,
       setCrashReports,
+      setSpeechLocale,
     }),
-    [settings, ready, setTapUnitMs, setPlaybackWpm, setSpeakDecoded, setCrashReports],
+    [
+      settings,
+      ready,
+      setTapUnitMs,
+      setPlaybackWpm,
+      setSpeakDecoded,
+      setCrashReports,
+      setSpeechLocale,
+    ],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

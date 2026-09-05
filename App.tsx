@@ -11,6 +11,7 @@ import { TorchHost } from '@/components/TorchHost';
 import type { TabName } from '@/components/TabBar';
 import { FirstRunScreen } from '@/screens/FirstRunScreen';
 import { LearnScreen } from '@/screens/LearnScreen';
+import { LanguageScreen } from '@/screens/LanguageScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { SpeechScreen } from '@/screens/SpeechScreen';
 import { TapScreen } from '@/screens/TapScreen';
@@ -68,6 +69,9 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
   // Settings is not a tab — it opens over whichever one you were on, and the
   // back arrow returns you there rather than to a fixed home.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Language sits on top of Settings rather than replacing it: its back arrow
+  // returns to the rows that led there.
+  const [languageOpen, setLanguageOpen] = useState(false);
 
   // Nothing at all until the stored answer is in: showing the Translator for a
   // frame and then covering it is worse than a beat of empty ground.
@@ -84,6 +88,20 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
     );
   }
 
+  if (settingsOpen && languageOpen) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        <LanguageScreen
+          onBack={() => {
+            setLanguageOpen(false);
+          }}
+        />
+        <TorchHost adapter={torch} />
+      </View>
+    );
+  }
+
   if (settingsOpen) {
     return (
       <View style={styles.root}>
@@ -95,6 +113,9 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           onOpenLearn={() => {
             setSettingsOpen(false);
             setTab('learn');
+          }}
+          onOpenLanguage={() => {
+            setLanguageOpen(true);
           }}
         />
         <TorchHost adapter={torch} />
