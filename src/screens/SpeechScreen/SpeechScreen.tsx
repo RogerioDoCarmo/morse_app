@@ -8,7 +8,8 @@ import { usePorts } from '@/application/providers/PortsProvider';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
-import { TabBar, type TabName } from '@/components/TabBar';
+import { AppFrame } from '@/components/AppFrame';
+import type { TabName } from '@/components/TabBar';
 import { encode, encodeToString } from '@/core/domain/morse';
 import type { TranslationKey } from '@/i18n';
 import { theme } from '@/theme';
@@ -117,78 +118,78 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
   const copy = COPY[phase];
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]} testID="speech-screen">
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>{t('app.name')}</Text>
-      </View>
+    <AppFrame active="speak" onSelect={onSelectTab} unavailable={unavailableTabs}>
+      <View style={[styles.screen, { paddingTop: insets.top }]} testID="speech-screen">
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>{t('app.name')}</Text>
+        </View>
 
-      <View style={styles.stage}>
-        <View style={styles.level} testID="speech-level">
-          {LEVELS.map((live, index) => (
-            <View
-              key={`bar${String(index)}`}
-              style={[
-                styles.bar,
-                listening ? live : styles.barQuiet,
-                listening && styles.barLive,
-              ]}
+        <View style={styles.stage}>
+          <View style={styles.level} testID="speech-level">
+            {LEVELS.map((live, index) => (
+              <View
+                key={`bar${String(index)}`}
+                style={[
+                  styles.bar,
+                  listening ? live : styles.barQuiet,
+                  listening && styles.barLive,
+                ]}
+              />
+            ))}
+          </View>
+
+          <Pressable
+            testID="mic-button"
+            accessibilityRole="button"
+            accessibilityLabel="mic-button"
+            accessibilityState={{ selected: listening }}
+            onPress={() => {
+              void (listening ? finish() : listen());
+            }}
+            style={({ pressed }) => [
+              styles.mic,
+              listening ? styles.micLive : styles.micIdle,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Icon
+              name="mic"
+              size={38}
+              strokeWidth={1.7}
+              color={listening ? theme.color.onAccent : theme.color.ink}
             />
-          ))}
-        </View>
+          </Pressable>
 
-        <Pressable
-          testID="mic-button"
-          accessibilityRole="button"
-          accessibilityLabel="mic-button"
-          accessibilityState={{ selected: listening }}
-          onPress={() => {
-            void (listening ? finish() : listen());
-          }}
-          style={({ pressed }) => [
-            styles.mic,
-            listening ? styles.micLive : styles.micIdle,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Icon
-            name="mic"
-            size={38}
-            strokeWidth={1.7}
-            color={listening ? theme.color.onAccent : theme.color.ink}
-          />
-        </Pressable>
-
-        <View style={styles.status}>
-          <Text testID="speech-title" style={styles.title}>
-            {t(copy.title)}
-          </Text>
-          <Text testID="speech-hint" style={styles.hint}>
-            {t(copy.hint)}
-          </Text>
-        </View>
-      </View>
-
-      {heard === '' ? null : (
-        <View style={styles.heard}>
-          <Card>
-            <Text style={styles.label}>{t('speech.heard')}</Text>
-            <Text testID="speech-transcript" style={styles.transcript}>
-              {heard}
+          <View style={styles.status}>
+            <Text testID="speech-title" style={styles.title}>
+              {t(copy.title)}
             </Text>
-            <View style={styles.morseBlock}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <MorseText message={message} testID="speech-morse" />
-              </ScrollView>
-              <Text testID="speech-morse-string" style={styles.mono}>
-                {morse}
-              </Text>
-            </View>
-          </Card>
+            <Text testID="speech-hint" style={styles.hint}>
+              {t(copy.hint)}
+            </Text>
+          </View>
         </View>
-      )}
 
-      <TabBar active="speak" onSelect={onSelectTab} unavailable={unavailableTabs} />
-    </View>
+        {heard === '' ? null : (
+          <View style={styles.heard}>
+            <Card>
+              <Text style={styles.label}>{t('speech.heard')}</Text>
+              <Text testID="speech-transcript" style={styles.transcript}>
+                {heard}
+              </Text>
+              <View style={styles.morseBlock}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <MorseText message={message} testID="speech-morse" />
+                </ScrollView>
+                <Text testID="speech-morse-string" style={styles.mono}>
+                  {morse}
+                </Text>
+              </View>
+            </Card>
+          </View>
+        )}
+      </View>
+    </AppFrame>
   );
 }
 
