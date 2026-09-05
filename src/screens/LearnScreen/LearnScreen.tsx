@@ -2,8 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { useLayout } from '@/application/useLayout';
 import { Icon } from '@/components/Icon';
-import { TabBar, type TabName } from '@/components/TabBar';
+import { AppFrame } from '@/components/AppFrame';
+import type { TabName } from '@/components/TabBar';
 import { TipsScreen } from '@/screens/TipsScreen';
 import { encode, type MorseSymbol } from '@/core/domain/morse';
 import { PLAYBACK_UNITS } from '@/core/domain/timeline';
@@ -47,6 +49,7 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
   const [tips, setTips] = useState(false);
+  const { tablet } = useLayout();
 
   const alphabet = useMemo(
     (): readonly Readonly<{ char: string; marks: readonly MorseSymbol[] }>[] =>
@@ -67,107 +70,138 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
     );
   }
 
-  return (
-    <View style={[styles.screen, { paddingTop: insets.top }]} testID="learn-screen">
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>{t('learn.title')}</Text>
+  // Named so both layouts can compose the same markup. The tablet artboard
+  // stands the alphabet beside the prose rather than under it, which is a
+  // different ORDER, not different content.
+  const hero = (
+    <View style={styles.hero} testID="learn-what">
+      <View style={styles.heroMarks}>
+        <View style={styles.heroDot} />
+        <View style={styles.heroDash} />
+        <View style={[styles.heroDot, styles.heroPale]} />
+        <View style={[styles.heroDash, styles.heroPale]} />
       </View>
-
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.hero} testID="learn-what">
-          <View style={styles.heroMarks}>
-            <View style={styles.heroDot} />
-            <View style={styles.heroDash} />
-            <View style={[styles.heroDot, styles.heroPale]} />
-            <View style={[styles.heroDash, styles.heroPale]} />
-          </View>
-          <Text style={styles.heroTitle}>{t('learn.whatTitle')}</Text>
-          <Text style={styles.heroBody}>{t('learn.whatBody')}</Text>
-        </View>
-
-        <View style={styles.block}>
-          <Text style={styles.label}>{t('learn.alphabet')}</Text>
-          <View style={styles.card}>
-            <View style={styles.grid} testID="learn-alphabet">
-              {alphabet.map((entry) => (
-                <View key={entry.char} style={styles.cell} testID="learn-letter">
-                  <View style={styles.marks}>
-                    {entry.marks.map((mark, index) => (
-                      <View
-                        key={`m${String(index)}`}
-                        style={mark === '.' ? styles.dot : styles.dash}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.char}>{entry.char}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={styles.note}>{t('learn.accents')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.block}>
-          <Text style={styles.label}>{t('learn.silence')}</Text>
-          <View style={styles.card}>
-            <Text style={styles.body}>
-              {t('learn.silenceBody')} <Text style={styles.example}>{AMBIGUOUS}</Text>{' '}
-              {t('learn.silenceAfter')}
-            </Text>
-            <View style={styles.gaps} testID="learn-gaps">
-              {GAPS.map((gap) => (
-                <View key={gap.key} style={styles.gap} testID={`learn-gap-${gap.key}`}>
-                  <View style={styles.bars}>
-                    {Array.from({ length: gap.units }, (_, index) => (
-                      <View
-                        key={`b${String(index)}`}
-                        style={styles.bar}
-                        testID="learn-gap-bar"
-                      />
-                    ))}
-                  </View>
-                  <View style={styles.gapCopy}>
-                    <Text style={styles.gapName}>{t(`learn.gap${gap.key}`)}</Text>
-                    <Text style={styles.gapMeans}>{t(`learn.gap${gap.key}Means`)}</Text>
-                  </View>
-                  <Text style={styles.gapLen}>
-                    {gap.units} {t(gap.units === 1 ? 'learn.unit' : 'learn.units')}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        <Pressable
-          testID="learn-tips"
-          accessibilityRole="button"
-          accessibilityLabel="learn-tips"
-          onPress={() => {
-            setTips(true);
-          }}
-          style={({ pressed }) => [styles.tipsCard, pressed && styles.pressed]}
-        >
-          <View style={styles.tipsCopy}>
-            <Text style={styles.tipsTitle}>{t('learn.tipsTitle')}</Text>
-            <Text style={styles.tipsSubtitle}>{t('learn.tipsSubtitle')}</Text>
-          </View>
-          <Icon
-            name="chevronRight"
-            size={20}
-            color={theme.color.accentDeep}
-            strokeWidth={2.2}
-          />
-        </Pressable>
-      </ScrollView>
-
-      <TabBar active="learn" onSelect={onSelectTab} unavailable={unavailableTabs} />
+      <Text style={styles.heroTitle}>{t('learn.whatTitle')}</Text>
+      <Text style={styles.heroBody}>{t('learn.whatBody')}</Text>
     </View>
+  );
+
+  const alphabetBlock = (
+    <View style={styles.block}>
+      <Text style={styles.label}>{t('learn.alphabet')}</Text>
+      <View style={styles.card}>
+        <View style={styles.grid} testID="learn-alphabet">
+          {alphabet.map((entry) => (
+            <View key={entry.char} style={styles.cell} testID="learn-letter">
+              <View style={styles.marks}>
+                {entry.marks.map((mark, index) => (
+                  <View
+                    key={`m${String(index)}`}
+                    style={mark === '.' ? styles.dot : styles.dash}
+                  />
+                ))}
+              </View>
+              <Text style={styles.char}>{entry.char}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.note}>{t('learn.accents')}</Text>
+      </View>
+    </View>
+  );
+
+  const silenceBlock = (
+    <View style={styles.block}>
+      <Text style={styles.label}>{t('learn.silence')}</Text>
+      <View style={styles.card}>
+        <Text style={styles.body}>
+          {t('learn.silenceBody')} <Text style={styles.example}>{AMBIGUOUS}</Text>{' '}
+          {t('learn.silenceAfter')}
+        </Text>
+        <View style={styles.gaps} testID="learn-gaps">
+          {GAPS.map((gap) => (
+            <View key={gap.key} style={styles.gap} testID={`learn-gap-${gap.key}`}>
+              <View style={styles.bars}>
+                {Array.from({ length: gap.units }, (_, index) => (
+                  <View
+                    key={`b${String(index)}`}
+                    style={styles.bar}
+                    testID="learn-gap-bar"
+                  />
+                ))}
+              </View>
+              <View style={styles.gapCopy}>
+                <Text style={styles.gapName}>{t(`learn.gap${gap.key}`)}</Text>
+                <Text style={styles.gapMeans}>{t(`learn.gap${gap.key}Means`)}</Text>
+              </View>
+              <Text style={styles.gapLen}>
+                {gap.units} {t(gap.units === 1 ? 'learn.unit' : 'learn.units')}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  const tipsCard = (
+    <Pressable
+      testID="learn-tips"
+      accessibilityRole="button"
+      accessibilityLabel="learn-tips"
+      onPress={() => {
+        setTips(true);
+      }}
+      style={({ pressed }) => [styles.tipsCard, pressed && styles.pressed]}
+    >
+      <View style={styles.tipsCopy}>
+        <Text style={styles.tipsTitle}>{t('learn.tipsTitle')}</Text>
+        <Text style={styles.tipsSubtitle}>{t('learn.tipsSubtitle')}</Text>
+      </View>
+      <Icon
+        name="chevronRight"
+        size={20}
+        color={theme.color.accentDeep}
+        strokeWidth={2.2}
+      />
+    </Pressable>
+  );
+
+  return (
+    <AppFrame active="learn" onSelect={onSelectTab} unavailable={unavailableTabs}>
+      <View style={[styles.screen, { paddingTop: insets.top }]} testID="learn-screen">
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>{t('learn.title')}</Text>
+        </View>
+
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+          {tablet ? (
+            <View style={styles.columns} testID="learn-columns">
+              <View style={styles.column}>
+                {hero}
+                {silenceBlock}
+                {tipsCard}
+              </View>
+              <View style={styles.column}>{alphabetBlock}</View>
+            </View>
+          ) : (
+            <>
+              {hero}
+              {alphabetBlock}
+              {silenceBlock}
+              {tipsCard}
+            </>
+          )}
+        </ScrollView>
+      </View>
+    </AppFrame>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.ground },
+  columns: { flexDirection: 'row', gap: theme.spacing.lg },
+  column: { flex: 1, gap: theme.spacing.lg },
   header: { height: 48, justifyContent: 'center', paddingHorizontal: theme.gutter },
   wordmark: { ...theme.type.wordmark, color: theme.color.ink },
   scroll: { flex: 1 },

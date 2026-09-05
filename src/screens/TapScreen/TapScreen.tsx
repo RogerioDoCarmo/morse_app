@@ -5,7 +5,8 @@ import { useLocale } from '@/application/providers/LocaleProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
-import { TabBar, type TabName } from '@/components/TabBar';
+import { AppFrame } from '@/components/AppFrame';
+import type { TabName } from '@/components/TabBar';
 import {
   MAX_UNIT_MS,
   UNITS,
@@ -138,120 +139,120 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
   useEffect(() => stopClosing, [stopClosing]);
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]} testID="tap-screen">
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>{t('nav.tap')}</Text>
-        {presses.length === 0 ? null : (
-          <Pressable
-            testID="tap-clear"
-            accessibilityRole="button"
-            accessibilityLabel="tap-clear"
-            onPress={clear}
-            style={styles.clear}
-          >
-            <Text style={styles.clearLabel}>{t('tap.clear')}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      <View style={styles.body}>
-        <Card>
-          <Text style={styles.label}>{t('tap.decoded')}</Text>
-          {text === '' ? (
-            <Text testID="tap-empty" style={styles.emptyHint}>
-              {t('tap.hint')}
-            </Text>
-          ) : (
-            <Text testID="tap-decoded" style={styles.decoded}>
-              {text}
-            </Text>
+    <AppFrame active="tap" onSelect={onSelectTab} unavailable={unavailableTabs}>
+      <View style={[styles.screen, { paddingTop: insets.top }]} testID="tap-screen">
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>{t('nav.tap')}</Text>
+          {presses.length === 0 ? null : (
+            <Pressable
+              testID="tap-clear"
+              accessibilityRole="button"
+              accessibilityLabel="tap-clear"
+              onPress={clear}
+              style={styles.clear}
+            >
+              <Text style={styles.clearLabel}>{t('tap.clear')}</Text>
+            </Pressable>
           )}
-          <View style={styles.monoFooter}>
-            <Text testID="tap-morse" style={styles.mono}>
-              {morse}
-            </Text>
-          </View>
-        </Card>
+        </View>
 
-        <View style={styles.letterRow}>
-          <Text style={styles.label}>{t('tap.letter')}</Text>
-          <View style={styles.marks} testID="tap-letter">
-            {shown.length === 0 ? (
-              <>
-                <View style={[styles.dot, styles.markEmpty]} />
-                <View style={[styles.dash, styles.markEmpty]} />
-              </>
+        <View style={styles.body}>
+          <Card>
+            <Text style={styles.label}>{t('tap.decoded')}</Text>
+            {text === '' ? (
+              <Text testID="tap-empty" style={styles.emptyHint}>
+                {t('tap.hint')}
+              </Text>
             ) : (
-              shown.map((mark, index) => (
-                <View
-                  key={`m${String(index)}`}
-                  testID={mark === '.' ? 'tap-mark-dot' : 'tap-mark-dash'}
-                  style={[mark === '.' ? styles.dot : styles.dash, styles.markOn]}
-                />
-              ))
+              <Text testID="tap-decoded" style={styles.decoded}>
+                {text}
+              </Text>
             )}
-          </View>
-        </View>
-
-        <View style={styles.cutoff}>
-          <View style={styles.cutoffCopy}>
-            <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
-            <Text style={styles.cutoffHint}>{t('tap.cutoffHint')}</Text>
-          </View>
-          <View style={styles.stepper}>
-            <Pressable
-              testID="cutoff-down"
-              accessibilityRole="button"
-              accessibilityLabel="cutoff-down"
-              disabled={unitMs <= MIN_UNIT_MS}
-              onPress={() => {
-                step(-STEP_MS);
-              }}
-              style={styles.stepButton}
-            >
-              <Icon name="minus" size={17} color={theme.color.ink} />
-            </Pressable>
-            <Text testID="cutoff-value" style={styles.cutoffValue}>
-              {`${String(unitMs)} ms`}
-            </Text>
-            <Pressable
-              testID="cutoff-up"
-              accessibilityRole="button"
-              accessibilityLabel="cutoff-up"
-              disabled={unitMs >= MAX_UNIT_MS}
-              onPress={() => {
-                step(STEP_MS);
-              }}
-              style={styles.stepButton}
-            >
-              <Icon name="plus" size={17} color={theme.color.ink} />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.keyStage}>
-          <Pressable
-            testID="tap-key"
-            accessibilityRole="button"
-            accessibilityLabel="tap-key"
-            accessibilityState={{ selected: down }}
-            onPressIn={onDown}
-            onPressOut={onUp}
-            style={[styles.key, down && styles.keyDown]}
-          >
-            {/* A dot and a dash on the key itself: the two things it makes,
-                drawn at the size the output draws them. */}
-            <View style={styles.keyMarks}>
-              <View style={styles.keyDot} />
-              <View style={styles.keyDash} />
+            <View style={styles.monoFooter}>
+              <Text testID="tap-morse" style={styles.mono}>
+                {morse}
+              </Text>
             </View>
-            <Text style={styles.keyLabel}>{t('tap.key')}</Text>
-          </Pressable>
+          </Card>
+
+          <View style={styles.letterRow}>
+            <Text style={styles.label}>{t('tap.letter')}</Text>
+            <View style={styles.marks} testID="tap-letter">
+              {shown.length === 0 ? (
+                <>
+                  <View style={[styles.dot, styles.markEmpty]} />
+                  <View style={[styles.dash, styles.markEmpty]} />
+                </>
+              ) : (
+                shown.map((mark, index) => (
+                  <View
+                    key={`m${String(index)}`}
+                    testID={mark === '.' ? 'tap-mark-dot' : 'tap-mark-dash'}
+                    style={[mark === '.' ? styles.dot : styles.dash, styles.markOn]}
+                  />
+                ))
+              )}
+            </View>
+          </View>
+
+          <View style={styles.cutoff}>
+            <View style={styles.cutoffCopy}>
+              <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
+              <Text style={styles.cutoffHint}>{t('tap.cutoffHint')}</Text>
+            </View>
+            <View style={styles.stepper}>
+              <Pressable
+                testID="cutoff-down"
+                accessibilityRole="button"
+                accessibilityLabel="cutoff-down"
+                disabled={unitMs <= MIN_UNIT_MS}
+                onPress={() => {
+                  step(-STEP_MS);
+                }}
+                style={styles.stepButton}
+              >
+                <Icon name="minus" size={17} color={theme.color.ink} />
+              </Pressable>
+              <Text testID="cutoff-value" style={styles.cutoffValue}>
+                {`${String(unitMs)} ms`}
+              </Text>
+              <Pressable
+                testID="cutoff-up"
+                accessibilityRole="button"
+                accessibilityLabel="cutoff-up"
+                disabled={unitMs >= MAX_UNIT_MS}
+                onPress={() => {
+                  step(STEP_MS);
+                }}
+                style={styles.stepButton}
+              >
+                <Icon name="plus" size={17} color={theme.color.ink} />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.keyStage}>
+            <Pressable
+              testID="tap-key"
+              accessibilityRole="button"
+              accessibilityLabel="tap-key"
+              accessibilityState={{ selected: down }}
+              onPressIn={onDown}
+              onPressOut={onUp}
+              style={[styles.key, down && styles.keyDown]}
+            >
+              {/* A dot and a dash on the key itself: the two things it makes,
+                drawn at the size the output draws them. */}
+              <View style={styles.keyMarks}>
+                <View style={styles.keyDot} />
+                <View style={styles.keyDash} />
+              </View>
+              <Text style={styles.keyLabel}>{t('tap.key')}</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
-
-      <TabBar active="tap" onSelect={onSelectTab} unavailable={unavailableTabs} />
-    </View>
+    </AppFrame>
   );
 }
 

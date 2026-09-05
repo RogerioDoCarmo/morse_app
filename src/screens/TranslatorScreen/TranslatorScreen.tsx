@@ -8,7 +8,8 @@ import { MorseText } from '@/components/MorseText';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
 import { SignalSurface } from '@/components/SignalSurface';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
-import { TabBar, type TabName } from '@/components/TabBar';
+import { AppFrame } from '@/components/AppFrame';
+import type { TabName } from '@/components/TabBar';
 import {
   decode,
   encode,
@@ -18,6 +19,7 @@ import {
 import type { AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePermissionGate } from '@/application/providers/PermissionGate';
+import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { useMorsePlayback } from '@/application/useMorsePlayback';
 import { usePorts } from '@/application/providers/PortsProvider';
@@ -115,6 +117,7 @@ export function TranslatorScreen({
   // belongs here rather than at playback: a user who says no should be told
   // why it was asked, not watch a channel silently refuse to light.
   const { ensure } = usePermissionGate();
+  const { tablet } = useLayout();
   const lightToggled = useCallback(async (): Promise<void> => {
     if (playback.channels.light) {
       playback.toggleChannel('light');
@@ -188,199 +191,230 @@ export function TranslatorScreen({
   );
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]} testID="translator-screen">
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>{t('app.name')}</Text>
-        <View style={styles.headerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="locale-picker"
-            testID="locale-picker"
-            style={styles.localeButton}
-          >
-            <Text style={styles.localeText}>{localeBadge(locale)}</Text>
-            <Icon
-              name="chevronDown"
-              size={13}
-              color={theme.color.muted}
-              strokeWidth={2.4}
-            />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="open-settings"
-            testID="open-settings"
-            onPress={onOpenSettings}
-            style={styles.iconOnly}
-          >
-            <Icon name="settings" size={21} color={theme.color.muted} strokeWidth={1.7} />
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        <SegmentedControl
-          testID="direction-toggle"
-          segments={segments}
-          value={direction}
-          onChange={setDirection}
-        />
-
-        <Card>
-          <View style={styles.cardHead}>
-            <Text style={styles.label}>
-              {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
-            </Text>
+    <AppFrame
+      active="translate"
+      onSelect={onSelectTab}
+      unavailable={unavailableTabs}
+      onOpenSettings={onOpenSettings}
+    >
+      <View
+        style={[styles.screen, { paddingTop: insets.top }]}
+        testID="translator-screen"
+      >
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>{t('app.name')}</Text>
+          <View style={styles.headerActions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={toMorse ? 'speak-input' : 'tap-input'}
-              testID={toMorse ? 'speak-input' : 'tap-input'}
-              style={styles.textAction}
+              accessibilityLabel="locale-picker"
+              testID="locale-picker"
+              style={styles.localeButton}
             >
+              <Text style={styles.localeText}>{localeBadge(locale)}</Text>
               <Icon
-                name={toMorse ? 'mic' : 'tap'}
-                size={15}
-                color={theme.color.accent}
-                strokeWidth={2.1}
+                name="chevronDown"
+                size={13}
+                color={theme.color.muted}
+                strokeWidth={2.4}
               />
-              <Text style={styles.textActionLabel}>
-                {toMorse ? t('translator.speak') : t('translator.tapItIn')}
-              </Text>
             </Pressable>
+            {/* The rail carries the gear on a tablet; two would be one too
+                many, and the rail's is the one always in reach. */}
+            {tablet ? null : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="open-settings"
+                testID="open-settings"
+                onPress={onOpenSettings}
+                style={styles.iconOnly}
+              >
+                <Icon
+                  name="settings"
+                  size={21}
+                  color={theme.color.muted}
+                  strokeWidth={1.7}
+                />
+              </Pressable>
+            )}
           </View>
-          <TextInput
-            testID="translator-input"
-            accessibilityLabel="translator-input"
-            style={toMorse ? styles.input : styles.monoInput}
-            value={toMorse ? text : morseInput}
-            onChangeText={toMorse ? setText : setMorseInput}
-            multiline
-            placeholderTextColor={theme.color.faint}
+        </View>
+
+        <View style={styles.body}>
+          <SegmentedControl
+            testID="direction-toggle"
+            segments={segments}
+            value={direction}
+            onChange={setDirection}
           />
-        </Card>
 
-        <Card grow testID="morse-card">
-          <View style={styles.cardHead}>
-            <Text style={styles.label}>
-              {toMorse ? t('translator.morseLabel') : t('translator.sourceLabel')}
-            </Text>
-            {toMorse ? headerNote : null}
-          </View>
-
-          {toMorse && showSurface ? (
-            <SignalSurface lit={playback.screenLit} />
-          ) : toMorse ? (
-            <ScrollView style={styles.output} contentContainerStyle={styles.outputScroll}>
-              <MorseText
-                message={message}
-                selectedIndex={picked}
-                soundingIndex={playback.soundingIndex}
-                onSelectLetter={pickLetter}
-              />
-            </ScrollView>
-          ) : (
-            <View style={styles.decodedBlock}>
-              <Text testID="decoded-text" style={styles.decoded}>
-                {decoded}
-              </Text>
-              {/* Offered only when the setting is on. Speaking is the one
-                  output here that carries the message in words rather than in
-                  code, so it is the one a user may not want at all. */}
-              {settings.speakDecoded ? (
+          {/* Side by side on a tablet: the two halves of one translation,
+              which the artboard puts next to each other because there is room
+              to read both at once. Stacked on a phone, where there is not. */}
+          <View style={tablet ? styles.columns : styles.stack}>
+            <Card>
+              <View style={styles.cardHead}>
+                <Text style={styles.label}>
+                  {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
+                </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="read-aloud"
-                  testID="read-aloud"
-                  onPress={() => {
-                    void readAloud();
-                  }}
-                  style={styles.readAloud}
+                  accessibilityLabel={toMorse ? 'speak-input' : 'tap-input'}
+                  testID={toMorse ? 'speak-input' : 'tap-input'}
+                  style={styles.textAction}
                 >
                   <Icon
-                    name="volume"
-                    size={17}
-                    color={theme.color.accentDeep}
-                    strokeWidth={2}
+                    name={toMorse ? 'mic' : 'tap'}
+                    size={15}
+                    color={theme.color.accent}
+                    strokeWidth={2.1}
                   />
-                  <Text style={styles.readAloudLabel}>{t('translator.readAloud')}</Text>
+                  <Text style={styles.textActionLabel}>
+                    {toMorse ? t('translator.speak') : t('translator.tapItIn')}
+                  </Text>
                 </Pressable>
-              ) : null}
-            </View>
-          )}
+              </View>
+              <TextInput
+                testID="translator-input"
+                accessibilityLabel="translator-input"
+                style={toMorse ? styles.input : styles.monoInput}
+                value={toMorse ? text : morseInput}
+                onChangeText={toMorse ? setText : setMorseInput}
+                multiline
+                placeholderTextColor={theme.color.faint}
+              />
+            </Card>
 
-          <View style={styles.monoFooter}>
-            {playback.playing ? (
-              <View style={styles.progressRow} testID="playback-progress">
-                <View style={styles.track}>
-                  <View
-                    testID="playback-fill"
-                    style={[styles.trackFill, { width: `${progressPercent}%` }]}
+            <Card grow testID="morse-card">
+              <View style={styles.cardHead}>
+                <Text style={styles.label}>
+                  {toMorse ? t('translator.morseLabel') : t('translator.sourceLabel')}
+                </Text>
+                {toMorse ? headerNote : null}
+              </View>
+
+              {toMorse && showSurface ? (
+                <SignalSurface lit={playback.screenLit} />
+              ) : toMorse ? (
+                <ScrollView
+                  style={styles.output}
+                  contentContainerStyle={styles.outputScroll}
+                >
+                  <MorseText
+                    message={message}
+                    selectedIndex={picked}
+                    soundingIndex={playback.soundingIndex}
+                    onSelectLetter={pickLetter}
                   />
+                </ScrollView>
+              ) : (
+                <View style={styles.decodedBlock}>
+                  <Text testID="decoded-text" style={styles.decoded}>
+                    {decoded}
+                  </Text>
+                  {/* Offered only when the setting is on. Speaking is the one
+                  output here that carries the message in words rather than in
+                  code, so it is the one a user may not want at all. */}
+                  {settings.speakDecoded ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="read-aloud"
+                      testID="read-aloud"
+                      onPress={() => {
+                        void readAloud();
+                      }}
+                      style={styles.readAloud}
+                    >
+                      <Icon
+                        name="volume"
+                        size={17}
+                        color={theme.color.accentDeep}
+                        strokeWidth={2}
+                      />
+                      <Text style={styles.readAloudLabel}>
+                        {t('translator.readAloud')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-                <Text testID="playback-clock" style={styles.clock}>
-                  {clock(playback.elapsedMs)} / {clock(playback.durationMs)}
+              )}
+
+              <View style={styles.monoFooter}>
+                {playback.playing ? (
+                  <View style={styles.progressRow} testID="playback-progress">
+                    <View style={styles.track}>
+                      <View
+                        testID="playback-fill"
+                        style={[styles.trackFill, { width: `${progressPercent}%` }]}
+                      />
+                    </View>
+                    <Text testID="playback-clock" style={styles.clock}>
+                      {clock(playback.elapsedMs)} / {clock(playback.durationMs)}
+                    </Text>
+                  </View>
+                ) : null}
+                <Text
+                  testID="morse-string"
+                  accessibilityLabel="morse-string"
+                  style={styles.mono}
+                >
+                  {morse}
                 </Text>
               </View>
-            ) : null}
-            <Text
-              testID="morse-string"
-              accessibilityLabel="morse-string"
-              style={styles.mono}
-            >
-              {morse}
-            </Text>
+            </Card>
           </View>
-        </Card>
 
-        <OutputChannels cells={channelCells} />
+          <OutputChannels cells={channelCells} />
 
-        <View style={styles.actions}>
-          <Pressable
-            testID="signal-button"
-            accessibilityRole="button"
-            accessibilityLabel="signal-button"
-            accessibilityState={{
-              selected: playback.playing,
-              disabled: !playback.playing && !playback.canPlay,
-            }}
-            disabled={!playback.playing && !playback.canPlay}
-            onPress={playback.playing ? playback.stop : playback.play}
-            style={({ pressed }) => [
-              styles.signal,
-              playback.playing && styles.signalPlaying,
-              !playback.playing && !playback.canPlay && styles.signalBlocked,
-              pressed && styles.signalPressed,
-            ]}
-          >
-            <Icon
-              name={playback.playing ? 'stop' : 'play'}
-              size={17}
-              color={
-                !playback.playing && !playback.canPlay
-                  ? theme.color.faint
-                  : theme.color.onInk
-              }
-            />
-            <Text
-              style={[
-                styles.signalLabel,
-                !playback.playing && !playback.canPlay && styles.signalLabelBlocked,
+          <View style={styles.actions}>
+            <Pressable
+              testID="signal-button"
+              accessibilityRole="button"
+              accessibilityLabel="signal-button"
+              accessibilityState={{
+                selected: playback.playing,
+                disabled: !playback.playing && !playback.canPlay,
+              }}
+              disabled={!playback.playing && !playback.canPlay}
+              onPress={playback.playing ? playback.stop : playback.play}
+              style={({ pressed }) => [
+                styles.signal,
+                playback.playing && styles.signalPlaying,
+                !playback.playing && !playback.canPlay && styles.signalBlocked,
+                pressed && styles.signalPressed,
               ]}
             >
-              {playback.playing ? t('translator.stop') : t('translator.signal')}
-            </Text>
-          </Pressable>
-          <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
+              <Icon
+                name={playback.playing ? 'stop' : 'play'}
+                size={17}
+                color={
+                  !playback.playing && !playback.canPlay
+                    ? theme.color.faint
+                    : theme.color.onInk
+                }
+              />
+              <Text
+                style={[
+                  styles.signalLabel,
+                  !playback.playing && !playback.canPlay && styles.signalLabelBlocked,
+                ]}
+              >
+                {playback.playing ? t('translator.stop') : t('translator.signal')}
+              </Text>
+            </Pressable>
+            <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
+          </View>
         </View>
       </View>
-
-      <TabBar active="translate" onSelect={onSelectTab} unavailable={unavailableTabs} />
-    </View>
+    </AppFrame>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.ground },
+  // `stack` is what the cards already did; naming it makes the tablet branch a
+  // choice between two layouts rather than one layout and an exception.
+  stack: { flex: 1, gap: theme.spacing.md },
+  columns: { flex: 1, flexDirection: 'row', gap: theme.spacing.md },
   header: {
     height: 48,
     flexDirection: 'row',

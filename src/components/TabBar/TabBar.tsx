@@ -11,13 +11,20 @@ import { theme } from '@/theme';
  */
 export type TabName = 'translate' | 'speak' | 'tap' | 'learn';
 
-const TABS: readonly Readonly<{ name: TabName; icon: IconName; key: TranslationKey }>[] =
-  [
-    { name: 'translate', icon: 'translate', key: 'nav.translate' },
-    { name: 'speak', icon: 'mic', key: 'nav.speak' },
-    { name: 'tap', icon: 'tap', key: 'nav.tap' },
-    { name: 'learn', icon: 'book', key: 'nav.learn' },
-  ];
+/**
+ * The destinations, shared with the rail. One set in two shells: a rail that
+ * could list different ones would be a bug waiting to happen.
+ */
+export const TABS: readonly Readonly<{
+  name: TabName;
+  icon: IconName;
+  key: TranslationKey;
+}>[] = [
+  { name: 'translate', icon: 'translate', key: 'nav.translate' },
+  { name: 'speak', icon: 'mic', key: 'nav.speak' },
+  { name: 'tap', icon: 'tap', key: 'nav.tap' },
+  { name: 'learn', icon: 'book', key: 'nav.learn' },
+];
 
 type Props = Readonly<{
   active: TabName;
