@@ -63,8 +63,8 @@ appId: com.rogeriodocarmo.morse
 #
 # Screen rather than Light: the torch sits behind the camera permission, and a
 # simulator has no camera for it to grant. permissions.yaml covers that gate.
-# Switched off again straight away so the sections below still start from the
-# strip they expect — sound on, everything else off.
+# Switched off again once the run has stopped, so the sections below still
+# start from the strip they expect — sound on, everything else off.
 - tapOn:
     id: 'signal-button'
 - assertVisible:
@@ -73,12 +73,15 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-screen'
 - assertVisible:
     id: 'playback-progress'
-- tapOn:
-    id: 'channel-screen'
 - tapOn:
     id: 'signal-button'
 - assertNotVisible:
     id: 'playback-progress'
+# Only now put the channel back. Two taps on one control with nothing asserted
+# between them is how the second gets swallowed — and with the screen channel
+# still on, the surface covers the button the next step needs.
+- tapOn:
+    id: 'channel-screen'
 
 # --- a letter preview, now that nothing is running ---
 - tapOn:
