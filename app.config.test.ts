@@ -230,6 +230,44 @@ describe('app.config', () => {
     expect(nameOf(plugins[plugins.length - 1] as Plugin)).toBe(CLEANER);
   });
 
+  // An EAS builder never sees the working tree's untracked files, so a build
+  // there gets its copy from a file environment variable holding a path. Both
+  // Firebase packages are dependencies, so their pods autolink whatever the
+  // plugins do — and the Crashlytics build phase reads GOOGLE_APP_ID straight
+  // out of the plist. Without this the config would say "no Firebase" while
+  // the native build still demanded the file.
+  describe('credentials handed over by an EAS file variable', () => {
+    const VARIABLES = ['GOOGLE_SERVICES_JSON_PATH', 'GOOGLE_SERVICE_INFO_PLIST_PATH'];
+
+    afterEach(() => {
+      for (const variable of VARIABLES) delete process.env[variable];
+    });
+
+    it('uses the path it is given when no file is on disk', () => {
+      process.env.GOOGLE_SERVICE_INFO_PLIST_PATH = '/builder/secrets/ios.plist';
+      const { expo } = loadConfig([]);
+
+      expect(expo.ios?.googleServicesFile).toBe('/builder/secrets/ios.plist');
+      expect(expo.plugins.map(nameOf)).toContain('@react-native-firebase/app');
+    });
+
+    it('takes the variable over a file of the same name on disk', () => {
+      process.env.GOOGLE_SERVICES_JSON_PATH = '/builder/secrets/android.json';
+      const { expo } = loadConfig([ANDROID]);
+
+      expect(expo.android?.googleServicesFile).toBe('/builder/secrets/android.json');
+    });
+
+    // Each platform answers for itself: a build handed only the iOS plist must
+    // not claim Android is instrumented.
+    it('leaves the other platform alone', () => {
+      process.env.GOOGLE_SERVICE_INFO_PLIST_PATH = '/builder/secrets/ios.plist';
+      const { expo } = loadConfig([]);
+
+      expect(expo.android?.googleServicesFile).toBeUndefined();
+    });
+  });
+
   it('points each platform at its own credential file', () => {
     const androidOnly = loadConfig([ANDROID]).expo;
     expect(androidOnly.android?.googleServicesFile).toBe('./google-services.json');

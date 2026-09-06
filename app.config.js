@@ -25,10 +25,38 @@ const IOS_CREDENTIALS = 'GoogleService-Info.plist';
 
 const exists = (file) => fs.existsSync(path.join(__dirname, file));
 
+/**
+ * Where a credential file is, or null when there is none.
+ *
+ * An EAS builder never sees the working tree's untracked files, so a build
+ * there gets its copy from an EAS *file* environment variable, which arrives
+ * as an absolute path on the builder. Locally and in the E2E workflow the file
+ * is written next to this config instead.
+ *
+ * Either way the answer is a path or nothing, and every decision below keys
+ * off that one fact rather than off how the file arrived.
+ *
+ * ⚠️ The `_PATH` suffix is deliberate. The E2E workflow already has secrets
+ * named GOOGLE_SERVICES_JSON and GOOGLE_SERVICE_INFO_PLIST holding base64
+ * CONTENT, not paths. They are scoped to the step that decodes them, but
+ * reusing those names here would mean one stray job-level `env:` silently
+ * handing this function a base64 blob to treat as a filename.
+ */
+const credentials = (variable, file) => {
+  const fromEnv = process.env[variable];
+  if (fromEnv) return fromEnv;
+  return exists(file) ? `./${file}` : null;
+};
+
 module.exports = () => {
   const expo = { ...base.expo };
-  const hasAndroid = exists(ANDROID_CREDENTIALS);
-  const hasIos = exists(IOS_CREDENTIALS);
+  const androidCredentials = credentials(
+    'GOOGLE_SERVICES_JSON_PATH',
+    ANDROID_CREDENTIALS,
+  );
+  const iosCredentials = credentials('GOOGLE_SERVICE_INFO_PLIST_PATH', IOS_CREDENTIALS);
+  const hasAndroid = androidCredentials !== null;
+  const hasIos = iosCredentials !== null;
 
   // The permission cleaner writes the release manifest by stripping what earlier
   // plugins injected, so it has to stay last however this list is assembled.
@@ -99,11 +127,9 @@ module.exports = () => {
       ...expo,
       plugins,
       android: hasAndroid
-        ? { ...expo.android, googleServicesFile: `./${ANDROID_CREDENTIALS}` }
+        ? { ...expo.android, googleServicesFile: androidCredentials }
         : expo.android,
-      ios: hasIos
-        ? { ...expo.ios, googleServicesFile: `./${IOS_CREDENTIALS}` }
-        : expo.ios,
+      ios: hasIos ? { ...expo.ios, googleServicesFile: iosCredentials } : expo.ios,
     },
   };
 };
