@@ -39,7 +39,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -59,7 +59,7 @@ jobs:
     environment: store-release
     steps:
       - uses: actions/checkout@v4
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
