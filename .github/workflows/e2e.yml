@@ -61,11 +61,24 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          # Without this every run recompiles every native module from
-          # scratch — Firebase, camera, audio, speech recognition, SVG,
-          # reanimated. That is most of the build, and none of it changes
-          # between runs unless a dependency does.
-          cache: gradle
+
+      # NOT setup-java's `cache: gradle`. That builds its key by hashing
+      # gradle files, and there are none at checkout — `android/` is
+      # gitignored and does not exist until `expo prebuild` runs below. The
+      # action fails outright rather than skipping.
+      #
+      # Keyed on the files that DO exist and that actually decide what gets
+      # compiled: the lockfile and the app config. Without a cache every run
+      # recompiles every native module from scratch — Firebase, camera,
+      # audio, speech recognition, SVG, reanimated.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'app.json', 'app.config.js') }}
+          restore-keys: gradle-${{ runner.os }}-
 
       # Without KVM the emulator is software-rendered and glacial: boot took
       # 10.7 minutes on the first run here, and Maestro's driver then timed out
