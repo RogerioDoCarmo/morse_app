@@ -11,7 +11,18 @@ permissions:
 
 concurrency:
   group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs — a new push there makes the old one obsolete,
+  # and these jobs are far too slow to leave queued for code that no longer
+  # exists.
+  #
+  # NEVER cancel a run on main or develop. Each merge is a different commit
+  # whose result was wanted, so cancelling trades knowing about one for
+  # knowing about the next. Once these jobs started genuinely building both
+  # platforms — 20 to 40 minutes, against roughly 20 seconds when they died
+  # at the secret guard — merges began arriving inside that window and the
+  # suite stopped ever reaching a verdict. Eight runs in one afternoon were
+  # cancelled without a single one finishing.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   android:
