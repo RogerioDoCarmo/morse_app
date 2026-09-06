@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #12a594; text-decoration: none; }
+    a:hover { color: #0d7d70; }
+    button { font: inherit; border: 0; background: none; cursor: pointer; text-align: left; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="height: 54px; flex-shrink: 0;"></div>
+
+  <div style="display: flex; align-items: center; gap: 4px; padding: 0 20px; height: 48px; flex-shrink: 0;">
+    <button style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #101820; margin-left: -12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.025em;">{{ title }}</div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 20px 32px; text-align: center; min-height: 0;">
+
+    <sc-if value="{{ isCamera }}" hint-placeholder-val="{{ true }}">
+      <div style="width: 96px; height: 96px; border-radius: 30px; background: #e7f6f3; color: #0d7d70; display: flex; align-items: center; justify-content: center;">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isMic }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 96px; height: 96px; border-radius: 30px; background: #e7f6f3; color: #0d7d70; display: flex; align-items: center; justify-content: center;">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+      </div>
+    </sc-if>
+
+    <div>
+      <div style="font-size: 24px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.25;">{{ headline }}</div>
+      <div style="font-size: 15px; font-weight: 500; line-height: 1.55; color: #6a7480; margin-top: 10px;">{{ body }}</div>
+    </div>
+
+    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; background: #ffffff; border-radius: 16px; text-align: left; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.04);">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#12a594" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      <span style="font-size: 13px; font-weight: 500; color: #6a7480; line-height: 1.45;">{{ assurance }}</span>
+    </div>
+
+  </div>
+
+  <div style="padding: 0 20px 16px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;">
+    <sc-if value="{{ canAsk }}" hint-placeholder-val="{{ true }}">
+      <button style="width: 100%; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700;">{{ primary }}</button>
+      <button style="width: 100%; height: 50px; color: #6a7480; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;">Not now</button>
+    </sc-if>
+    <sc-if value="{{ blocked }}" hint-placeholder-val="{{ false }}">
+      <button style="width: 100%; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 15px; font-weight: 700;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        Open Settings
+      </button>
+      <button style="width: 100%; height: 50px; color: #6a7480; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;">Go back</button>
+    </sc-if>
+  </div>
+
+  <div style="padding: 0 20px 26px; flex-shrink: 0;">
+    <div style="display: flex; gap: 4px; background: #e8ebef; border-radius: 14px; padding: 4px;">
+      <sc-for list="{{ variants }}" as="v" hint-placeholder-count="4">
+        <sc-if value="{{ v.on }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ v.pick }}" style="flex-grow: 1; min-height: 44px; border-radius: 10px; background: #ffffff; color: #101820; font-size: 12px; font-weight: 700; text-align: center; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.05), 0 3px 8px rgba(16, 24, 32, 0.06);">{{ v.label }}</button>
+        </sc-if>
+        <sc-if value="{{ v.off }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ v.pick }}" style="flex-grow: 1; min-height: 44px; border-radius: 10px; background: transparent; color: #6a7480; font-size: 12px; font-weight: 600; text-align: center;">{{ v.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { which: 'camera', blocked: false };
+  }
+
+  content() {
+    const camera = {
+      title: 'Flash output',
+      headline: 'Morse needs the torch',
+      body: 'Playing a message as light means switching the camera flash on and off. Android and iOS both put the torch behind the camera permission — there is no separate one.',
+      assurance: 'The camera preview is never opened and no image is ever captured. Only the torch is switched.',
+      primary: 'Allow camera access',
+      blockedHead: 'Camera access is off',
+      blockedBody: 'Flash output stays disabled until camera access is granted in the system settings. Everything else in the app keeps working.',
+    };
+    const mic = {
+      title: 'Speech input',
+      headline: 'Speaking needs the microphone',
+      body: 'To turn what you say into Morse, the app has to hear you. Typing and tap input work without this, so you can skip it.',
+      assurance: 'Recognition runs on the device where the platform supports it. No audio is stored and nothing is uploaded.',
+      primary: 'Allow microphone access',
+      blockedHead: 'Microphone access is off',
+      blockedBody: 'Speech input stays disabled until microphone access is granted in the system settings. Typing and tap input are unaffected.',
+    };
+    return this.state.which === 'mic' ? mic : camera;
+  }
+
+  renderVals() {
+    const c = this.content();
+    const blocked = this.state.blocked;
+    const set = (which, b) => () => this.setState({ which: which, blocked: b });
+    const key = this.state.which + (blocked ? '-blocked' : '-ask');
+    return {
+      isCamera: this.state.which === 'camera',
+      isMic: this.state.which === 'mic',
+      canAsk: !blocked,
+      blocked: blocked,
+      title: c.title,
+      headline: blocked ? c.blockedHead : c.headline,
+      body: blocked ? c.blockedBody : c.body,
+      assurance: c.assurance,
+      primary: c.primary,
+      variants: [
+        { label: 'Torch · ask', k: 'camera-ask', pick: set('camera', false) },
+        { label: 'Torch · blocked', k: 'camera-blocked', pick: set('camera', true) },
+        { label: 'Mic · ask', k: 'mic-ask', pick: set('mic', false) },
+        { label: 'Mic · blocked', k: 'mic-blocked', pick: set('mic', true) },
+      ].map((v) => ({ label: v.label, pick: v.pick, on: v.k === key, off: v.k !== key })),
+    };
+  }
+}
+</script>
+</body>
+</html>

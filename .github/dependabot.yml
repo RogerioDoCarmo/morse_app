@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Feature branches merge into develop, and so should dependency bumps.
+    target-branch: develop
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    ignore:
+      # The Expo SDK curates these as a set — they must move together via
+      # `expo install`, never one at a time by a bot.
+      - dependency-name: expo
+      - dependency-name: expo-*
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-native
+      - dependency-name: react-native-*
+      - dependency-name: react-test-renderer
+      - dependency-name: jest-expo
+      - dependency-name: '@react-native/*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: develop
+    commit-message:
+      prefix: ci

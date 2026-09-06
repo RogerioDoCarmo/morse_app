@@ -1,0 +1,13 @@
+node_modules
+.expo
+android
+ios
+dist
+coverage
+reports
+.stryker-tmp
+pnpm-lock.yaml
+design/
+# Markdown is owned by markdownlint-cli2, not Prettier — Prettier rewrites
+# emphasis markers and reflows tables, which is pure churn on prose docs.
+*.md

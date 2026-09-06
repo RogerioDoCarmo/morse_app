@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width: 1180px; height: 820px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="height: 24px; flex-shrink: 0;"></div>
+
+  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 0 28px; height: 48px; flex-shrink: 0;">
+    <sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ skip }}" style="height: 44px; padding: 0 12px; color: #6a7480; font-size: 14px; font-weight: 600;">Skip</button>
+    </sc-if>
+  </div>
+
+  <!-- Side by side rather than stacked. On a phone the illustration sits above
+       the copy because there is only one column; here there are two, and the
+       carousel would otherwise be a phone screen with empty bands above and
+       below it. Both halves are capped so neither becomes an unreadable
+       measure on a wider iPad.
+
+       This is the LANDSCAPE layout, at 1024pt and up. An iPad in portrait is
+       834pt, which after gutters leaves about 313pt a column — narrower than
+       the phone this was drawn from. Slide two's illustration is a four-cell
+       strip with labels, and a column too narrow does not reflow it, it just
+       cramps it. Portrait keeps one column, capped at 620pt so it is not the
+       phone layout stretched. -->
+  <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 64px; padding: 0 72px 56px; min-height: 0;">
+
+    <!-- ILLUSTRATIONS — the app's own components, not invented artwork. What
+         the carousel promises is exactly what the next screen shows. -->
+    <div style="flex: 1; max-width: 520px; display: flex; align-items: center; justify-content: center;">
+
+    <sc-if value="{{ one }}" hint-placeholder-val="{{ true }}">
+      <div style="background: #ffffff; border-radius: 22px; padding: 22px 20px; width: 100%; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05); display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 26px; font-weight: 600; letter-spacing: -0.02em;">Hello</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{ hello }}" as="ltr" hint-placeholder-count="5">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #f2f4f7; border-radius: 14px;">
+              <div style="display: flex; gap: 4px; align-items: center; height: 8px;">
+                <sc-for list="{{ ltr.marks }}" as="mark" hint-placeholder-count="3">
+                  <sc-if value="{{ mark.dot }}" hint-placeholder-val="{{ true }}">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div>
+                  </sc-if>
+                  <sc-if value="{{ mark.dash }}" hint-placeholder-val="{{ false }}">
+                    <div style="width: 21px; height: 8px; border-radius: 4px; background: #12a594;"></div>
+                  </sc-if>
+                </sc-for>
+              </div>
+              <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #6a7480;">{{ ltr.char }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top: 1px solid #eef0f3; padding-top: 12px; font-family: 'DM Mono', 'Courier New', monospace; font-size: 12px; color: #6a7480;">.... . .-.. .-.. ---</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ two }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+        <div style="display: flex; gap: 8px;">
+          <sc-for list="{{ channels }}" as="ch" hint-placeholder-count="4">
+            <sc-if value="{{ ch.on }}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; height: 58px; border-radius: 16px; background: #e7f6f3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #0d7d70;">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ ch.path }}"></path></svg>
+                <span style="font-size: 10px; font-weight: 700;">{{ ch.label }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ ch.off }}" hint-placeholder-val="{{ true }}">
+              <div style="flex-grow: 1; height: 58px; border-radius: 16px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #9aa3ad; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ ch.path }}"></path></svg>
+                <span style="font-size: 10px; font-weight: 600;">{{ ch.label }}</span>
+              </div>
+            </sc-if>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div style="flex-grow: 1; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>
+            Signal
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ three }}" hint-placeholder-val="{{ false }}">
+      <div style="background: #ffffff; border-radius: 22px; padding: 22px 20px; width: 100%; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05); display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #f2f4f7; border-radius: 14px;">
+          <div style="display: flex; gap: 4px; align-items: center; height: 8px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div></div>
+          <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #6a7480;">H</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #12a594; border-radius: 14px;">
+          <div style="display: flex; gap: 4px; align-items: center; height: 8px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #ffffff;"></div></div>
+          <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #ffffff;">E</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 46px; min-height: 46px; padding: 9px 11px; background: #f2f4f7; border-radius: 14px;">
+          <div style="display: flex; gap: 4px; align-items: center; height: 8px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div><div style="width: 21px; height: 8px; border-radius: 4px; background: #12a594;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div><div style="width: 8px; height: 8px; border-radius: 50%; background: #12a594;"></div></div>
+          <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 11px; font-weight: 500; color: #6a7480;">L</div>
+        </div>
+      </div>
+    </sc-if>
+
+    </div>
+
+    <div style="flex: 1; max-width: 480px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.03em;">{{ title }}</div>
+      <div style="font-size: 17px; font-weight: 500; line-height: 1.55; color: #6a7480;">{{ body }}</div>
+
+      <!-- Left-aligned with the copy, not centred under the whole screen: the
+           dots belong to the words they are pacing. -->
+      <div style="display: flex; align-items: center; gap: 7px; padding: 22px 0 24px;">
+        <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="3">
+          <sc-if value="{{ dot.on }}" hint-placeholder-val="{{ true }}">
+            <div style="width: 22px; height: 7px; border-radius: 999px; background: #12a594;"></div>
+          </sc-if>
+          <sc-if value="{{ dot.off }}" hint-placeholder-val="{{ false }}">
+            <div style="width: 7px; height: 7px; border-radius: 999px; background: #d3d8de;"></div>
+          </sc-if>
+        </sc-for>
+      </div>
+
+      <!-- Sized to its words rather than the column. A 480px Start button
+           reads as a banner, not something to press. -->
+      <button onClick="{{ next }}" style="align-self: flex-start; min-width: 200px; height: 56px; padding: 0 32px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">{{ cta }}</button>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { slide: 0 };
+  }
+
+  slides() {
+    return [
+      {
+        title: 'Type it, see it',
+        body: 'Anything you type becomes Morse as you go, letter by letter. It reads back the other way too — tap in the dots and dashes and get the words.',
+        cta: 'Next',
+      },
+      {
+        title: 'Choose how it goes out',
+        body: 'Sound is on. Light is off until you switch it on, because the torch needs the camera. Screen and vibration are there too. Change any of them at any time, even while a message is running.',
+        cta: 'Next',
+      },
+      {
+        title: 'Hear one letter at a time',
+        body: 'Tap any letter to hear just that one. It is the quickest way to learn the rhythm — and the Learn tab has the whole alphabet whenever you want it.',
+        cta: 'Start',
+      },
+    ];
+  }
+
+  outputs() {
+    return [
+      { key: 'sound', label: 'Sound', on: true, path: 'M11 5 6 9H2v6h4l5 4V5z M15.5 8.5a5 5 0 0 1 0 7' },
+      { key: 'light', label: 'Light', on: false, path: 'M13 2 3 14h9l-1 8 10-12h-9l1-8z' },
+      { key: 'screen', label: 'Screen', on: false, path: 'M3 4h18v12H3z M8 20h8' },
+      { key: 'buzz', label: 'Vibrate', on: false, path: 'M8 4h8v16H8z M4 9v6 M20 9v6' },
+    ];
+  }
+
+  renderVals() {
+    const slides = this.slides();
+    const i = this.state.slide;
+    const current = slides[i];
+
+    return {
+      one: i === 0,
+      two: i === 1,
+      three: i === 2,
+      notLast: i < slides.length - 1,
+      title: current.title,
+      body: current.body,
+      cta: current.cta,
+      dots: slides.map((s, n) => ({ on: n === i, off: n !== i })),
+      next: () => this.setState({ slide: (i + 1) % slides.length }),
+      skip: () => this.setState({ slide: slides.length - 1 }),
+      hello: 'HELLO'.split('').map((ch) => ({
+        char: ch,
+        marks: { H: '....', E: '.', L: '.-..', O: '---' }[ch]
+          .split('')
+          .map((m) => ({ dot: m === '.', dash: m === '-' })),
+      })),
+      channels: this.outputs().map((o) => ({
+        label: o.label,
+        path: o.path,
+        on: o.on,
+        off: !o.on,
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

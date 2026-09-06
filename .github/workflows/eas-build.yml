@@ -1,0 +1,67 @@
+name: EAS build
+
+on:
+  push:
+    branches: [main]
+    # Path-filtered so docs- and CI-only changes do not burn build quota.
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'plugins/**'
+      - 'app.json'
+      - 'eas.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/eas-build.yml'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        required: true
+        default: all
+        type: choice
+        options: [all, android, ios]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    # Secrets are unavailable to Dependabot, and a bot PR should never build.
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: eas build --platform ${{ inputs.platform || 'all' }} --profile production --non-interactive --no-wait
+
+  submit:
+    name: Submit to the stores
+    # Deliberately opt-in only. Store submission is never automatic on merge —
+    # a release goes out because someone decided to release it.
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: store-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Submit
+        run: eas submit --platform ${{ inputs.platform || 'all' }} --profile production --non-interactive

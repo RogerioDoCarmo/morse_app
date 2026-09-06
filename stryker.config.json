@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "pnpm",
+  "testRunner": "jest",
+  "jest": {
+    "projectType": "custom",
+    "configFile": "jest.config.js"
+  },
+  "coverageAnalysis": "perTest",
+  "reporters": ["html", "clear-text", "progress"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "mutate": ["src/core/**/*.ts", "!src/core/**/*.test.ts", "!src/core/ports/**"],
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": 60
+  },
+  "_comment_ignorePatterns": "Stryker copies the whole project into its sandbox. Once `expo prebuild` has run, ios/ and android/ hold hundreds of MB of pods and Gradle output — and ios/Pods/**/*.xcframework makes the copy CRASH with ENOTSUP, not just run slowly. CI never sees this because it does not prebuild in the mutation job.",
+  "ignorePatterns": ["ios", "android", ".expo", "coverage", "reports", "dist"],
+  "tempDirName": ".stryker-tmp",
+  "concurrency": 4,
+  "plugins": ["@stryker-mutator/jest-runner"]
+}

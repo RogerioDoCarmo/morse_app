@@ -24,6 +24,7 @@ straight to scaffolding, that's their call — but do not skip it silently.
 | Speech input | Microphone capture → transcription → Morse |
 | Tap input (decode) | Single-button Morse entry → decoded text, read aloud via TTS |
 | Settings | Dot/dash threshold (**must be user-configurable**), locale, playback speed |
+| Language | Interface language — EN / pt-BR / es — plus the speech-recognition locale |
 | Learn / About Morse | Informational content explaining Morse code |
 | Tips | How to learn and memorise Morse |
 | Permission gates | Camera (torch) and microphone rationale states |
@@ -52,7 +53,9 @@ A **Morse code translator** for Android and iOS:
   **user-configurable** dot/dash threshold
 - **Text-to-speech** — decoded text is read aloud (output-only, needs no permission)
 - **Informational pages** — what Morse code is, and tips for learning it
-- **Bilingual input**: English (default) and Portuguese, for both typed *and* spoken input
+- **Trilingual**: English (default), Brazilian Portuguese and Spanish. This covers the
+  **entire UI**, not just input — every user-facing string is translated. Typed *and*
+  spoken input are supported in all three.
 
 ## Foundation
 

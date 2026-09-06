@@ -1,0 +1,46 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+
+# It exists because Light starts off: without it the torch is a feature nobody
+# finds and the output strip looks like decoration.
+- assertVisible:
+    id: 'first-run'
+- assertVisible:
+    id: 'first-run-art-chips'
+- assertVisible:
+    id: 'first-run-dots'
+
+- tapOn:
+    id: 'first-run-next'
+- assertVisible:
+    id: 'first-run-art-channels'
+# The middle slide is the one that had to exist: the real strip, light off.
+- assertVisible:
+    id: 'channel-light'
+
+- tapOn:
+    id: 'first-run-next'
+- assertVisible:
+    id: 'first-run-art-letter'
+# Skip is gone on the last slide — Start is the single way out.
+- assertNotVisible:
+    id: 'first-run-skip'
+
+- tapOn:
+    id: 'first-run-next'
+- assertNotVisible:
+    id: 'first-run'
+- assertVisible:
+    id: 'translator-screen'
+
+# And it stays gone: the version it was shown for has been stored.
+- launchApp:
+    clearState: false
+- assertVisible:
+    id: 'translator-screen'
+- assertNotVisible:
+    id: 'first-run'

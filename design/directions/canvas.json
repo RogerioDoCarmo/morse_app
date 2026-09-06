@@ -1,0 +1,46 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "A · Telegraph Desk", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "SignalLamp.dc.html", "title": "B · Signal Lamp", "x": 500, "y": 0, "w": 390, "h": 844 },
+    { "file": "DotDash.dc.html", "title": "C · Dot & Dash", "x": 1000, "y": 0, "w": 390, "h": 844 },
+    { "file": "PracticeDeck.dc.html", "title": "D · Practice Deck", "x": 1500, "y": 0, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    {
+      "id": "how-to-read",
+      "x": 0,
+      "y": -400,
+      "w": 700,
+      "text": "Four directions for the Translator screen — same content and the same layout skeleton, four different visual languages. The text ⇄ Morse toggle works in all four: tap it to see the reverse direction.\n\nPick one and I'll build the full screen set in it — Translator, Speech, Tap decode, Settings, Learn, Tips, permission gates, phone and tablet.\n\nThe app name is still open: \"MORSE\" is a placeholder wordmark, not a proposal."
+    },
+    {
+      "id": "dir-a-telegraph",
+      "x": 0,
+      "y": -250,
+      "w": 390,
+      "text": "A · TELEGRAPH DESK\n\nWhy: leans on the history — paper, brass, inked marks, a tape strip. The Learn and Tips pages feel native here rather than bolted on.\n\nTrade-off: a light paper ground is wrong for night use, and the warmth can read as decorative rather than precise."
+    },
+    {
+      "id": "dir-b-signal-lamp",
+      "x": 500,
+      "y": -250,
+      "w": 390,
+      "text": "B · SIGNAL LAMP\n\nWhy: reads as an instrument. The dark ground makes torch flash and tap timing feel native, and the amber pulse IS the signal.\n\nTrade-off: the safest of the four — dark utility apps all look roughly like this. Least memorable in a store listing."
+    },
+    {
+      "id": "dir-c-dot-dash",
+      "x": 1000,
+      "y": -250,
+      "w": 390,
+      "text": "C · DOT & DASH\n\nWhy: the code itself is the design — oversized marks, heavy type, one hot colour. The most distinctive and the most screenshot-friendly.\n\nTrade-off: costs the most to keep responsive phone → tablet, and the dense screens (Settings, Learn) will fight the expressive layout."
+    },
+    {
+      "id": "dir-d-practice-deck",
+      "x": 1500,
+      "y": -250,
+      "w": 390,
+      "text": "D · PRACTICE DECK\n\nWhy: leans on the learning angle FOUNDATION.md calls out — cards, soft ground, visible progress. Pairs naturally with tap-practice and Tips.\n\nTrade-off: the least distinctive; risks looking like every other learning app."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

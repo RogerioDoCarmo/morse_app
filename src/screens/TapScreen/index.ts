@@ -1,0 +1,1 @@
+export { TapScreen } from './TapScreen';

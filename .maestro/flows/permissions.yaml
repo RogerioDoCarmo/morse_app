@@ -1,0 +1,63 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+#
+# This flow deliberately never taps "Allow". That would hand control to a
+# system dialog, which is the OS's to draw and not this app's to assert on.
+# What is being tested is the half that belongs to the app: the rationale
+# shown BEFORE the OS is ever asked, and the way out of it.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: unset
+- runFlow: ../dismiss-first-run.yaml
+
+# Light is the channel that needs the camera — the torch has no permission of
+# its own on either platform.
+- tapOn:
+    id: 'channel-light'
+- assertVisible:
+    id: 'permission-camera'
+- assertVisible:
+    id: 'permission-primary'
+
+# Both permissions are optional, so there is always a way past.
+- tapOn:
+    id: 'permission-dismiss'
+- assertNotVisible:
+    id: 'permission-camera'
+- assertVisible:
+    id: 'translator-screen'
+
+# The channel stayed off, so pressing it asks again rather than silently
+# doing nothing.
+- tapOn:
+    id: 'channel-light'
+- assertVisible:
+    id: 'permission-camera'
+- tapOn:
+    id: 'permission-dismiss'
+
+# The microphone gate, reached from the Speak tab.
+- tapOn:
+    id: 'tab-speak'
+- assertVisible:
+    id: 'speech-screen'
+- tapOn:
+    id: 'mic-button'
+- assertVisible:
+    id: 'permission-microphone'
+- tapOn:
+    id: 'permission-dismiss'
+- assertNotVisible:
+    id: 'permission-microphone'
+- assertVisible:
+    id: 'speech-screen'
+
+# And the app is still usable with neither permission granted, which is the
+# promise both rationale screens make.
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'

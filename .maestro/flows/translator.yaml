@@ -1,0 +1,56 @@
+# Selectors are stable accessibility labels, never localised text — this app
+# ships in three languages and the CI device locale is not guaranteed.
+appId: com.rogeriodocarmo.morse
+---
+- launchApp:
+    clearState: true
+- runFlow: ../dismiss-first-run.yaml
+- assertVisible:
+    id: 'translator-screen'
+- assertVisible:
+    id: 'morse-output'
+- tapOn:
+    id: 'translator-input'
+# The field is seeded with sample text, so tapping lands the cursor mid-string
+# and inputText would splice into it — the run before this produced
+# "Hello worlSOSd". Clear first so the flow asserts on what it actually typed.
+- eraseText
+- inputText: 'SOS'
+# The Android soft keyboard covers the lower half of the screen, so anything
+# below the input is genuinely not visible until it is dismissed. The iOS
+# simulator defaults to a hardware keyboard and never showed the problem —
+# exactly the kind of cross-platform difference this tier exists to catch.
+- hideKeyboard
+- assertVisible:
+    id: 'morse-string'
+
+# Characters with no Morse code are dropped. They used to be dropped silently,
+# which left the sender believing the whole message went out. '#' is ASCII, so
+# this types the same on both platforms' keyboards.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'HI #'
+- hideKeyboard
+- assertVisible:
+    id: 'unsupported-notice'
+
+# And the notice goes away once everything can be encoded again.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'HI'
+- hideKeyboard
+- assertNotVisible:
+    id: 'unsupported-notice'
+
+# Output is a CHANNEL now, not a switch you leave on. Turning one on arms it
+# for the next run; it does not light or sound anything by itself.
+#
+# Screen rather than Light: the torch sits behind the camera permission, and a
+# simulator has no camera to grant. permissions.yaml covers that gate; this
+# flow is about the strip.
+- tapOn:
+    id: 'channel-screen'
+- assertVisible:
+    id: 'signal-button'
