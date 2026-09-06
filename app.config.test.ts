@@ -93,6 +93,32 @@ describe('app.config', () => {
     expect(expo.extra?.eas?.projectId).toBe('2868776d-8058-43b4-928b-44b5fa312998');
   });
 
+  // Apple rejected build 2 with ITMS-90683 for want of this one. expo-camera
+  // is linked for the torch, and its photo-capture APIs reference the library
+  // whether or not this app ever calls them — "your app might not use these
+  // APIs, a purpose string is still required".
+  //
+  // A missing purpose string does not fail a build. It fails the upload, after
+  // Apple has finished processing it, by email.
+  it('carries a purpose string for every protected API its dependencies link', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    const plist = expo.ios?.infoPlist ?? {};
+
+    expect(
+      Object.keys(plist)
+        .filter((key) => key.startsWith('NS'))
+        .sort(),
+    ).toStrictEqual([
+      'NSCameraUsageDescription',
+      'NSMicrophoneUsageDescription',
+      'NSPhotoLibraryUsageDescription',
+      'NSSpeechRecognitionUsageDescription',
+    ]);
+    for (const key of Object.keys(plist).filter((name) => name.startsWith('NS'))) {
+      expect(String(plist[key]).length).toBeGreaterThan(20);
+    }
+  });
+
   // Without this key App Store Connect halts EVERY build on the export
   // compliance question and waits for a human. The app ships no cryptography
   // of its own — the only thing that leaves the device is a Crashlytics

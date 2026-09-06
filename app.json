@@ -17,7 +17,8 @@
         "NSCameraUsageDescription": "Morse switches the camera flash on and off to play a message as light. The camera preview is never opened and no image is captured.",
         "NSMicrophoneUsageDescription": "Morse listens so it can turn what you say into Morse code. Audio is not stored and never leaves your device.",
         "NSSpeechRecognitionUsageDescription": "Morse turns what you say into text so it can be encoded as Morse code.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Morse never opens your photo library. This is declared only because the camera component that switches the torch on and off references it."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
