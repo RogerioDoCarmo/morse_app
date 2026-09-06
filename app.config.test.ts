@@ -22,6 +22,9 @@ const CLEANER = './plugins/withCleanAndroidPermissions.js';
 function loadConfig(present: readonly string[]): {
   expo: {
     plugins: Plugin[];
+    owner?: string;
+    slug?: string;
+    extra?: { eas?: { projectId?: string } };
     android?: { googleServicesFile?: string };
     ios?: { googleServicesFile?: string };
   };
@@ -57,6 +60,25 @@ describe('app.config', () => {
     );
     expect(buildProperties).toHaveLength(1);
     expect(buildProperties[0]?.[1]).toEqual({ ios: { useFrameworks: 'static' } });
+  });
+
+  // EAS resolves the project from owner + slug + projectId, and cannot write
+  // any of them itself here: `eas init` refuses to touch a dynamic config and
+  // exits telling you to add `owner` by hand. Losing one of these does not
+  // fail a build — it fails the LINK, with a message about the config file
+  // rather than about the field that went missing.
+  //
+  // Checked through the resolved config rather than app.json, since that is
+  // what EAS actually reads, and app.config.js rebuilds the object.
+  it.each([
+    ['no credentials', []],
+    ['both', [ANDROID, IOS]],
+  ])('keeps the identity EAS resolves the project by, with %s', (_label, present) => {
+    const { expo } = loadConfig(present);
+
+    expect(expo.owner).toBe('rogeriodocarmo');
+    expect(expo.slug).toBe('morse-app');
+    expect(expo.extra?.eas?.projectId).toBe('2868776d-8058-43b4-928b-44b5fa312998');
   });
 
   // The expo-audio plugin overwrites NSMicrophoneUsageDescription with a

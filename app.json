@@ -2,6 +2,7 @@
   "expo": {
     "name": "Morse",
     "slug": "morse-app",
+    "owner": "rogeriodocarmo",
     "version": "0.1.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -47,6 +48,11 @@
     ],
     "experiments": {
       "tsconfigPaths": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2868776d-8058-43b4-928b-44b5fa312998"
+      }
     }
   }
 }
