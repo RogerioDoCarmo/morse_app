@@ -26,7 +26,19 @@ function loadConfig(present: readonly string[]): {
     slug?: string;
     extra?: { eas?: { projectId?: string } };
     android?: { googleServicesFile?: string };
-    ios?: { googleServicesFile?: string };
+    ios?: {
+      googleServicesFile?: string;
+      infoPlist?: Record<string, unknown>;
+      privacyManifests?: {
+        NSPrivacyAccessedAPITypes?: {
+          NSPrivacyAccessedAPIType: string;
+          NSPrivacyAccessedAPITypeReasons: string[];
+        }[];
+        NSPrivacyTracking?: boolean;
+        NSPrivacyTrackingDomains?: string[];
+        NSPrivacyCollectedDataTypes?: unknown[];
+      };
+    };
   };
 } {
   mockedExistsSync.mockImplementation((file) =>
@@ -79,6 +91,54 @@ describe('app.config', () => {
     expect(expo.owner).toBe('rogeriodocarmo');
     expect(expo.slug).toBe('morse-app');
     expect(expo.extra?.eas?.projectId).toBe('2868776d-8058-43b4-928b-44b5fa312998');
+  });
+
+  // Without this key App Store Connect halts EVERY build on the export
+  // compliance question and waits for a human. The app ships no cryptography
+  // of its own — the only thing that leaves the device is a Crashlytics
+  // report over HTTPS, which is exempt.
+  it('declares the app exempt from export compliance', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    expect(expo.ios?.infoPlist?.ITSAppUsesNonExemptEncryption).toBe(false);
+  });
+
+  // Apple rejects an upload that touches a required-reason API without saying
+  // why, and the reason codes are theirs — an invented one fails validation
+  // rather than being ignored.
+  it('gives a reason for every restricted API it touches', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    const declared = expo.ios?.privacyManifests?.NSPrivacyAccessedAPITypes ?? [];
+
+    expect(declared.map((entry) => entry.NSPrivacyAccessedAPIType)).toStrictEqual([
+      'NSPrivacyAccessedAPICategoryUserDefaults',
+      'NSPrivacyAccessedAPICategoryFileTimestamp',
+      'NSPrivacyAccessedAPICategoryDiskSpace',
+      'NSPrivacyAccessedAPICategorySystemBootTime',
+    ]);
+    for (const entry of declared) {
+      expect(entry.NSPrivacyAccessedAPITypeReasons.length).toBeGreaterThan(0);
+    }
+  });
+
+  // The privacy label has to match what the app does. It collects crash
+  // diagnostics and nothing else, it does not link them to anyone, and there
+  // is no advertising identifier anywhere in the app to track with.
+  it('claims crash data only, unlinked and untracked', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    const manifests = expo.ios?.privacyManifests;
+
+    expect(manifests?.NSPrivacyTracking).toBe(false);
+    expect(manifests?.NSPrivacyTrackingDomains).toStrictEqual([]);
+    expect(manifests?.NSPrivacyCollectedDataTypes).toStrictEqual([
+      {
+        NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeCrashData',
+        NSPrivacyCollectedDataTypeLinked: false,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: [
+          'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+        ],
+      },
+    ]);
   });
 
   // The expo-audio plugin overwrites NSMicrophoneUsageDescription with a
