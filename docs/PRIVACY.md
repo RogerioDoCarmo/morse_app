@@ -1,6 +1,6 @@
 # Privacy Policy — Morse
 
-_Last updated: 6 September 2026_
+Last updated: 6 September 2026.
 
 Morse is a Morse code translator. It has no accounts, no advertising, no
 analytics, and no way to identify you.
@@ -88,6 +88,6 @@ release, in the same repository, with the change visible in its history.
 
 ## Contact
 
-Questions about this policy: **rogerio.carmo02@gmail.com**
+Questions about this policy: <rogerio.carmo02@gmail.com>
 
 Source code: <https://github.com/RogerioDoCarmo/morse_app>

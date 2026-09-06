@@ -55,11 +55,11 @@ on simulators that have no camera, no haptics and no microphone:
 
 ## Feedback Email
 
-rogerio.carmo02@gmail.com
+<rogerio.carmo02@gmail.com>
 
 ## Privacy Policy URL
 
-https://rogeriodocarmo.github.io/morse_app/PRIVACY
+<https://rogeriodocarmo.github.io/morse_app/PRIVACY>
 
 _(Enable GitHub Pages for this repository from the `docs/` folder to serve it.
 Until then, the raw file also works as a URL.)_
@@ -80,8 +80,8 @@ Until then, the raw file also works as a URL.)_
 
 ## App Privacy (nutrition label)
 
-Declare **Diagnostics → Crash Data**, *not* linked to the user and *not* used for
-tracking. That matches `ios.privacyManifests` in `app.json` and the Crashlytics
+Declare **Diagnostics → Crash Data**, _not_ linked to the user and _not_ used
+for tracking. That matches `ios.privacyManifests` in `app.json` and the Crashlytics
 opt-out in Settings.
 
 Nothing else is collected.
