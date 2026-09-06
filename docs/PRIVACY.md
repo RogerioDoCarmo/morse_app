@@ -88,6 +88,6 @@ release, in the same repository, with the change visible in its history.
 
 ## Contact
 
-Questions about this policy: <rogerio.carmo02@gmail.com>
+Questions about this policy: <contact@rogeriodocarmo.com>
 
 Source code: <https://github.com/RogerioDoCarmo/morse_app>
