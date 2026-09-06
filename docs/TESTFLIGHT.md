@@ -62,7 +62,9 @@ on simulators that have no camera, no haptics and no microphone:
 <https://rogeriodocarmo.github.io/morse_app/privacy-policy.html>
 
 _Served by GitHub Pages from `docs/`, the same way Miroji publishes its own —
-`main` branch, `/docs` folder, in the repository's Pages settings._
+`main` branch, `/docs` folder, in the repository's Pages settings. The same
+policy lives at `PRIVACY.md` in the repository root for anyone reading the
+source._
 
 _Not required to submit for external Beta App Review, which asked only for a
 contact name, email, phone and What to Test. It IS required for App Store
