@@ -10,7 +10,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: e2e-${{ github.ref }}
+  # Per REF on a pull request, so a new push supersedes the old run — that is
+  # wanted, the old one tests code that no longer exists.
+  #
+  # Per COMMIT on main and develop, so runs there never share a group and can
+  # never supersede each other. cancel-in-progress is not enough on its own:
+  # GitHub cancels any previously PENDING run when a new one joins an occupied
+  # group, whatever that setting says. These jobs queue for a long time
+  # waiting on scarce macOS runners, so they are usually pending rather than
+  # running — which is exactly when that rule bites.
+  group: e2e-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # Cancel superseded PR runs — a new push there makes the old one obsolete,
   # and these jobs are far too slow to leave queued for code that no longer
   # exists.
