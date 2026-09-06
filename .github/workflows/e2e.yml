@@ -17,6 +17,14 @@ jobs:
   android:
     name: Maestro on Android
     runs-on: ubuntu-latest
+    # Skipped for Dependabot and for forks, whose PRs GitHub deliberately
+    # denies secrets. Without this the job cannot write the Firebase
+    # credentials, fails on the secret guard within seconds, and leaves a red
+    # check on every dependency bump — which is how a team learns to ignore
+    # red checks. ci.yml already skips its SonarCloud step for the same reason.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.fork != true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -103,6 +111,14 @@ jobs:
   ios:
     name: Maestro on iOS
     runs-on: macos-latest
+    # Skipped for Dependabot and for forks, whose PRs GitHub deliberately
+    # denies secrets. Without this the job cannot write the Firebase
+    # credentials, fails on the secret guard within seconds, and leaves a red
+    # check on every dependency bump — which is how a team learns to ignore
+    # red checks. ci.yml already skips its SonarCloud step for the same reason.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.fork != true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
