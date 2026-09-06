@@ -22,8 +22,23 @@ const CLEANER = './plugins/withCleanAndroidPermissions.js';
 function loadConfig(present: readonly string[]): {
   expo: {
     plugins: Plugin[];
+    owner?: string;
+    slug?: string;
+    extra?: { eas?: { projectId?: string } };
     android?: { googleServicesFile?: string };
-    ios?: { googleServicesFile?: string };
+    ios?: {
+      googleServicesFile?: string;
+      infoPlist?: Record<string, unknown>;
+      privacyManifests?: {
+        NSPrivacyAccessedAPITypes?: {
+          NSPrivacyAccessedAPIType: string;
+          NSPrivacyAccessedAPITypeReasons: string[];
+        }[];
+        NSPrivacyTracking?: boolean;
+        NSPrivacyTrackingDomains?: string[];
+        NSPrivacyCollectedDataTypes?: unknown[];
+      };
+    };
   };
 } {
   mockedExistsSync.mockImplementation((file) =>
@@ -57,6 +72,99 @@ describe('app.config', () => {
     );
     expect(buildProperties).toHaveLength(1);
     expect(buildProperties[0]?.[1]).toEqual({ ios: { useFrameworks: 'static' } });
+  });
+
+  // EAS resolves the project from owner + slug + projectId, and cannot write
+  // any of them itself here: `eas init` refuses to touch a dynamic config and
+  // exits telling you to add `owner` by hand. Losing one of these does not
+  // fail a build — it fails the LINK, with a message about the config file
+  // rather than about the field that went missing.
+  //
+  // Checked through the resolved config rather than app.json, since that is
+  // what EAS actually reads, and app.config.js rebuilds the object.
+  it.each([
+    ['no credentials', []],
+    ['both', [ANDROID, IOS]],
+  ])('keeps the identity EAS resolves the project by, with %s', (_label, present) => {
+    const { expo } = loadConfig(present);
+
+    expect(expo.owner).toBe('rogeriodocarmo');
+    expect(expo.slug).toBe('morse-app');
+    expect(expo.extra?.eas?.projectId).toBe('2868776d-8058-43b4-928b-44b5fa312998');
+  });
+
+  // Apple rejected build 2 with ITMS-90683 for want of this one. expo-camera
+  // is linked for the torch, and its photo-capture APIs reference the library
+  // whether or not this app ever calls them — "your app might not use these
+  // APIs, a purpose string is still required".
+  //
+  // A missing purpose string does not fail a build. It fails the upload, after
+  // Apple has finished processing it, by email.
+  it('carries a purpose string for every protected API its dependencies link', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    const plist = expo.ios?.infoPlist ?? {};
+
+    expect(
+      Object.keys(plist)
+        .filter((key) => key.startsWith('NS'))
+        .sort(),
+    ).toStrictEqual([
+      'NSCameraUsageDescription',
+      'NSMicrophoneUsageDescription',
+      'NSPhotoLibraryUsageDescription',
+      'NSSpeechRecognitionUsageDescription',
+    ]);
+    for (const key of Object.keys(plist).filter((name) => name.startsWith('NS'))) {
+      expect(String(plist[key]).length).toBeGreaterThan(20);
+    }
+  });
+
+  // Without this key App Store Connect halts EVERY build on the export
+  // compliance question and waits for a human. The app ships no cryptography
+  // of its own — the only thing that leaves the device is a Crashlytics
+  // report over HTTPS, which is exempt.
+  it('declares the app exempt from export compliance', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    expect(expo.ios?.infoPlist?.ITSAppUsesNonExemptEncryption).toBe(false);
+  });
+
+  // Apple rejects an upload that touches a required-reason API without saying
+  // why, and the reason codes are theirs — an invented one fails validation
+  // rather than being ignored.
+  it('gives a reason for every restricted API it touches', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    const declared = expo.ios?.privacyManifests?.NSPrivacyAccessedAPITypes ?? [];
+
+    expect(declared.map((entry) => entry.NSPrivacyAccessedAPIType)).toStrictEqual([
+      'NSPrivacyAccessedAPICategoryUserDefaults',
+      'NSPrivacyAccessedAPICategoryFileTimestamp',
+      'NSPrivacyAccessedAPICategoryDiskSpace',
+      'NSPrivacyAccessedAPICategorySystemBootTime',
+    ]);
+    for (const entry of declared) {
+      expect(entry.NSPrivacyAccessedAPITypeReasons.length).toBeGreaterThan(0);
+    }
+  });
+
+  // The privacy label has to match what the app does. It collects crash
+  // diagnostics and nothing else, it does not link them to anyone, and there
+  // is no advertising identifier anywhere in the app to track with.
+  it('claims crash data only, unlinked and untracked', () => {
+    const { expo } = loadConfig([ANDROID, IOS]);
+    const manifests = expo.ios?.privacyManifests;
+
+    expect(manifests?.NSPrivacyTracking).toBe(false);
+    expect(manifests?.NSPrivacyTrackingDomains).toStrictEqual([]);
+    expect(manifests?.NSPrivacyCollectedDataTypes).toStrictEqual([
+      {
+        NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeCrashData',
+        NSPrivacyCollectedDataTypeLinked: false,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: [
+          'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+        ],
+      },
+    ]);
   });
 
   // The expo-audio plugin overwrites NSMicrophoneUsageDescription with a
@@ -146,6 +254,44 @@ describe('app.config', () => {
 
     expect(plugins.filter((plugin) => nameOf(plugin) === CLEANER)).toHaveLength(1);
     expect(nameOf(plugins[plugins.length - 1] as Plugin)).toBe(CLEANER);
+  });
+
+  // An EAS builder never sees the working tree's untracked files, so a build
+  // there gets its copy from a file environment variable holding a path. Both
+  // Firebase packages are dependencies, so their pods autolink whatever the
+  // plugins do — and the Crashlytics build phase reads GOOGLE_APP_ID straight
+  // out of the plist. Without this the config would say "no Firebase" while
+  // the native build still demanded the file.
+  describe('credentials handed over by an EAS file variable', () => {
+    const VARIABLES = ['GOOGLE_SERVICES_JSON_PATH', 'GOOGLE_SERVICE_INFO_PLIST_PATH'];
+
+    afterEach(() => {
+      for (const variable of VARIABLES) delete process.env[variable];
+    });
+
+    it('uses the path it is given when no file is on disk', () => {
+      process.env.GOOGLE_SERVICE_INFO_PLIST_PATH = '/builder/secrets/ios.plist';
+      const { expo } = loadConfig([]);
+
+      expect(expo.ios?.googleServicesFile).toBe('/builder/secrets/ios.plist');
+      expect(expo.plugins.map(nameOf)).toContain('@react-native-firebase/app');
+    });
+
+    it('takes the variable over a file of the same name on disk', () => {
+      process.env.GOOGLE_SERVICES_JSON_PATH = '/builder/secrets/android.json';
+      const { expo } = loadConfig([ANDROID]);
+
+      expect(expo.android?.googleServicesFile).toBe('/builder/secrets/android.json');
+    });
+
+    // Each platform answers for itself: a build handed only the iOS plist must
+    // not claim Android is instrumented.
+    it('leaves the other platform alone', () => {
+      process.env.GOOGLE_SERVICE_INFO_PLIST_PATH = '/builder/secrets/ios.plist';
+      const { expo } = loadConfig([]);
+
+      expect(expo.android?.googleServicesFile).toBeUndefined();
+    });
   });
 
   it('points each platform at its own credential file', () => {

@@ -162,6 +162,13 @@ jobs:
       # model name breaks silently every time GitHub rolls the image forward —
       # "iPhone 16" was not present and simctl failed with "Invalid device".
       - name: Boot a simulator and run flows
+        env:
+          # Maestro builds and launches its XCUITest driver on first use. A
+          # cold runner does not manage that inside the default window, and
+          # the failure does not read as a timeout — it reads as twenty
+          # connection refusals on the driver's own port, with the flows never
+          # starting. The same value is what made this reliable locally.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 180000
         run: |
           xcrun simctl list devices available
           udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')

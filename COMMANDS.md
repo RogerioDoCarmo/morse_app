@@ -196,6 +196,13 @@ The app ids and the two config files are not really secret — they all ship ins
 binary — but they live alongside the service account so one place governs distribution,
 and keeping them out of a public repo costs nothing.
 
+⚠️ **These are not the EAS variables.** The GitHub secrets above hold base64
+**content**, which the E2E workflow decodes to a file. The EAS variables
+(`GOOGLE_SERVICES_JSON_PATH`, `GOOGLE_SERVICE_INFO_PLIST_PATH`) hold a **path**
+on the builder. The `_PATH` suffix exists so that one stray job-level `env:`
+cannot hand `app.config.js` a base64 blob to treat as a filename. See
+[Building for the stores](#building-for-the-stores-eas).
+
 ### Tester channels
 
 | Platform | Channel | Trigger |
@@ -215,16 +222,88 @@ matches on that name.
 ## Building for the stores (EAS)
 
 ```bash
-pnpm build:apk        # preview APK — installable
-pnpm build:aab        # production AAB — NOT installable, store upload only
-pnpm build:ipa        # production IPA
-pnpm build:apk:local / build:aab:local / build:ipa:local   # compile on this machine
-
-eas submit --platform ios     --profile production --latest
-eas submit --platform android --profile production --latest
+pnpm build:apk        # preview APK — installable, Firebase App Distribution
+pnpm build:aab        # production AAB — NOT installable, Play upload only
+pnpm build:ipa        # production IPA — TestFlight / App Store
 ```
 
+Every one has a `:local` twin that compiles on this machine instead of EAS's
+builders — no queue, no build quota:
+
+```bash
+pnpm build:apk:local
+pnpm build:aab:local
+pnpm build:ipa:local
+```
+
+`:local` needs Xcode, CocoaPods and fastlane on the PATH for iOS. Signing still
+comes from EAS, so stay logged in. Set `EAS_LOCAL_BUILD_SKIP_CLEANUP=1` to keep
+the generated native project when a build fails and you want to look at it.
+
+⚠️ **A local build proving nothing about a remote one.** Your machine carries
+state a clean builder does not — that divergence is what once hid three iOS
+build failures here. Run one remote build before a real release.
+
+### Credentials reach the builder through the environment
+
+An EAS builder never sees untracked files, so `google-services.json` and
+`GoogleService-Info.plist` are handed over as **file** environment variables and
+`app.config.js` takes a path from them before looking on disk:
+
+```bash
+eas env:create --environment production --name GOOGLE_SERVICE_INFO_PLIST_PATH \
+  --type file --visibility secret --value ./GoogleService-Info.plist
+eas env:create --environment production --name GOOGLE_SERVICES_JSON_PATH \
+  --type file --visibility secret --value ./google-services.json
+```
+
+⚠️ **Variables are per environment, and a profile picks one.** `production` and
+`preview` are separate: setting them for `production` leaves `pnpm build:apk`
+without credentials, and the iOS build then fails on Crashlytics' build phase —
+it reads `GOOGLE_APP_ID` straight out of the plist, whatever the Expo plugins
+decide. Create them for every environment you build.
+
+Local builds need none of this: the files are already in the working tree.
+
+### Submitting
+
+```bash
+eas submit --platform ios     --profile production --latest
+eas submit --platform android --profile production --latest
+eas submit --platform ios --profile production --id <build-id>   # a specific one
+```
+
+⚠️ **The first submit must be interactive.** `--non-interactive` cannot set up
+an App Store Connect API key and fails with exactly that message. Run it without
+the flag once, choose *App Store Connect API Key*, and let EAS create and store
+one — CI needs that same key, so doing it now is what makes `eas-build.yml`'s
+submit job work later.
+
+Keys and certificates are per **team**, not per app, so they are shared with
+every other app on the account. Only the provisioning profile is per bundle ID.
+
 Store submission is **manual only** — never automatic on merge.
+
+### After ANY eas command: check app.json
+
+```bash
+git diff app.json
+```
+
+EAS rewrites `app.json` without saying so. `autoIncrement` writes build numbers
+back, which is wanted and should be committed. But `eas update:configure` has
+also **appended a duplicate copy of every `ios.privacyManifests` entry** —
+leaving eight declared APIs where there are four. That does not fail a build; it
+fails the upload, after Apple has processed it, by email.
+
+Repair by reverting and re-applying the legitimate part:
+
+```bash
+git checkout app.json     # then add back what EAS was right to write
+```
+
+A rejected build number is spent — Apple will not take it again, so a fix means
+a new build, not a re-upload.
 
 ## Git Workflow
 

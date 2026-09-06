@@ -938,14 +938,23 @@ describe('what Settings changes here', () => {
     });
   });
 
+  // Settings render from the DEFAULTS and the stored values arrive a tick
+  // later, so decoding immediately puts the control on screen from
+  // `speakDecoded: true` before the stored `false` lands. Waiting first is
+  // what makes this a test of the setting rather than a race between the
+  // preferences read and the first render — it passed on every developer
+  // machine and failed on a loaded CI runner.
   it('withholds read-aloud once the setting is off', async () => {
     renderWithProviders(<TranslatorScreen />, {
       ports: holding({ 'settings.speakDecoded': 'false' }),
     });
-    decodeSomething();
     await waitFor(() => {
-      expect(screen.queryByTestId('read-aloud')).toBeNull();
+      expect(screen.getByTestId('translator-screen')).toBeOnTheScreen();
     });
+
+    decodeSomething();
+
+    expect(screen.queryByTestId('read-aloud')).toBeNull();
   });
 
   // 5 WPM is a 240 ms dot against the default 120, so the rendered audio is

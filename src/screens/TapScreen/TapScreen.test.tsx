@@ -369,14 +369,19 @@ describe('reading the decoded text aloud', () => {
 
   // The same switch that governs the Translator's control, because it is the
   // same promise: speaking is the one output that says the message in words.
+  // Same race as the Translator's: the stored setting lands a tick after the
+  // defaults have already rendered, so wait for it before keying anything.
   it('withholds it when the setting is off', async () => {
     renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
       ports: holding({ 'settings.speakDecoded': 'false' }),
     });
-    keyE();
     await waitFor(() => {
-      expect(screen.queryByTestId('tap-read')).toBeNull();
+      expect(screen.getByTestId('tap-screen')).toBeOnTheScreen();
     });
+
+    keyE();
+
+    expect(screen.queryByTestId('tap-read')).toBeNull();
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
 

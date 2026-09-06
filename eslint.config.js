@@ -174,7 +174,13 @@ module.exports = tseslint.config(
     files: ['**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
-      globals: { module: 'writable', require: 'readonly', __dirname: 'readonly' },
+      globals: {
+        module: 'writable',
+        require: 'readonly',
+        __dirname: 'readonly',
+        // app.config.js reads credential paths handed to it by an EAS builder.
+        process: 'readonly',
+      },
     },
     rules: { ...tseslint.configs.disableTypeChecked.rules },
   },
