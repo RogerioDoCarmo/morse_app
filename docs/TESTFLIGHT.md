@@ -55,14 +55,16 @@ on simulators that have no camera, no haptics and no microphone:
 
 ## Feedback Email
 
-<rogerio.carmo02@gmail.com>
+<contact@rogeriodocarmo.com>
 
 ## Privacy Policy URL
 
 <https://rogeriodocarmo.github.io/morse_app/PRIVACY>
 
-_(Enable GitHub Pages for this repository from the `docs/` folder to serve it.
-Until then, the raw file also works as a URL.)_
+_Not required to submit for external Beta App Review — that asked only for a
+contact name, email, phone and What to Test. It IS required for App Store
+submission, and it is worth having anyway: the app sends crash diagnostics.
+Enable GitHub Pages from the `docs/` folder to serve it._
 
 ## Beta App Review Information
 
