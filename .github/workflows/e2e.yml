@@ -142,7 +142,12 @@ jobs:
       # This is scoped to CI on purpose: gradle.properties is left alone so a
       # real device build, and anything EAS produces, still covers every ABI.
       - name: Build release APK
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64
+        # --stacktrace because the failure this replaced reported only
+        # "Process 'command 'node'' finished with non-zero exit value 1" with
+        # no task name and none of node's own output — Expo's gradle scripts
+        # shell out to node during CONFIGURATION, so there is no task to name
+        # and nothing to go on without it.
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --stacktrace
         working-directory: android
 
       - name: Install Maestro
