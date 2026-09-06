@@ -37,6 +37,11 @@ jobs:
   android:
     name: Maestro on Android
     runs-on: ubuntu-latest
+    # A hung build otherwise runs to GitHub's six-hour default before anyone
+    # finds out. `./gradlew assembleRelease` sat here for over three hours on
+    # 6 September and had reached neither Maestro nor a flow; a cold build of
+    # this app is 10-25 minutes, so anything past 50 is stuck rather than slow.
+    timeout-minutes: 50
     # Skipped for Dependabot and for forks, whose PRs GitHub deliberately
     # denies secrets. Without this the job cannot write the Firebase
     # credentials, fails on the secret guard within seconds, and leaves a red
@@ -56,6 +61,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          # Without this every run recompiles every native module from
+          # scratch — Firebase, camera, audio, speech recognition, SVG,
+          # reanimated. That is most of the build, and none of it changes
+          # between runs unless a dependency does.
+          cache: gradle
 
       # Without KVM the emulator is software-rendered and glacial: boot took
       # 10.7 minutes on the first run here, and Maestro's driver then timed out
@@ -93,8 +103,16 @@ jobs:
       # screen and every flow fails on "screen is visible". A release build
       # embeds the bundle. Expo's generated release buildType signs with the
       # debug keystore, so this needs no secrets.
+      # One ABI, not four. React Native compiles its native modules once per
+      # architecture, and with no `reactNativeArchitectures` set the default
+      # is armeabi-v7a, arm64-v8a, x86 AND x86_64 — roughly four times the
+      # work. The emulator below is x86_64 only, so the other three are
+      # compiled and then thrown away.
+      #
+      # This is scoped to CI on purpose: gradle.properties is left alone so a
+      # real device build, and anything EAS produces, still covers every ABI.
       - name: Build release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64
         working-directory: android
 
       - name: Install Maestro
@@ -131,6 +149,9 @@ jobs:
   ios:
     name: Maestro on iOS
     runs-on: macos-latest
+    # Prebuild, CocoaPods, xcodebuild, then nine flows. The run that passed
+    # eight of nine took about 25 minutes end to end.
+    timeout-minutes: 50
     # Skipped for Dependabot and for forks, whose PRs GitHub deliberately
     # denies secrets. Without this the job cannot write the Firebase
     # credentials, fails on the secret guard within seconds, and leaves a red
