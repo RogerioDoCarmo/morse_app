@@ -345,6 +345,15 @@ export function TranslatorScreen({
                 value={toMorse ? text : morseInput}
                 onChangeText={toMorse ? setText : setMorseInput}
                 multiline
+                // The way OUT of the keyboard. A multiline input defaults to
+                // `submitBehavior: 'newline'`, so Return inserts a line break
+                // and the only way to dismiss is tapping outside — which, on a
+                // phone where this card fills most of the screen, testers
+                // could not reliably find. `blurAndSubmit` costs nothing here:
+                // the encoder treats a newline as a word break, exactly like
+                // the space they would type instead.
+                returnKeyType="done"
+                submitBehavior="blurAndSubmit"
                 placeholderTextColor={theme.color.faint}
               />
             </Card>

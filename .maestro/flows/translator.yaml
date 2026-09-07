@@ -30,11 +30,18 @@ appId: com.rogeriodocarmo.morse
 # "Hello worlSOSd". Clear first so the flow asserts on what it actually typed.
 - eraseText
 - inputText: 'SOS'
+# Return, not hideKeyboard: this is the way out a person actually has, and the
+# one TestFlight's first hardware testers could not find. A multiline input
+# would otherwise insert a newline and keep the keyboard up.
+#
 # The Android soft keyboard covers the lower half of the screen, so anything
-# below the input is genuinely not visible until it is dismissed. The iOS
-# simulator defaults to a hardware keyboard and never showed the problem —
-# exactly the kind of cross-platform difference this tier exists to catch.
-- hideKeyboard
+# below the input is genuinely not visible until it is dismissed — which is
+# what makes the assertion below mean something. The iOS simulator defaults to
+# a hardware keyboard and never showed the problem, exactly the kind of
+# cross-platform difference this tier exists to catch.
+- pressKey: Enter
+- assertVisible:
+    id: 'signal-button'
 # The raw string sits at the foot of the Morse card, and the card is now as
 # tall as its content rather than as tall as the space left over. Even four
 # letters overflow the scrolling region by a few dozen points on a 320dp
