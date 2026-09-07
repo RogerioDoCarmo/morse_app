@@ -8,22 +8,76 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'translator-screen'
 
-# A long message rather than the seeded sample: the sample follows the device
-# locale, and at the 120ms default it lasts about eleven seconds — less than
-# this flow takes. This one runs for roughly half a minute.
+# The message has to LAST a long time without BEING long, and those pull in
+# opposite directions.
 #
-# Each section below STARTS ITS OWN RUN and stops it. Letting many assertions
-# ride one run is what made this flaky: the message ended underneath them, and
-# a check that had passed moments earlier began to fail.
+# Each section below starts its own run and stops it, so the run has to outlive
+# a whole section — 34 seconds of wall clock, measured on the CI simulator.
+# Letting many assertions ride one run is what made this flaky originally: the
+# message ended underneath them and a check that had passed moments earlier
+# began to fail.
+#
+# But typing more characters is not the way to get there. The input card cannot
+# shrink and the Morse card absorbs every shortfall, so a few lines of text
+# squeeze the output to nothing: on Android the dots and dashes left the view
+# hierarchy entirely and `morse-letter` could not be found, and on iOS twenty
+# SOS filled the screen so completely that `hideKeyboard` had nowhere to tap
+# and failed outright. Both were the same mistake, made once here.
+#
+# So: fourteen zeros, at the slowest speed the app offers.
+#
+#   - zeros are the densest characters in Morse — five dashes each, 19 units
+#     with the gap, against 5 for an S. Fourteen of them is 305 units in as
+#     many characters as "SOS SOS SOS SOS".
+#   - 5 wpm is 240ms a unit rather than the 120ms default, which doubles the
+#     clock without adding a single character.
+#
+# 305 units x 240ms is 73 seconds against a 34-second section. The arithmetic
+# is checked in maestro-flows.test.ts against the app's own timing domain, so
+# it cannot quietly stop being true.
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'
+- tapOn:
+    id: 'segment-5'
+- tapOn:
+    id: 'settings-back'
+- assertVisible:
+    id: 'translator-screen'
+
+# ⚠️ `eraseText` deletes BACKWARDS from wherever the tap left the caret, so
+# whatever sat to the right of it survives — the recorded run typed its message
+# and kept the "d" from the seeded "Hello world". It is bounded by the length of
+# the sample and it only ever ADDS to the playback, never shortens it, so the
+# margin above absorbs it. Worth knowing before reading a duration off this file
+# as exact.
 - tapOn:
     id: 'translator-input'
 - eraseText
-- inputText: 'SOS SOS SOS SOS SOS SOS SOS SOS'
+- inputText: '00000000000000'
 - hideKeyboard
+
+# `waitToSettleTimeoutMs: 0` on every tap taken while a message is playing.
+#
+# After a tap Maestro waits for the view hierarchy to stop changing. This app
+# animates a progress bar, a clock and the lit letter throughout a run, so it
+# never stops changing and the wait runs to its timeout. The CI recording is
+# unambiguous: asserts took 0.3s each, every tap took 11.6-12.1s, and the tap
+# on a letter mid-message took 21.7s. That section spent 34s inside a message
+# that lasted 32, and the assertion after it opened two seconds too late —
+# "Assertion is false: id: playback-progress is visible". Nothing was wrong
+# with the app; the unit tests covering these same behaviours never wavered.
+#
+# The message is also slow enough now to survive a section without this. The
+# two together are deliberate: the duration is the guarantee, the flag is what
+# makes the flow quick — and the flag is the only one of the two that treats
+# the cause rather than the symptom.
 
 # --- what only exists while a message is running ---
 - tapOn:
     id: 'signal-button'
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playing-badge'
 - assertVisible:
@@ -45,11 +99,13 @@ appId: com.rogeriodocarmo.morse
 # before the first had taken effect, and a later assertion paid for it.
 - tapOn:
     id: 'signal-button'
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playback-progress'
 - tapOn:
     id: 'morse-letter'
     index: 0
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playback-progress'
 - tapOn:
@@ -67,10 +123,12 @@ appId: com.rogeriodocarmo.morse
 # start from the strip they expect — sound on, everything else off.
 - tapOn:
     id: 'signal-button'
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playback-progress'
 - tapOn:
     id: 'channel-screen'
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playback-progress'
 - tapOn:
@@ -98,6 +156,7 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-screen'
 - tapOn:
     id: 'signal-button'
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'signal-surface'
 - assertNotVisible:
@@ -119,6 +178,7 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-buzz'
 - tapOn:
     id: 'signal-button'
+    waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playback-progress'
 - tapOn:
