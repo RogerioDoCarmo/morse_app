@@ -181,9 +181,10 @@ Workflows to replicate from `../mirror_app/.github/workflows/`:
 
 ## 6. Permissions & manifest hygiene
 
-**This project needs two permissions** — `CAMERA` (torch) and microphone (speech). That is
-one more than Miroji, so the "single permission" story doesn't apply here. What *does*
-carry over is the discipline of shipping **only** what's genuinely used.
+**This project needs three permissions** — `CAMERA` (torch), microphone (speech) and
+`VIBRATE` (the Vibrate output channel). That is two more than Miroji, so the "single
+permission" story doesn't apply here. What *does* carry over is the discipline of shipping
+**only** what's genuinely used.
 
 ### The manifest-cleaning strategy (carry this over)
 
@@ -204,7 +205,15 @@ Frameworks inject permissions you never asked for. Miroji's release build had to
 | `READ/WRITE_EXTERNAL_STORAGE` | expo-file-system |
 
 ⚠️ **`RECORD_AUDIO` is genuinely needed here** (speech input), unlike in Miroji where it
-was stripped. Audit deliberately rather than copying Miroji's removal list verbatim.
+was stripped. `VIBRATE` is too, since the Vibrate output channel was added. Audit
+deliberately rather than copying Miroji's removal list verbatim — and re-audit it whenever
+a feature lands, not only when a dependency does.
+
+Copying `VIBRATE` over cost a crash: `Vibration.cancel()` runs whenever playback returns
+to rest, and without the permission Android throws `SecurityException` from native code
+that no JS `try`/`catch` can reach. Debug builds keep the permission, so nothing showed it
+until a release build ran on an emulator under Maestro. `plugins/withCleanAndroidPermissions.test.ts`
+now fails if the removal list and `app.json` ever contradict each other again.
 
 ### Verification is mandatory
 

@@ -20,6 +20,8 @@ const path = require('path');
  *   - CAMERA        → the torch. There is no separate torch permission on
  *                     either platform.
  *   - RECORD_AUDIO  → speech input. Genuinely used.
+ *   - VIBRATE       → the Vibrate output channel. See the note on the removal
+ *                     list below.
  *   - INTERNET      → Crashlytics. See the note on the removal list below.
  *   - MODIFY_AUDIO_SETTINGS → injected by expo-audio for audio focus. Normal
  *                     protection level, so it is never prompted for, and
@@ -42,9 +44,17 @@ const PERMISSIONS_TO_REMOVE = [
   // ACCESS_NETWORK_STATE stays stripped: Crashlytics does not require it, and
   // it is injected by React Native core for the dev-server reachability check.
   'android.permission.ACCESS_NETWORK_STATE',
-  // Expo prebuild's default set, inherited from Expo Go. No haptics dependency
-  // here and the Vibration API is never called.
-  'android.permission.VIBRATE',
+  //
+  // ⚠️ VIBRATE came off this list when the Vibrate output channel was added,
+  // and that too is deliberate. `Vibration.cancel()` runs whenever playback is
+  // put back to rest — including the cleanup that fires every time the message
+  // changes, so it does not wait for anyone to switch Vibrate on. Without the
+  // permission Android throws SecurityException there, and in bridgeless mode
+  // that lands on the ReactHost handler rather than the adapter's try/catch:
+  // expo-updates' error recovery gives up and the process dies. Debug builds
+  // keep the permission, so it only ever showed up in a release build. If the
+  // vibration feature is ever dropped, put VIBRATE back here.
+  //
   // React Native dev tooling only.
   'android.permission.SYSTEM_ALERT_WINDOW',
   'android.permission.DUMP',
@@ -88,3 +98,4 @@ module.exports = function withCleanAndroidPermissions(config) {
 };
 
 module.exports.PERMISSIONS_TO_REMOVE = PERMISSIONS_TO_REMOVE;
+module.exports.buildReleaseManifest = buildReleaseManifest;
