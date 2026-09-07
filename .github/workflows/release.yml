@@ -1,0 +1,95 @@
+name: Create Release
+
+# The tag IS the release notes. An annotated tag's message becomes the body of
+# the GitHub Release, so `git tag -a v0.1.0` opens an editor and whatever is
+# written there is what people read — the same shape Miroji and the website
+# use, automated the way the website automates it.
+#
+# ⚠️ No build artifacts, deliberately. This app's binaries come out of EAS, not
+# out of CI: an APK or an IPA built here would be a different, unsigned thing
+# from the one on TestFlight and Play, and attaching it to a release is a good
+# way for someone to install the wrong one. Miroji's releases carry no assets
+# for the same reason. The website's do, because there a `dist` archive IS the
+# artifact it ships.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # The whole history: the tag message is read with `git tag -l`, and
+          # the previous tag is found by walking back from this one.
+          fetch-depth: 0
+
+      - name: Read the tag
+        id: tag
+        run: |
+          set -euo pipefail
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+          # A lightweight tag has no message, and would publish an empty
+          # release body. Fail loudly instead: the notes are the point.
+          if [ "$(git cat-file -t "$TAG_NAME")" != "tag" ]; then
+            echo "::error::$TAG_NAME is a lightweight tag. Releases are cut from" \
+                 "annotated tags — the message is the release notes. Use 'git tag -a'."
+            exit 1
+          fi
+
+          {
+            echo "message<<TAG_EOF"
+            git tag -l --format='%(contents)' "$TAG_NAME"
+            echo "TAG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          PREVIOUS=$(git describe --tags --abbrev=0 "$TAG_NAME^" 2>/dev/null || echo "")
+          echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG_NAME (previous: ${PREVIOUS:-none})"
+
+      # The app version and the tag are two separate declarations of the same
+      # fact, and nothing else keeps them honest — EAS reads app.json, the
+      # store reads the build, and the tag is what a person goes looking for.
+      - name: Check the tag matches app.json
+        run: |
+          set -euo pipefail
+          APP_VERSION=$(node -p "require('./app.json').expo.version")
+          TAG_VERSION="${{ steps.tag.outputs.name }}"
+          TAG_VERSION="${TAG_VERSION#v}"
+          if [ "$APP_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag ${{ steps.tag.outputs.name }} does not match" \
+                 "app.json version $APP_VERSION. Bump app.json on develop and" \
+                 "release that, rather than tagging a version the app does not claim."
+            exit 1
+          fi
+          echo "app.json says $APP_VERSION, tag says $TAG_VERSION."
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.tag.outputs.name }}
+          body: ${{ steps.tag.outputs.message }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### ${{ steps.tag.outputs.name }}"
+            echo
+            echo "Previous tag: \`${{ steps.tag.outputs.previous }}\`"
+            echo
+            echo "https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.name }}"
+          } >> "$GITHUB_STEP_SUMMARY"
