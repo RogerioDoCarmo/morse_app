@@ -181,9 +181,12 @@ Workflows to replicate from `../mirror_app/.github/workflows/`:
 
 ## 6. Permissions & manifest hygiene
 
-**This project needs two permissions** — `CAMERA` (torch) and microphone (speech). That is
-one more than Miroji, so the "single permission" story doesn't apply here. What *does*
-carry over is the discipline of shipping **only** what's genuinely used.
+**This project prompts for two permissions** — `CAMERA` (torch) and microphone (speech) —
+and needs four more that no user is ever asked about: `VIBRATE` for the Vibrate output
+channel, `INTERNET` and `ACCESS_NETWORK_STATE` for Crashlytics, and
+`MODIFY_AUDIO_SETTINGS` for audio focus. All six are declared in `app.json`. What carries
+over from Miroji is the discipline of shipping **only** what's genuinely used; what does
+not is the idea that the quiet four can be left implicit.
 
 ### The manifest-cleaning strategy (carry this over)
 
@@ -204,7 +207,26 @@ Frameworks inject permissions you never asked for. Miroji's release build had to
 | `READ/WRITE_EXTERNAL_STORAGE` | expo-file-system |
 
 ⚠️ **`RECORD_AUDIO` is genuinely needed here** (speech input), unlike in Miroji where it
-was stripped. Audit deliberately rather than copying Miroji's removal list verbatim.
+was stripped. Audit deliberately rather than copying Miroji's removal list verbatim — and
+re-audit whenever a feature lands, not only when a dependency does.
+
+Copying that list over cost two bugs, both found in one logcat the first time the Android
+E2E job reached the flows:
+
+- **`VIBRATE`** — `Vibration.cancel()` runs whenever playback returns to rest, and without
+  the permission Android throws `SecurityException` from native code that no JS
+  `try`/`catch` can reach. The app died on launch in every flow.
+- **`ACCESS_NETWORK_STATE`** — Crashlytics' transport calls
+  `ConnectivityManager.getActiveNetworkInfo()` before every upload. Without it: *"Crashlytics
+  report could not be enqueued to DataTransport"*. Caught, so nothing crashed — Android
+  release builds simply never sent a crash report.
+
+Debug builds keep both, so neither showed up outside a release build.
+
+**The lesson is structural, not a longer comment.** What the app keeps now lives in
+`app.json`, not in the plugin's prose, and `plugins/withCleanAndroidPermissions.test.ts`
+fails if the two lists ever name the same permission. A comment cannot fail a build; that
+is precisely how `VIBRATE` came to sit on both sides at once.
 
 ### Verification is mandatory
 
