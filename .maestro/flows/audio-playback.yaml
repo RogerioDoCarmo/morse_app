@@ -69,10 +69,20 @@ appId: com.rogeriodocarmo.morse
 # "Assertion is false: id: playback-progress is visible". Nothing was wrong
 # with the app; the unit tests covering these same behaviours never wavered.
 #
-# The message is also slow enough now to survive a section without this. The
-# two together are deliberate: the duration is the guarantee, the flag is what
-# makes the flow quick — and the flag is the only one of the two that treats
-# the cause rather than the symptom.
+# ⚠️ Whether the flag actually helps is UNMEASURED. The reasoning above is
+# sound and the numbers it rests on are real, but no run has ever compared the
+# two: four alternating runs on a simulator put the difference well inside that
+# machine's own variance — two control runs disagreed with each other by 2.5x
+# on the same taps — and CI keeps a Maestro recording only when a flow fails,
+# so the green run that would settle it uploads nothing.
+#
+# What IS known: Maestro parses the field and applies it to exactly these seven
+# taps and no others, which the recording confirms.
+#
+# So the duration is what this flow relies on, and the flag is kept because it
+# costs nothing and addresses the mechanism the failure pointed at — not
+# because it has been shown to work. Do not shorten the message on the strength
+# of it.
 
 # --- what only exists while a message is running ---
 - tapOn:
