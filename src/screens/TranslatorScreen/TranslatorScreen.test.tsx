@@ -37,6 +37,36 @@ const pressLight = (): void => {
 };
 
 describe('TranslatorScreen', () => {
+  /**
+   * The defect this exists for: the two cards shared one fixed viewport, and
+   * because a Card does not shrink by default while `grow` made the Morse card
+   * absorb every shortfall, a few lines of typing squeezed it to nothing. On a
+   * 320dp Android emulator the dots and dashes did not merely get clipped —
+   * they left the view hierarchy, and the E2E run reported
+   * "Element not found: Id matching regex: morse-letter".
+   *
+   * Every test in this file passed throughout, because they all assert that
+   * something is present and it always was. So this asserts the mechanism:
+   * the cards scroll, and the chips do not scroll inside them.
+   */
+  describe('the cards scroll rather than crushing each other', () => {
+    it('puts the pair of cards in a scrolling region', () => {
+      renderWithProviders(<TranslatorScreen />);
+
+      expect(screen.getByTestId('cards-scroll')).toBeOnTheScreen();
+    });
+
+    // A scroll view inside a scroll view is a trap for the finger, and this
+    // one would have no definite height to flex against: `flex: 1` would
+    // resolve to zero and take the chips with it — the original bug, moved.
+    it('does not nest a second scroll view around the chips', () => {
+      renderWithProviders(<TranslatorScreen />);
+
+      expect(screen.queryByTestId('morse-scroll')).toBeNull();
+      expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
+    });
+  });
+
   it('encodes what is typed', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
@@ -270,6 +300,34 @@ describe('TranslatorScreen — audio playback', () => {
 
     await advance(5000);
     expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:05 / 0:13');
+  });
+
+  /**
+   * The progress bar used to sit at the foot of the Morse card. That was fine
+   * while the card was as tall as the space left over; once it became as tall
+   * as its CONTENT, a long message put the foot below the scroll — so how far
+   * along you were was something you had to scroll to find out, while it was
+   * playing. On the CI emulator Maestro took 18.9s to conclude it could not
+   * see it at all.
+   *
+   * It belongs with the channel strip and the Emit button: what is happening,
+   * and what you can do about it, in the same pinned band.
+   */
+  it('keeps the progress bar out of the scrolling region', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    const cards = screen.getByTestId('cards-scroll');
+
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+    expect(within(cards).queryByTestId('playback-progress')).toBeNull();
+    expect(within(cards).queryByTestId('playback-clock')).toBeNull();
+
+    // The raw string stays with the message it spells out, inside the card.
+    expect(within(cards).getByTestId('morse-string')).toBeOnTheScreen();
+
+    await advance(0);
   });
 
   it('replaces the hint with the playing state, and puts it back after', () => {

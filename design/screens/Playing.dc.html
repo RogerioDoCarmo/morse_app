@@ -39,6 +39,19 @@
     </div>
   </div>
 
+  <!-- The two cards scroll together.
+
+       They used to share this space with no way out of it: the input card
+       cannot shrink, the Morse card absorbed every shortfall, and a few lines
+       of typing squeezed the dots and dashes down to nothing. On a 320dp
+       Android emulator they left the view hierarchy altogether.
+
+       `flex: 1; min-height: 0; overflow-y: auto` on the region, and
+       `flex-grow: 1` still on the Morse card inside it: short messages fill
+       the screen exactly as drawn here, longer ones make the region scroll
+       rather than making the output disappear. The channel strip and the Emit
+       button stay put below it — they are the controls. -->
+  <div style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
   <div style="padding: 14px 20px 0; flex-shrink: 0;">
     <div style="background: #ffffff; border-radius: 22px; padding: 16px 18px 14px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -125,21 +138,34 @@
         </sc-for>
       </div>
 
-      <div style="border-top: 1px solid #eef0f3; padding-top: 12px; display: flex; flex-direction: column; gap: 11px;">
-        <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #e8ebef;">
-              <div style="width: {{ progressWidth }}; height: 4px; border-radius: 999px; background: #12a594;"></div>
-            </div>
-            <span style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 12px; color: #6a7480; flex-shrink: 0;">{{ elapsedLabel }} / {{ totalLabel }}</span>
-          </div>
-        </sc-if>
+      <div style="border-top: 1px solid #eef0f3; padding-top: 12px;">
         <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 12px; color: #6a7480; word-break: break-all;">{{ morseString }}</div>
       </div>
       <div style="flex-grow: 1;"></div>
 
     </div>
   </div>
+  </div>
+
+  <!-- PROGRESS — outside the scrolling cards, and deliberately.
+
+       It used to sit at the foot of the Morse card. That was fine while the
+       card was as tall as the space left over; the card is as tall as its
+       CONTENT now, and a long message is about fourteen rows of chips, so how
+       far along you were became something you had to scroll to find out while
+       it was playing. The one thing the user is waiting on should not be the
+       thing that moves.
+
+       It belongs with the channel strip and the Emit button: what is
+       happening, and what you can do about it, in the same pinned band. -->
+  <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
+    <div style="padding: 12px 20px 0; flex-shrink: 0; display: flex; align-items: center; gap: 12px;">
+      <div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #e8ebef;">
+        <div style="width: {{ progressWidth }}; height: 4px; border-radius: 999px; background: #12a594;"></div>
+      </div>
+      <span style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 12px; color: #6a7480; flex-shrink: 0;">{{ elapsedLabel }} / {{ totalLabel }}</span>
+    </div>
+  </sc-if>
 
   <!-- OUTPUT CHANNELS — which ways the one message is sent. Multi-select, and
        live: turning one on mid-message joins the run already in progress. -->

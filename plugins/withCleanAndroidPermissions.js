@@ -9,21 +9,21 @@ const path = require('path');
  * Removals go into a release-only source set
  * (`android/app/src/release/AndroidManifest.xml`), so they apply ONLY to
  * production builds. Debug builds are untouched, which keeps dev tooling
- * working — notably SYSTEM_ALERT_WINDOW for the RN dev menu and LogBox, and
- * INTERNET for the Metro bundler.
+ * working — notably SYSTEM_ALERT_WINDOW for the RN dev menu and LogBox. That
+ * is also why every bug this file has caused showed up only in release.
  *
  * ⚠️ This list is deliberately NOT a copy of Miroji's. `RECORD_AUDIO` is
  * genuinely needed here for speech input, whereas Miroji strips it. Audit any
  * new dependency against this list rather than assuming it still holds.
  *
- * What this app keeps in release:
- *   - CAMERA        → the torch. There is no separate torch permission on
- *                     either platform.
- *   - RECORD_AUDIO  → speech input. Genuinely used.
- *   - INTERNET      → Crashlytics. See the note on the removal list below.
- *   - MODIFY_AUDIO_SETTINGS → injected by expo-audio for audio focus. Normal
- *                     protection level, so it is never prompted for, and
- *                     stripping it risks playback losing focus to other apps.
+ * ⚠️ What the app KEEPS is not written here. It is `android.permissions` in
+ * `app.json`, and `withCleanAndroidPermissions.test.ts` fails if the two lists
+ * ever name the same permission. That is deliberate: two prose lists in one
+ * comment is how VIBRATE came to sit on both sides at once, and a comment
+ * cannot fail a build. Anything the release build needs — including the ones
+ * a library injects and nobody would think to declare, like INTERNET and
+ * ACCESS_NETWORK_STATE for Crashlytics — goes in `app.json` so the test can
+ * see it.
  *
  * ⚠️ DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION will still show up in a built
  * artifact. That is androidx declaring a signature-level permission for its own
@@ -31,20 +31,33 @@ const path = require('path');
  * must NOT be stripped — removing it weakens security.
  */
 const PERMISSIONS_TO_REMOVE = [
-  // ⚠️ INTERNET was on this list until Crashlytics was added, and removing it
-  // from the list is a deliberate reversal, not an oversight.
+  // ⚠️ Three permissions came OFF this list, all for the same reason, and all
+  // three removals are deliberate reversals rather than oversights. The first
+  // Android E2E run to reach the flows found the last two of them in one
+  // logcat:
   //
-  // Crashlytics uploads crash reports, so the app is no longer offline-only.
-  // Stripping INTERNET does not make it safer — it makes crash reporting fail
-  // SILENTLY: the build succeeds, the app runs, and reports simply never
-  // arrive. If crash reporting is ever dropped, put INTERNET back here.
+  //   INTERNET — Crashlytics uploads crash reports, so the app stopped being
+  //   offline-only. Stripping it does not make it safer; it makes crash
+  //   reporting fail SILENTLY.
   //
-  // ACCESS_NETWORK_STATE stays stripped: Crashlytics does not require it, and
-  // it is injected by React Native core for the dev-server reachability check.
-  'android.permission.ACCESS_NETWORK_STATE',
-  // Expo prebuild's default set, inherited from Expo Go. No haptics dependency
-  // here and the Vibration API is never called.
-  'android.permission.VIBRATE',
+  //   ACCESS_NETWORK_STATE — this comment used to claim Crashlytics does not
+  //   require it. It does. Its transport stamps the network type on every
+  //   event, and without the permission the emulator logged
+  //   "Crashlytics report could not be enqueued to DataTransport" with a
+  //   SecurityException from ConnectivityManager.getActiveNetworkInfo. Caught,
+  //   so nothing crashed — Android release builds simply never sent a report.
+  //
+  //   VIBRATE — the Vibrate output channel calls it. `Vibration.cancel()` runs
+  //   whenever playback is put back to rest, including the cleanup that fires
+  //   every time the message changes, so it did not wait for anyone to switch
+  //   Vibrate on. Android throws SecurityException from native code, which in
+  //   bridgeless mode lands on the ReactHost handler rather than the adapter's
+  //   try/catch: expo-updates' error recovery gives up and the process dies.
+  //
+  // Debug builds keep all three, which is why none of them ever showed up
+  // outside a release build. If a feature is dropped, put its permission back
+  // here AND take it out of app.json — the test checks both.
+  //
   // React Native dev tooling only.
   'android.permission.SYSTEM_ALERT_WINDOW',
   'android.permission.DUMP',
@@ -88,3 +101,4 @@ module.exports = function withCleanAndroidPermissions(config) {
 };
 
 module.exports.PERMISSIONS_TO_REMOVE = PERMISSIONS_TO_REMOVE;
+module.exports.buildReleaseManifest = buildReleaseManifest;

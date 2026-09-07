@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Morse — Privacy Policy</title>
+    <meta
+      name="description"
+      content="Privacy Policy for Morse, a Morse code translator. Morse stores your settings on your device and sends nothing but optional crash diagnostics."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #5a5a5a;
+        --accent: #12a594;
+        --card: #f6f8fb;
+        --border: #e3e8ef;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e1116;
+          --fg: #e6e6e6;
+          --muted: #9aa4b2;
+          --accent: #12a594;
+          --card: #161b22;
+          --border: #262d36;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.7 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+      header {
+        border-bottom: 4px solid var(--accent);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 2rem;
+      }
+      h2 {
+        margin-top: 36px;
+        font-size: 1.2rem;
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .lede {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 24px 0;
+      }
+      a {
+        color: var(--accent);
+      }
+      ul {
+        padding-left: 22px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      footer {
+        margin-top: 48px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Privacy Policy</h1>
+        <div class="updated">Morse · Last updated: 6 September 2026</div>
+      </header>
+
+      <p class="lede">
+        <strong>Short version:</strong> Morse translates text to Morse code and back. It
+        has no accounts, no advertising, no analytics, and no way to identify you. Your
+        settings and your messages stay on your device. The only thing that leaves it is a
+        crash report, and you can switch that off.
+      </p>
+
+      <h2>1. Who we are</h2>
+      <p>
+        Morse ("the app", "we", "us") is a mobile application that turns typed, spoken or
+        tapped input into Morse code and back again. This policy explains how the app
+        handles information.
+      </p>
+
+      <h2>2. What stays on your device</h2>
+      <p>
+        <strong>Your settings.</strong> The dot/dash cut-off, playback speed, interface
+        language, speech-recognition language, and whether decoded text is read aloud —
+        along with a note of whether you have seen the welcome guide. These are stored in
+        the app's own storage, are never sent anywhere, and are deleted when you uninstall
+        the app.
+      </p>
+      <p>
+        <strong>Your messages.</strong> Anything you type, tap in, or speak is translated
+        on your device and held only while the app is open. Nothing you write is stored
+        between sessions, and nothing you write is transmitted.
+      </p>
+
+      <h2>3. Crash reports — and how to turn them off</h2>
+      <p>
+        When the app crashes, a diagnostic report is sent to Firebase Crashlytics, a
+        service operated by Google. A report contains the state of the app at the moment
+        it failed: the type of error, where in the code it happened, your device model and
+        operating system version, and an app-generated installation identifier.
+        <strong>It does not contain anything you typed, tapped, or said.</strong>
+      </p>
+      <p>
+        You can turn this off at any time in
+        <strong>Settings → Privacy → Send crash reports</strong>. The switch takes effect
+        immediately and is remembered. Google's handling of that data is covered by the
+        <a href="https://firebase.google.com/support/privacy"
+          >Firebase privacy documentation</a
+        >.
+      </p>
+
+      <h2>4. Speech recognition</h2>
+      <p>
+        If you use the Speak tab, the app asks your device's own speech-recognition
+        service to turn what you say into text.
+      </p>
+      <p>
+        <strong>On iOS this may mean your audio is sent to Apple for processing.</strong>
+        Apple decides whether recognition happens on the device or on its servers, based
+        on your device, the language, and system settings. On Android, recognition is
+        handled by the speech service installed on your device, which is usually Google's.
+      </p>
+      <p>
+        Morse itself never records, stores, or transmits audio. It receives only the
+        resulting text, holds it in memory, and discards it when you leave the screen.
+        Apple's and Google's handling of that audio is covered by their own privacy
+        policies.
+      </p>
+
+      <h2>5. Checking for updates</h2>
+      <p>
+        The app checks for over-the-air updates when it starts. That request goes to
+        Expo's update service and carries the app version, platform, and an installation
+        identifier. It carries nothing about you or your messages.
+      </p>
+
+      <h2>6. Permissions, and why</h2>
+      <p>
+        <strong>Camera</strong> — used only to switch the torch on and off, so a message
+        can be played as light. The camera preview is never opened and no image is ever
+        captured. Morse cannot read your photo library; the photo-library entry required
+        by iOS exists only because the camera component the app uses references it.
+      </p>
+      <p>
+        <strong>Microphone and speech recognition</strong> — used only while you are on
+        the Speak tab with recording active, to turn speech into text as described above.
+      </p>
+      <p>
+        Both permissions are optional. Everything else in the app — typing, tapping,
+        sound, screen flashing, vibration, and the whole of Learn — works without granting
+        either.
+      </p>
+
+      <h2>7. Data sharing and selling</h2>
+      <p>
+        Morse sells nothing and shares nothing. The only data that leaves your device is
+        the crash diagnostics described above, sent to Google solely so the app's faults
+        can be fixed.
+      </p>
+
+      <h2>8. Children's privacy</h2>
+      <p>
+        Morse does not knowingly collect any personal information from anyone, including
+        children. There is no account, no profile, and no way to submit content to us.
+      </p>
+
+      <h2>9. Changes to this policy</h2>
+      <p>
+        If this policy changes, the updated version will be posted at this same URL with a
+        revised "Last updated" date. The change is also visible in the app's public
+        repository history.
+      </p>
+
+      <h2>10. Contact</h2>
+      <p>
+        Questions about this policy? Contact
+        <a href="mailto:contact@rogeriodocarmo.com">contact@rogeriodocarmo.com</a>.
+      </p>
+
+      <footer>
+        © 2026 Morse. This page is the official privacy policy for the Morse app.
+        <a href="https://github.com/RogerioDoCarmo/morse_app">Source code</a>.
+      </footer>
+    </main>
+  </body>
+</html>

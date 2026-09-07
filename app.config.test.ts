@@ -294,6 +294,59 @@ describe('app.config', () => {
     });
   });
 
+  /**
+   * The microphone copy said "Audio is not stored and never leaves your
+   * device" — in the iOS permission dialog itself, which is the one place a
+   * user has no reason to doubt. It was not true: the adapter never sets
+   * `requiresOnDeviceRecognition`, so iOS is free to send the audio to Apple,
+   * and the app's own privacy policy said so.
+   *
+   * Forcing on-device recognition would make the sentence true and cost
+   * users the feature — it is unavailable on plenty of devices and locales —
+   * so the copy was corrected instead. This is a biconditional on purpose: it
+   * fails if the old promise comes back, AND it fails if someone starts
+   * forcing on-device recognition without strengthening the copy that could
+   * then honestly be strengthened.
+   */
+  describe('the microphone copy and what the recogniser actually does', () => {
+    const realFs = jest.requireActual<typeof fs>('fs');
+    const read = (relative: string): string =>
+      realFs.readFileSync(`${__dirname}/${relative}`, 'utf8');
+
+    const forcesOnDevice = /requiresOnDeviceRecognition:\s*true/.test(
+      read('src/adapters/speech/expoSpeechRecognitionAdapter.ts'),
+    );
+
+    const plist = loadConfig([ANDROID, IOS]).expo.ios?.infoPlist ?? {};
+
+    /** The claim, in each language it is made in. */
+    const KEEPS_IT_HERE =
+      /never leaves your device|is ever uploaded|nenhum áudio é enviado|no se sube ning/i;
+
+    it.each([
+      ['the microphone prompt', String(plist.NSMicrophoneUsageDescription)],
+      [
+        'the speech-recognition prompt',
+        String(plist.NSSpeechRecognitionUsageDescription),
+      ],
+      ['the English assurance', read('src/i18n/translations/en.ts')],
+      ['the Portuguese assurance', read('src/i18n/translations/pt.ts')],
+      ['the Spanish assurance', read('src/i18n/translations/es.ts')],
+    ])(
+      '%s promises the audio stays here only if the app makes it stay',
+      (_label, text) => {
+        expect(KEEPS_IT_HERE.test(text)).toBe(forcesOnDevice);
+      },
+    );
+
+    // The prompts have to say what does happen, not merely stop saying what
+    // does not. A reviewer reads these too.
+    it('says who may receive the audio instead', () => {
+      expect(String(plist.NSMicrophoneUsageDescription)).toMatch(/Apple/);
+      expect(String(plist.NSSpeechRecognitionUsageDescription)).toMatch(/Apple/);
+    });
+  });
+
   it('points each platform at its own credential file', () => {
     const androidOnly = loadConfig([ANDROID]).expo;
     expect(androidOnly.android?.googleServicesFile).toBe('./google-services.json');

@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import {
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { theme } from '@/theme';
 
 /**
@@ -23,6 +28,26 @@ import { theme } from '@/theme';
  */
 export const SURFACE_SIZE = 240;
 
+/**
+ * The largest disc that keeps the flashing area inside the area exemption on
+ * THIS screen, in points.
+ *
+ * A circle covers π/4 of its bounding box, so a disc of diameter `d` flashes
+ * π/4·d² — a quarter of a `width x height` screen exactly when
+ * `d = sqrt(width * height / π)`.
+ *
+ * ⚠️ This became load-bearing the day the card stopped being able to squeeze
+ * the disc. The stage used to be handed whatever height was left over, so a
+ * cramped screen produced a small disc by accident; it now has a floor, and on
+ * a 320x480 display SURFACE_SIZE alone would put the disc at 29% of the
+ * screen — past the very limit the cap above exists to stay inside. On a
+ * 390x844 phone this yields 323, so SURFACE_SIZE still binds and nothing
+ * about a normal phone changes.
+ */
+export function largestSafeDiameter(width: number, height: number): number {
+  return Math.floor(Math.sqrt((width * height) / Math.PI));
+}
+
 type Props = Readonly<{
   /** True while the signal is on. */
   lit: boolean;
@@ -40,16 +65,22 @@ export function SignalSurface({
   lit,
   testID = 'signal-surface',
 }: Props): React.JSX.Element {
-  const [side, setSide] = useState(SURFACE_SIZE);
+  const screen = useWindowDimensions();
+  const cap = Math.min(SURFACE_SIZE, largestSafeDiameter(screen.width, screen.height));
+  const [side, setSide] = useState(cap);
 
   const measure = (event: LayoutChangeEvent): void => {
     const { width, height } = event.nativeEvent.layout;
-    const fits = Math.floor(Math.min(SURFACE_SIZE, width, height));
+    const fits = Math.floor(Math.min(cap, width, height));
     if (fits > 0 && fits !== side) setSide(fits);
   };
 
   return (
-    <View style={styles.stage} onLayout={measure}>
+    // The floor is what stops this collapsing now that the card scrolls rather
+    // than filling a fixed viewport: `flex: 1` in a container whose height is
+    // its content resolves to zero, and a zero-height stage takes the disc out
+    // of the view hierarchy along with it.
+    <View style={[styles.stage, { minHeight: cap }]} onLayout={measure}>
       <View
         testID={testID}
         accessibilityRole="image"
@@ -68,11 +99,9 @@ export function SignalSurface({
 }
 
 const styles = StyleSheet.create({
-  // minHeight 0 lets this shrink inside a flex parent instead of forcing the
-  // card taller than the space it has.
+  // `minHeight` is applied inline, from the screen's own safe cap.
   stage: {
     flex: 1,
-    minHeight: 0,
     alignItems: 'center',
     justifyContent: 'center',
     // Clear of the label row above it, which sits close in a full card.
