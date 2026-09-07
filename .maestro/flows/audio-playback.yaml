@@ -8,23 +8,54 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'translator-screen'
 
-# A long message rather than the seeded sample: the sample follows the device
-# locale, and at the 120ms default it lasts about eleven seconds — less than
-# this flow takes.
+# The message has to LAST a long time without BEING long, and those pull in
+# opposite directions.
 #
-# Each section below STARTS ITS OWN RUN and stops it. Letting many assertions
-# ride one run is what made this flaky: the message ended underneath them, and
-# a check that had passed moments earlier began to fail.
+# Each section below starts its own run and stops it, so the run has to outlive
+# a whole section — 34 seconds of wall clock, measured on the CI simulator.
+# Letting many assertions ride one run is what made this flaky originally: the
+# message ended underneath them and a check that had passed moments earlier
+# began to fail.
 #
-# Twenty SOS is 673 units — 34 per repeat, less the leading word gap — which
-# at the 120ms default is 81 seconds. The longest section below took 34s of
-# wall clock on the CI simulator, so that is a margin of well over two, held
-# deliberately: this is the second thing that went wrong here, and the first
-# eight-SOS message left only a couple of seconds of slack.
+# But typing more characters is not the way to get there. The input card cannot
+# shrink and the Morse card absorbs every shortfall, so a few lines of text
+# squeeze the output to nothing: on Android the dots and dashes left the view
+# hierarchy entirely and `morse-letter` could not be found, and on iOS twenty
+# SOS filled the screen so completely that `hideKeyboard` had nowhere to tap
+# and failed outright. Both were the same mistake, made once here.
+#
+# So: fourteen zeros, at the slowest speed the app offers.
+#
+#   - zeros are the densest characters in Morse — five dashes each, 19 units
+#     with the gap, against 5 for an S. Fourteen of them is 305 units in as
+#     many characters as "SOS SOS SOS SOS".
+#   - 5 wpm is 240ms a unit rather than the 120ms default, which doubles the
+#     clock without adding a single character.
+#
+# 305 units x 240ms is 73 seconds against a 34-second section. The arithmetic
+# is checked in maestro-flows.test.ts against the app's own timing domain, so
+# it cannot quietly stop being true.
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'
+- tapOn:
+    id: 'segment-5'
+- tapOn:
+    id: 'settings-back'
+- assertVisible:
+    id: 'translator-screen'
+
+# ⚠️ `eraseText` deletes BACKWARDS from wherever the tap left the caret, so
+# whatever sat to the right of it survives — the recorded run typed its message
+# and kept the "d" from the seeded "Hello world". It is bounded by the length of
+# the sample and it only ever ADDS to the playback, never shortens it, so the
+# margin above absorbs it. Worth knowing before reading a duration off this file
+# as exact.
 - tapOn:
     id: 'translator-input'
 - eraseText
-- inputText: 'SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS SOS'
+- inputText: '00000000000000'
 - hideKeyboard
 
 # `waitToSettleTimeoutMs: 0` on every tap taken while a message is playing.
@@ -38,9 +69,10 @@ appId: com.rogeriodocarmo.morse
 # "Assertion is false: id: playback-progress is visible". Nothing was wrong
 # with the app; the unit tests covering these same behaviours never wavered.
 #
-# The message is also long enough now to survive the section without this. The
-# two together are deliberate: the length is the guarantee, the flag is what
-# makes the flow quick.
+# The message is also slow enough now to survive a section without this. The
+# two together are deliberate: the duration is the guarantee, the flag is what
+# makes the flow quick — and the flag is the only one of the two that treats
+# the cause rather than the symptom.
 
 # --- what only exists while a message is running ---
 - tapOn:

@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { encode } from '@/core/domain/morse';
-import { DEFAULT_SETTINGS } from '@/core/domain/settings';
+import { PLAYBACK_WPM_CHOICES } from '@/core/domain/settings';
 import { toTimeline, unitMsForWpm } from '@/core/domain/timeline';
 
 const FLOW = path.join(__dirname, '.maestro', 'flows', 'audio-playback.yaml');
@@ -19,6 +19,17 @@ const flow = fs.readFileSync(FLOW, 'utf8');
  * a second assertion. The message has to outlive all of it.
  */
 const LONGEST_SECTION_MS = 34_000;
+
+/**
+ * How much text the input may hold before it crowds the output off the screen.
+ *
+ * The input card cannot shrink and the Morse card absorbs every shortfall, so
+ * on a 320dp emulator a few lines of text squeezed the dots and dashes out of
+ * the view hierarchy altogether. Fifteen characters rendered as one line
+ * there; twice that filled the screen. Kept generous enough for the tail
+ * `eraseText` leaves behind.
+ */
+const MAX_TYPED_CHARACTERS = 26;
 
 type Tap = { id: string; skipsSettle: boolean };
 
@@ -53,24 +64,39 @@ function taps(source: string): Tap[] {
 }
 
 describe('audio-playback.yaml', () => {
+  /** The speed the flow picks in Settings before it types anything. */
+  const chosenWpm = Number(/id:\s*'segment-(\d+)'/.exec(flow)?.[1]);
+  /** The message it then types. */
+  const typed = /inputText:\s*'([^']+)'/.exec(flow)?.[1];
+
+  it('picks a speed the Settings screen actually offers', () => {
+    expect(PLAYBACK_WPM_CHOICES).toContain(chosenWpm);
+  });
+
   // Every section starts a run, does something to it, and stops it. If the
   // message ends first the section's own assertions start failing, which is
   // what "Assertion is false: id: playback-progress is visible" meant — the
   // run had finished two seconds before the assertion opened.
   it('types a message that outlasts the longest section twice over', () => {
-    const typed = /inputText:\s*'([^']+)'/.exec(flow)?.[1];
     expect(typed).toBeDefined();
 
     const units = toTimeline(encode(typed as string)).totalUnits;
-    const playbackMs = units * unitMsForWpm(DEFAULT_SETTINGS.playbackWpm);
 
-    expect(playbackMs).toBeGreaterThan(LONGEST_SECTION_MS * 2);
+    expect(units * unitMsForWpm(chosenWpm)).toBeGreaterThan(LONGEST_SECTION_MS * 2);
   });
 
-  // The flow reads the DEFAULT speed, so it has to start from cleared state —
-  // otherwise a leftover 15 wpm from another flow would make the message a
-  // third shorter than the test above just proved it to be.
-  it('launches from cleared state, so the default speed is the one it gets', () => {
+  // The other half of the same constraint, and the one that is easy to break
+  // while fixing the first: buying duration with characters costs the output
+  // pane its height. Twenty SOS bought 81 seconds and cost the flow both
+  // platforms — Android lost the letter chips, iOS lost the keyboard dismiss.
+  it('buys that duration with speed rather than with characters', () => {
+    expect((typed as string).length).toBeLessThanOrEqual(MAX_TYPED_CHARACTERS);
+  });
+
+  // The speed above is set through the UI, so the flow has to start from
+  // cleared state — otherwise it would be reading whatever a previous run left
+  // behind rather than what it just chose.
+  it('launches from cleared state, so its own choices are the ones in play', () => {
     expect(flow).toMatch(/launchApp:\s*\n\s*clearState:\s*true/);
   });
 
