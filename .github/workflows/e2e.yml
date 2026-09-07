@@ -132,11 +132,18 @@ jobs:
       # of this same commit succeeded.
       - name: Give Gradle and Kotlin room to compile
         run: |
-          {
-            echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m"
-            echo "kotlin.daemon.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=1024m"
-          } >> android/gradle.properties
-          tail -3 android/gradle.properties
+          # The leading newline is load-bearing. prebuild writes this file
+          # WITHOUT a trailing one, so appending directly ran the first
+          # property onto the end of the last existing line and produced
+          # `expo.inlineModules.watchedDirectories=[]org.gradle.jvmargs=...`.
+          # That silently corrupted an autolinking property, and Expo's
+          # autolinking plugin then exited 1 during configuration.
+          printf '\n%s\n%s\n' \
+            "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m" \
+            "kotlin.daemon.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=1024m" \
+            >> android/gradle.properties
+          echo "--- last four lines, each must start a line of its own ---"
+          tail -4 android/gradle.properties
 
       # One ABI, not four. React Native compiles its native modules once per
       # architecture, and with no `reactNativeArchitectures` set the default
