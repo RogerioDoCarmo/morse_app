@@ -271,8 +271,16 @@ jobs:
           # cold runner does not manage that inside the default window, and
           # the failure does not read as a timeout — it reads as twenty
           # connection refusals on the driver's own port, with the flows never
-          # starting. The same value is what made this reliable locally.
-          MAESTRO_DRIVER_STARTUP_TIMEOUT: 180000
+          # starting.
+          #
+          # 180000 was enough for a while and then was not: run 34123106736
+          # spent 3m32s in the step and gave up with IOSDriverTimeoutException,
+          # having run no flows at all and uploaded a 6KB artifact. The number
+          # is a per-attempt budget for something whose cost is set by how busy
+          # a shared macOS runner is, so it is generous on purpose — nothing is
+          # spent when the driver comes up quickly, and the job's own
+          # timeout-minutes is the real backstop.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
         run: |
           xcrun simctl list devices available
           udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
