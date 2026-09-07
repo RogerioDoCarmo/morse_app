@@ -43,10 +43,23 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'channel-screen'
 # Nothing keyed means nothing to send, and the button says so rather than
-# playing silence.
+# playing silence. Scrolled to because it sits just under the strip, which on
+# the smallest screen puts it a little below the fold — the STRIP is the part
+# that has to be visible without asking, since that is what tells a user the
+# feature is there at all.
+- scrollUntilVisible:
+    element:
+      id: 'signal-button'
+    direction: DOWN
+    timeout: 30000
 - assertVisible:
     id: 'signal-button'
     enabled: false
+- scrollUntilVisible:
+    element:
+      id: 'tap-decoded'
+    direction: UP
+    timeout: 30000
 
 # A quick tap is under the 180ms cut-off, so it is a dot.
 #
@@ -126,6 +139,11 @@ appId: com.rogeriodocarmo.morse
 # And now there IS something to send, so the button offers itself. Started and
 # stopped rather than left running: the next step clears the message out from
 # under it.
+- scrollUntilVisible:
+    element:
+      id: 'signal-button'
+    direction: DOWN
+    timeout: 30000
 - assertVisible:
     id: 'signal-button'
     enabled: true
@@ -134,6 +152,11 @@ appId: com.rogeriodocarmo.morse
     waitToSettleTimeoutMs: 0
 - tapOn:
     id: 'signal-button'
+- scrollUntilVisible:
+    element:
+      id: 'tap-decoded'
+    direction: UP
+    timeout: 30000
 
 - tapOn:
     id: 'tap-clear'

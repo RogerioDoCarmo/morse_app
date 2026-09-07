@@ -276,6 +276,21 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
               </View>
             </Card>
 
+            {/* With the message they act on, not pinned below it. The strip is
+                what makes the feature findable — a tester who could not see
+                Vibrate did not know it was there — and it is visible without
+                scrolling on every screen size. Emit sits under it, one short
+                scroll away on the smallest. */}
+            <OutputChannels cells={cells} />
+            <View style={styles.actions}>
+              <SignalButton
+                playing={playback.playing}
+                canPlay={playback.canPlay}
+                onPress={playback.playing ? playback.stop : playback.play}
+                label={playback.playing ? t('translator.stop') : t('translator.signal')}
+              />
+            </View>
+
             <View style={styles.cutoff}>
               <View style={styles.cutoffCopy}>
                 <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
@@ -313,13 +328,15 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
             </View>
           </ScrollView>
 
-          {/* Out of the scrolling region, with the key rather than the card.
-              These are the marks of the press being made RIGHT NOW — feedback
-              on the primary interaction, and useless the moment it is off
-              screen. Adding the channel strip and Emit above the key left the
-              scrolling region too short to hold this as well on a 320dp
-              phone, so the cut-off scrolls instead: it is a tuning control
-              reached now and again, and this is read every press. */}
+          {/* The only thing besides the key that does not scroll. These are
+              the marks of the press being made RIGHT NOW — feedback on the
+              primary interaction, useless the moment it is off screen.
+
+              ⚠️ Everything else was pinned once and it did not fit: on a 320dp
+              emulator the scrolling region came out about 70pt, clipping the
+              decoded text mid-word and leaving too little room for a swipe to
+              even register. A screen can only have so many things that must
+              always be visible, and on this one they are the key and this. */}
           <View style={styles.letterRow}>
             <Text style={styles.label}>{t('tap.letter')}</Text>
             <View style={styles.marks} testID="tap-letter">
@@ -338,16 +355,6 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 ))
               )}
             </View>
-          </View>
-
-          <OutputChannels cells={cells} />
-          <View style={styles.actions}>
-            <SignalButton
-              playing={playback.playing}
-              canPlay={playback.canPlay}
-              onPress={playback.playing ? playback.stop : playback.play}
-              label={playback.playing ? t('translator.stop') : t('translator.signal')}
-            />
           </View>
 
           <View style={styles.keyStage}>
