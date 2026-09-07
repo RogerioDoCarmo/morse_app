@@ -29,12 +29,17 @@ describe('asking for a permission', () => {
     expect(screen.getByText(/no image is ever captured/u)).toBeOnTheScreen();
   });
 
-  it('says what the microphone is for, and that nothing is uploaded', () => {
+  // This used to assert "no audio is ever uploaded", which was not true: the
+  // adapter does not require on-device recognition, so the platform is free to
+  // send the audio away to transcribe it. The screen now says so, and says
+  // what Morse itself does instead — which is the part the app can promise.
+  it('says what the microphone is for, and who may hear it', () => {
     show('microphone');
     expect(screen.getByTestId('permission-headline')).toHaveTextContent(
       'Speaking needs the microphone',
     );
-    expect(screen.getByText(/no audio is ever uploaded/u)).toBeOnTheScreen();
+    expect(screen.getByText(/may send your audio to its servers/u)).toBeOnTheScreen();
+    expect(screen.getByText(/never stores or uploads any of it/u)).toBeOnTheScreen();
   });
 
   it.each([
