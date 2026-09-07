@@ -26,17 +26,32 @@ describe('withCleanAndroidPermissions', () => {
     );
   });
 
-  // Named rather than left to the rule above, so deleting the declaration from
-  // app.json fails here instead of quietly agreeing with an empty list.
-  it('keeps VIBRATE, which the Vibrate output channel calls', () => {
-    expect(declared).toContain('android.permission.VIBRATE');
+  // Named one by one rather than left to the rule above, which an empty
+  // app.json would satisfy vacuously. Each of these three was stripped from a
+  // release build at some point while the code that needs it was already
+  // shipping.
+  it.each([
+    ['VIBRATE, which the Vibrate output channel calls', 'android.permission.VIBRATE'],
+    ['INTERNET, which Crashlytics uploads over', 'android.permission.INTERNET'],
+    [
+      'ACCESS_NETWORK_STATE, which Crashlytics reads before every upload',
+      'android.permission.ACCESS_NETWORK_STATE',
+    ],
+  ])('keeps %s', (_label, permission) => {
+    expect(declared).toContain(permission);
   });
 
-  it('declares the permissions the app actually asks the user for', () => {
+  // The two prompted permissions first, then the three a library injects and
+  // the app would never ask for. They are all here because this list, not the
+  // plugin's comment, is what the rule above reads.
+  it('declares exactly what the release build needs', () => {
     expect(declared).toStrictEqual([
       'android.permission.CAMERA',
       'android.permission.RECORD_AUDIO',
       'android.permission.VIBRATE',
+      'android.permission.INTERNET',
+      'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.MODIFY_AUDIO_SETTINGS',
     ]);
   });
 
