@@ -5,7 +5,8 @@ import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { IconButton } from '@/components/IconButton';
 import { MorseText } from '@/components/MorseText';
-import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
+import { OutputChannels } from '@/components/OutputChannels';
+import { SignalButton } from '@/components/SignalButton';
 import { SignalSurface } from '@/components/SignalSurface';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { AppFrame } from '@/components/AppFrame';
@@ -18,10 +19,9 @@ import {
 } from '@/core/domain/morse';
 import type { AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
-import { usePermissionGate } from '@/application/providers/PermissionGate';
 import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
-import { useMorsePlayback } from '@/application/useMorsePlayback';
+import { useOutputChannels } from '@/application/useOutputChannels';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { unitMsForWpm } from '@/core/domain/timeline';
 import { theme } from '@/theme';
@@ -141,7 +141,10 @@ export function TranslatorScreen({
   const unsupported = useMemo(() => unsupportedCharacters(source), [source]);
   // Playback speed is a saved preference; the hook wants a dot length.
   const { settings } = useSettings();
-  const playback = useMorsePlayback(message, unitMsForWpm(settings.playbackWpm));
+  const { playback, cells: channelCells } = useOutputChannels(
+    message,
+    unitMsForWpm(settings.playbackWpm),
+  );
   // One decimal is enough to look continuous and keeps the style object stable.
   const progressPercent = Math.round(playback.progress * 1000) / 10;
 
@@ -166,18 +169,7 @@ export function TranslatorScreen({
     [playback],
   );
 
-  // Switching Light on is what raises the camera permission, so the rationale
-  // belongs here rather than at playback: a user who says no should be told
-  // why it was asked, not watch a channel silently refuse to light.
-  const { ensure } = usePermissionGate();
   const { tablet } = useLayout();
-  const lightToggled = useCallback(async (): Promise<void> => {
-    if (playback.channels.light) {
-      playback.toggleChannel('light');
-      return;
-    }
-    if (await ensure('camera')) playback.toggleChannel('light');
-  }, [ensure, playback]);
 
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
@@ -186,45 +178,6 @@ export function TranslatorScreen({
   // The chips are a reading aid; while the screen is carrying the message the
   // square IS the message, and the chips would only compete with it.
   const showSurface = playback.playing && playback.channels.screen;
-
-  const channelCells: readonly ChannelCell[] = [
-    {
-      channel: 'sound',
-      icon: 'volume',
-      label: t('translator.channelSound'),
-      on: playback.channels.sound,
-      onToggle: () => {
-        playback.toggleChannel('sound');
-      },
-    },
-    {
-      channel: 'light',
-      icon: 'zap',
-      label: t('translator.channelLight'),
-      on: playback.channels.light,
-      onToggle: () => {
-        void lightToggled();
-      },
-    },
-    {
-      channel: 'screen',
-      icon: 'screen',
-      label: t('translator.channelScreen'),
-      on: playback.channels.screen,
-      onToggle: () => {
-        playback.toggleChannel('screen');
-      },
-    },
-    {
-      channel: 'buzz',
-      icon: 'vibrate',
-      label: t('translator.channelBuzz'),
-      on: playback.channels.buzz,
-      onToggle: () => {
-        playback.toggleChannel('buzz');
-      },
-    },
-  ];
 
   // One slot, three things it can say — and they rank. What is happening now
   // beats a warning, and a warning beats a standing hint.
@@ -450,41 +403,12 @@ export function TranslatorScreen({
           <OutputChannels cells={channelCells} />
 
           <View style={styles.actions}>
-            <Pressable
-              testID="signal-button"
-              accessibilityRole="button"
-              accessibilityLabel="signal-button"
-              accessibilityState={{
-                selected: playback.playing,
-                disabled: !playback.playing && !playback.canPlay,
-              }}
-              disabled={!playback.playing && !playback.canPlay}
+            <SignalButton
+              playing={playback.playing}
+              canPlay={playback.canPlay}
               onPress={playback.playing ? playback.stop : playback.play}
-              style={({ pressed }) => [
-                styles.signal,
-                playback.playing && styles.signalPlaying,
-                !playback.playing && !playback.canPlay && styles.signalBlocked,
-                pressed && styles.signalPressed,
-              ]}
-            >
-              <Icon
-                name={playback.playing ? 'stop' : 'play'}
-                size={17}
-                color={
-                  !playback.playing && !playback.canPlay
-                    ? theme.color.faint
-                    : theme.color.onInk
-                }
-              />
-              <Text
-                style={[
-                  styles.signalLabel,
-                  !playback.playing && !playback.canPlay && styles.signalLabelBlocked,
-                ]}
-              >
-                {playback.playing ? t('translator.stop') : t('translator.signal')}
-              </Text>
-            </Pressable>
+              label={playback.playing ? t('translator.stop') : t('translator.signal')}
+            />
             <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
           </View>
         </View>
@@ -626,21 +550,4 @@ const styles = StyleSheet.create({
   clock: { ...theme.type.mono, color: theme.color.muted, flexShrink: 0 },
   mono: { ...theme.type.mono, color: theme.color.muted },
   actions: { flexDirection: 'row', gap: 10, paddingBottom: theme.spacing.md },
-  signal: {
-    flex: 1,
-    height: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderRadius: theme.radius.chip,
-    backgroundColor: theme.color.ink,
-  },
-  signalPlaying: { backgroundColor: theme.color.accent },
-  // Nothing switched on: there is nothing for it to drive, and saying so is
-  // better than animating a progress bar over silence.
-  signalBlocked: { backgroundColor: theme.color.track },
-  signalPressed: { opacity: 0.85 },
-  signalLabel: { ...theme.type.action, color: theme.color.onInk },
-  signalLabelBlocked: { color: theme.color.faint },
 });

@@ -19,6 +19,40 @@
 </helmet>
 <div style="width: 390px; height: 844px; background: #f5f6f8; color: #101820; font-family: 'Plus Jakarta Sans', 'Avenir Next', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
 
+  <!-- THE SAME FOUR WAYS OUT the Translator offers, on this screen too.
+
+       A TestFlight tester went looking here for the vibration and the flashing
+       screen, found the transcript was a dead end, and said so. What was heard
+       is a message like any other; so is what was tapped in. The strip and the
+       button are lifted from Main.dc.html unchanged, because three
+       interpretations of one control is how a design comes apart. -->
+  <!-- OUTPUT CHANNELS — which ways the one message is sent. Sound on, Light
+       off: switching Light on is what raises the camera permission. -->
+  <div style="display: flex; gap: 8px; padding: 12px 20px 0; flex-shrink: 0;">
+      <div style="flex-grow: 1; height: 58px; border-radius: 16px; background: #e7f6f3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #0d7d70;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z M15.5 8.5a5 5 0 0 1 0 7"></path></svg>
+        <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.02em;">Sound</span>
+      </div>
+      <div style="flex-grow: 1; height: 58px; border-radius: 16px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #9aa3ad; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.02em;">Light</span>
+      </div>
+      <div style="flex-grow: 1; height: 58px; border-radius: 16px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #9aa3ad; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v12H3z M8 20h8"></path></svg>
+        <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.02em;">Screen</span>
+      </div>
+      <div style="flex-grow: 1; height: 58px; border-radius: 16px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #9aa3ad; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.06);">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v16H8z M4 9v6 M20 9v6"></path></svg>
+        <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.02em;">Vibrate</span>
+      </div>
+  </div>
+  <div style="display: flex; gap: 10px; padding: 12px 20px 12px; flex-shrink: 0;">
+    <button style="flex-grow: 1; height: 54px; background: #101820; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; font-weight: 700;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>
+      Signal
+    </button>
+  </div>
+
   <div style="height: 54px; flex-shrink: 0;"></div>
 
   <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 48px; flex-shrink: 0;">
