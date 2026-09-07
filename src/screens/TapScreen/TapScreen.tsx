@@ -276,26 +276,6 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
               </View>
             </Card>
 
-            <View style={styles.letterRow}>
-              <Text style={styles.label}>{t('tap.letter')}</Text>
-              <View style={styles.marks} testID="tap-letter">
-                {shown.length === 0 ? (
-                  <>
-                    <View style={[styles.dot, styles.markEmpty]} />
-                    <View style={[styles.dash, styles.markEmpty]} />
-                  </>
-                ) : (
-                  shown.map((mark, index) => (
-                    <View
-                      key={`m${String(index)}`}
-                      testID={mark === '.' ? 'tap-mark-dot' : 'tap-mark-dash'}
-                      style={[mark === '.' ? styles.dot : styles.dash, styles.markOn]}
-                    />
-                  ))
-                )}
-              </View>
-            </View>
-
             <View style={styles.cutoff}>
               <View style={styles.cutoffCopy}>
                 <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
@@ -332,6 +312,33 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
               </View>
             </View>
           </ScrollView>
+
+          {/* Out of the scrolling region, with the key rather than the card.
+              These are the marks of the press being made RIGHT NOW — feedback
+              on the primary interaction, and useless the moment it is off
+              screen. Adding the channel strip and Emit above the key left the
+              scrolling region too short to hold this as well on a 320dp
+              phone, so the cut-off scrolls instead: it is a tuning control
+              reached now and again, and this is read every press. */}
+          <View style={styles.letterRow}>
+            <Text style={styles.label}>{t('tap.letter')}</Text>
+            <View style={styles.marks} testID="tap-letter">
+              {shown.length === 0 ? (
+                <>
+                  <View style={[styles.dot, styles.markEmpty]} />
+                  <View style={[styles.dash, styles.markEmpty]} />
+                </>
+              ) : (
+                shown.map((mark, index) => (
+                  <View
+                    key={`m${String(index)}`}
+                    testID={mark === '.' ? 'tap-mark-dot' : 'tap-mark-dash'}
+                    style={[mark === '.' ? styles.dot : styles.dash, styles.markOn]}
+                  />
+                ))
+              )}
+            </View>
+          </View>
 
           <OutputChannels cells={cells} />
           <View style={styles.actions}>

@@ -76,12 +76,31 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-decoded'
 
 # The cut-off is a setting because "long" is relative to the operator.
-- assertVisible:
-    id: 'cutoff-value'
+#
+# Scrolled to rather than asserted where it sits. The screen gained a channel
+# strip and an Emit button, both pinned above the key because they are the
+# controls a person needs to find, and on a 320dp emulator that leaves the
+# cut-off below the fold of the region the card scrolls in. It is a tuning
+# control reached now and again, not something to keep on screen at the cost
+# of the two that are used every time. On a 390x844 phone it needs no scroll
+# at all.
+- scrollUntilVisible:
+    element:
+      id: 'cutoff-value'
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: 'cutoff-down'
 - tapOn:
     id: 'cutoff-up'
+
+# Back to the top, because everything after this is in the card the flow
+# scrolled away from.
+- scrollUntilVisible:
+    element:
+      id: 'tap-decoded'
+    direction: UP
+    timeout: 30000
 
 # Undoing the last mark. One press back, not one letter — everything on this
 # screen is derived from the press list.
