@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
+import { useOutputChannels } from '@/application/useOutputChannels';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { AppFrame } from '@/components/AppFrame';
+import { OutputChannels } from '@/components/OutputChannels';
+import { SignalButton } from '@/components/SignalButton';
 import type { TabName } from '@/components/TabBar';
 import {
   MAX_UNIT_MS,
@@ -19,7 +22,8 @@ import {
   tapsToMorse,
   type TapPress,
 } from '@/core/domain/tapping';
-import type { MorseSymbol } from '@/core/domain/morse';
+import { encode, type MorseSymbol } from '@/core/domain/morse';
+import { unitMsForWpm } from '@/core/domain/timeline';
 import { theme } from '@/theme';
 
 /** How much one press of the stepper moves the cut-off. */
@@ -69,6 +73,19 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
 
   const morse = useMemo(() => tapsToMorse(presses, unitMs), [presses, unitMs]);
   const text = useMemo(() => decodeTaps(presses, unitMs), [presses, unitMs]);
+
+  // What was tapped in goes back out the same four ways the Translator offers.
+  // A tester came here looking for it and found the key was input only.
+  //
+  // ⚠️ `playbackWpm`, not `unitMs`. This screen's unit is the cut-off that
+  // decides a dot from a dash in a HUMAN's keying; playback speed is a
+  // separate setting, and the domain says so in as many words. Keying slowly
+  // and listening quickly is a reasonable thing to want.
+  const message = useMemo(() => encode(text), [text]);
+  const { playback, cells } = useOutputChannels(
+    message,
+    unitMsForWpm(settings.playbackWpm),
+  );
 
   /**
    * The marks of the letter still being keyed.
@@ -190,64 +207,136 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
         </View>
 
         <View style={styles.body}>
-          <Card>
-            <View style={styles.cardHead}>
-              <Text style={styles.label}>{t('tap.decoded')}</Text>
-              <View style={styles.cardActions}>
-                {/* Offered only once there is something to read, and only while
+          {/* The card, the letter row and the cut-off SCROLL. The channel
+              strip, Emit and the key do not: they are the controls, and a
+              screen where you have to go looking for the key is not a key.
+              This is the Translator's arrangement, for the same reason. */}
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+            <Card>
+              <View style={styles.cardHead}>
+                <Text style={styles.label}>{t('tap.decoded')}</Text>
+                <View style={styles.cardActions}>
+                  {/* Offered only once there is something to read, and only while
                   the setting allows it — the same switch that governs the
                   Translator's, because it is the same promise. */}
-                {presses.length === 0 ? null : (
-                  <Pressable
-                    testID="tap-back"
-                    accessibilityRole="button"
-                    accessibilityLabel="tap-back"
-                    onPress={back}
-                    style={({ pressed }) => [styles.back, pressed && styles.readPressed]}
-                  >
-                    <Icon
-                      name="backspace"
-                      size={19}
-                      color={theme.color.muted}
-                      strokeWidth={1.9}
-                    />
-                  </Pressable>
-                )}
-                {text === '' || !settings.speakDecoded ? null : (
-                  <Pressable
-                    testID="tap-read"
-                    accessibilityRole="button"
-                    accessibilityLabel="tap-read"
-                    onPress={readAloud}
-                    style={({ pressed }) => [styles.read, pressed && styles.readPressed]}
-                  >
-                    <Icon
-                      name="volume"
-                      size={15}
-                      color={theme.color.accent}
-                      strokeWidth={2}
-                    />
-                    <Text style={styles.readLabel}>{t('tap.read')}</Text>
-                  </Pressable>
-                )}
+                  {presses.length === 0 ? null : (
+                    <Pressable
+                      testID="tap-back"
+                      accessibilityRole="button"
+                      accessibilityLabel="tap-back"
+                      onPress={back}
+                      style={({ pressed }) => [
+                        styles.back,
+                        pressed && styles.readPressed,
+                      ]}
+                    >
+                      <Icon
+                        name="backspace"
+                        size={19}
+                        color={theme.color.muted}
+                        strokeWidth={1.9}
+                      />
+                    </Pressable>
+                  )}
+                  {text === '' || !settings.speakDecoded ? null : (
+                    <Pressable
+                      testID="tap-read"
+                      accessibilityRole="button"
+                      accessibilityLabel="tap-read"
+                      onPress={readAloud}
+                      style={({ pressed }) => [
+                        styles.read,
+                        pressed && styles.readPressed,
+                      ]}
+                    >
+                      <Icon
+                        name="volume"
+                        size={15}
+                        color={theme.color.accent}
+                        strokeWidth={2}
+                      />
+                      <Text style={styles.readLabel}>{t('tap.read')}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+              {text === '' ? (
+                <Text testID="tap-empty" style={styles.emptyHint}>
+                  {t('tap.hint')}
+                </Text>
+              ) : (
+                <Text testID="tap-decoded" style={styles.decoded}>
+                  {text}
+                </Text>
+              )}
+              <View style={styles.monoFooter}>
+                <Text testID="tap-morse" style={styles.mono}>
+                  {morse}
+                </Text>
+              </View>
+            </Card>
+
+            {/* With the message they act on, not pinned below it. The strip is
+                what makes the feature findable — a tester who could not see
+                Vibrate did not know it was there — and it is visible without
+                scrolling on every screen size. Emit sits under it, one short
+                scroll away on the smallest. */}
+            <OutputChannels cells={cells} />
+            <View style={styles.actions}>
+              <SignalButton
+                playing={playback.playing}
+                canPlay={playback.canPlay}
+                onPress={playback.playing ? playback.stop : playback.play}
+                label={playback.playing ? t('translator.stop') : t('translator.signal')}
+              />
+            </View>
+
+            <View style={styles.cutoff}>
+              <View style={styles.cutoffCopy}>
+                <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
+                <Text style={styles.cutoffHint}>{t('tap.cutoffHint')}</Text>
+              </View>
+              <View style={styles.stepper}>
+                <Pressable
+                  testID="cutoff-down"
+                  accessibilityRole="button"
+                  accessibilityLabel="cutoff-down"
+                  disabled={unitMs <= MIN_UNIT_MS}
+                  onPress={() => {
+                    step(-STEP_MS);
+                  }}
+                  style={styles.stepButton}
+                >
+                  <Icon name="minus" size={17} color={theme.color.ink} />
+                </Pressable>
+                <Text testID="cutoff-value" style={styles.cutoffValue}>
+                  {`${String(unitMs)} ms`}
+                </Text>
+                <Pressable
+                  testID="cutoff-up"
+                  accessibilityRole="button"
+                  accessibilityLabel="cutoff-up"
+                  disabled={unitMs >= MAX_UNIT_MS}
+                  onPress={() => {
+                    step(STEP_MS);
+                  }}
+                  style={styles.stepButton}
+                >
+                  <Icon name="plus" size={17} color={theme.color.ink} />
+                </Pressable>
               </View>
             </View>
-            {text === '' ? (
-              <Text testID="tap-empty" style={styles.emptyHint}>
-                {t('tap.hint')}
-              </Text>
-            ) : (
-              <Text testID="tap-decoded" style={styles.decoded}>
-                {text}
-              </Text>
-            )}
-            <View style={styles.monoFooter}>
-              <Text testID="tap-morse" style={styles.mono}>
-                {morse}
-              </Text>
-            </View>
-          </Card>
+          </ScrollView>
 
+          {/* The only thing besides the key that does not scroll. These are
+              the marks of the press being made RIGHT NOW — feedback on the
+              primary interaction, useless the moment it is off screen.
+
+              ⚠️ Everything else was pinned once and it did not fit: on a 320dp
+              emulator the scrolling region came out about 70pt, clipping the
+              decoded text mid-word and leaving too little room for a swipe to
+              even register. A screen can only have so many things that must
+              always be visible, and on this one they are the key and this. */}
           <View style={styles.letterRow}>
             <Text style={styles.label}>{t('tap.letter')}</Text>
             <View style={styles.marks} testID="tap-letter">
@@ -265,42 +354,6 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                   />
                 ))
               )}
-            </View>
-          </View>
-
-          <View style={styles.cutoff}>
-            <View style={styles.cutoffCopy}>
-              <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
-              <Text style={styles.cutoffHint}>{t('tap.cutoffHint')}</Text>
-            </View>
-            <View style={styles.stepper}>
-              <Pressable
-                testID="cutoff-down"
-                accessibilityRole="button"
-                accessibilityLabel="cutoff-down"
-                disabled={unitMs <= MIN_UNIT_MS}
-                onPress={() => {
-                  step(-STEP_MS);
-                }}
-                style={styles.stepButton}
-              >
-                <Icon name="minus" size={17} color={theme.color.ink} />
-              </Pressable>
-              <Text testID="cutoff-value" style={styles.cutoffValue}>
-                {`${String(unitMs)} ms`}
-              </Text>
-              <Pressable
-                testID="cutoff-up"
-                accessibilityRole="button"
-                accessibilityLabel="cutoff-up"
-                disabled={unitMs >= MAX_UNIT_MS}
-                onPress={() => {
-                  step(STEP_MS);
-                }}
-                style={styles.stepButton}
-              >
-                <Icon name="plus" size={17} color={theme.color.ink} />
-              </Pressable>
             </View>
           </View>
 
@@ -429,8 +482,17 @@ const styles = StyleSheet.create({
     minWidth: 58,
     textAlign: 'center',
   },
+  // The part that gives way when there is more than fits: the card, the letter
+  // row and the cut-off. `flexGrow` rather than `flex` so a short message
+  // still fills the space instead of bunching at the top — the same
+  // distinction the Translator's card region turns on.
+  scroll: { flex: 1 },
+  scrollContent: { flexGrow: 1, gap: theme.spacing.md },
+  actions: { flexDirection: 'row' },
   keyStage: {
-    flex: 1,
+    // No `flex: 1` now that something above it scrolls: the key takes the room
+    // it needs and the scrolling region takes the rest. Left as flex it would
+    // compete with the scroll view for the same space.
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: theme.spacing.md,

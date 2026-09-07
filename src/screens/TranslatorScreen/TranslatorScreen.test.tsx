@@ -67,6 +67,24 @@ describe('TranslatorScreen', () => {
     });
   });
 
+  /**
+   * TestFlight's first hardware testers could not reliably close the keyboard.
+   * A multiline TextInput defaults to `submitBehavior: 'newline'`, so Return
+   * inserts a line break and the only way out is tapping outside the field —
+   * and on a phone this card fills most of the screen, so there is very little
+   * "outside" to tap.
+   *
+   * Nothing is lost by taking the newline: `encode` treats it as a word break,
+   * which is what the space they would type instead already does.
+   */
+  it('lets the return key close the keyboard', () => {
+    renderWithProviders(<TranslatorScreen />);
+    const input = screen.getByTestId('translator-input');
+
+    expect(input.props.submitBehavior).toBe('blurAndSubmit');
+    expect(input.props.returnKeyType).toBe('done');
+  });
+
   it('encodes what is typed', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');

@@ -101,6 +101,56 @@ describe('SpeechScreen', () => {
     expect(screen.getByTestId('speech-title')).toHaveTextContent('Listening…');
   });
 
+  /**
+   * A TestFlight tester came to this screen looking for the way to feel a
+   * transcript as vibration, the way the Translator offers, and found the
+   * transcript was a dead end. What was heard is a message like any other.
+   */
+  describe('sending what was heard', () => {
+    it('offers nothing to send until there is something to send', () => {
+      render(recogniser().port);
+
+      expect(screen.queryByTestId('output-channels')).toBeNull();
+      expect(screen.queryByTestId('signal-button')).toBeNull();
+    });
+
+    it('offers all four channels once a transcript arrives', async () => {
+      const mic = recogniser();
+      render(mic.port);
+      await tapMic();
+
+      act(() => {
+        mic.emit({ transcript: 'SOS', isFinal: true });
+      });
+
+      expect(screen.getByTestId('signal-button')).toBeOnTheScreen();
+      for (const channel of ['sound', 'light', 'screen', 'buzz']) {
+        expect(screen.getByTestId(`channel-${channel}`)).toBeOnTheScreen();
+      }
+    });
+
+    // Built here rather than through `render`, which returns the ports and so
+    // trips testing-library's render-result naming rule.
+    it('plays the transcript through the port when Emit is pressed', async () => {
+      const mic = recogniser();
+      const ports = createFakePorts({ speech: mic.port });
+      renderWithProviders(
+        <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={['tap', 'learn']} />,
+        { ports },
+      );
+      await tapMic();
+
+      act(() => {
+        mic.emit({ transcript: 'SOS', isFinal: true });
+      });
+      fireEvent.press(screen.getByTestId('signal-button'));
+
+      await waitFor(() => {
+        expect(ports.calls.played).toHaveLength(1);
+      });
+    });
+  });
+
   it('settles once the recogniser commits', async () => {
     const mic = recogniser();
     render(mic.port);
