@@ -401,19 +401,6 @@ export function TranslatorScreen({
               )}
 
               <View style={styles.monoFooter}>
-                {playback.playing ? (
-                  <View style={styles.progressRow} testID="playback-progress">
-                    <View style={styles.track}>
-                      <View
-                        testID="playback-fill"
-                        style={[styles.trackFill, { width: `${progressPercent}%` }]}
-                      />
-                    </View>
-                    <Text testID="playback-clock" style={styles.clock}>
-                      {clock(playback.elapsedMs)} / {clock(playback.durationMs)}
-                    </Text>
-                  </View>
-                ) : null}
                 <Text
                   testID="morse-string"
                   accessibilityLabel="morse-string"
@@ -424,6 +411,32 @@ export function TranslatorScreen({
               </View>
             </Card>
           </ScrollableCards>
+
+          {/* Outside the scrolling cards, and deliberately.
+
+              It used to sit at the foot of the Morse card. That was fine while
+              the card was as tall as the space left over; now the card is as
+              tall as its content, and a long message is about fourteen rows of
+              chips — so how far along a message was became something you had
+              to scroll to find out, while it was playing. The one thing the
+              user is waiting on should not be the thing that moves.
+
+              It joins the channel strip and the Emit button in the pinned
+              band: what is happening, and what you can do about it, together
+              and always in reach. */}
+          {playback.playing ? (
+            <View style={styles.progressRow} testID="playback-progress">
+              <View style={styles.track}>
+                <View
+                  testID="playback-fill"
+                  style={[styles.trackFill, { width: `${progressPercent}%` }]}
+                />
+              </View>
+              <Text testID="playback-clock" style={styles.clock}>
+                {clock(playback.elapsedMs)} / {clock(playback.durationMs)}
+              </Text>
+            </View>
+          ) : null}
 
           <OutputChannels cells={channelCells} />
 

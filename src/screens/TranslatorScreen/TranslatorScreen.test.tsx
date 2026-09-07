@@ -302,6 +302,34 @@ describe('TranslatorScreen — audio playback', () => {
     expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:05 / 0:13');
   });
 
+  /**
+   * The progress bar used to sit at the foot of the Morse card. That was fine
+   * while the card was as tall as the space left over; once it became as tall
+   * as its CONTENT, a long message put the foot below the scroll — so how far
+   * along you were was something you had to scroll to find out, while it was
+   * playing. On the CI emulator Maestro took 18.9s to conclude it could not
+   * see it at all.
+   *
+   * It belongs with the channel strip and the Emit button: what is happening,
+   * and what you can do about it, in the same pinned band.
+   */
+  it('keeps the progress bar out of the scrolling region', async () => {
+    const audio = pendingAudio();
+    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    const cards = screen.getByTestId('cards-scroll');
+
+    expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
+    expect(within(cards).queryByTestId('playback-progress')).toBeNull();
+    expect(within(cards).queryByTestId('playback-clock')).toBeNull();
+
+    // The raw string stays with the message it spells out, inside the card.
+    expect(within(cards).getByTestId('morse-string')).toBeOnTheScreen();
+
+    await advance(0);
+  });
+
   it('replaces the hint with the playing state, and puts it back after', () => {
     const audio = pendingAudio();
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
