@@ -235,11 +235,15 @@ appId: com.rogeriodocarmo.morse
     element:
       id: 'playback-progress'
     direction: DOWN
-    # Fourteen rows of chips is a long way down, and the defaults do not get
-    # there: the first attempt scrolled for the full default 20s, timed out,
-    # and its own failure screenshot shows the progress bar on screen — it had
-    # arrived, and was not given the moment to say so.
-    speed: 100
+    # Fourteen rows of chips is a long way down. The DEFAULT speed gets there
+    # in about 22 seconds; the default 20s timeout does not, and the first
+    # attempt's own failure screenshot shows the progress bar on screen — it
+    # had arrived and was not given the moment to say so.
+    #
+    # ⚠️ Do not "help" it along with `speed`. Raising it to 100 did not scroll
+    # at all: the next run's screenshot has the card still at the very top,
+    # after 62 seconds of trying. A swipe that fast is not a scroll as far as
+    # the view is concerned. The timeout was the whole problem.
     timeout: 60000
 - assertVisible:
     id: 'playback-clock'
