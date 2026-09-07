@@ -220,39 +220,36 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'morse-output'
 
-# --- the progress bar, the clock, and the raw string ---
-# All three live at the FOOT of the Morse card, which a message this long puts
-# below the region the cards scroll in. This is the only section that scrolls,
-# it is last because it does not scroll back, and it is worth the trouble:
-# these are the parts of a run a user actually reads.
-#
-# The controls are outside that region and stay put, so stopping the run needs
-# no scrolling back up.
+# --- the progress bar and the clock ---
+# No scrolling: they sit outside the cards now, pinned above the channel strip,
+# on screen for the whole run. They used to be at the foot of the Morse card,
+# and this section used to scroll fourteen rows of chips to reach them.
 - tapOn:
     id: 'signal-button'
     waitToSettleTimeoutMs: 0
-- scrollUntilVisible:
-    element:
-      id: 'playback-progress'
-    direction: DOWN
-    # Fourteen rows of chips is a long way down. The DEFAULT speed gets there
-    # in about 22 seconds; the default 20s timeout does not, and the first
-    # attempt's own failure screenshot shows the progress bar on screen — it
-    # had arrived and was not given the moment to say so.
-    #
-    # ⚠️ Do not "help" it along with `speed`. Raising it to 100 did not scroll
-    # at all: the next run's screenshot has the card still at the very top,
-    # after 62 seconds of trying. A swipe that fast is not a scroll as far as
-    # the view is concerned. The timeout was the whole problem.
-    timeout: 60000
+- assertVisible:
+    id: 'playback-progress'
 - assertVisible:
     id: 'playback-clock'
 - tapOn:
     id: 'signal-button'
 - assertNotVisible:
     id: 'playback-progress'
-- assertVisible:
-    id: 'morse-string'
+
+# --- the raw string, which stays with the message it spells out ---
+# This one IS still at the foot of the card, and a message this long puts the
+# foot below the scroll. Last, because it does not scroll back.
+#
+# ⚠️ Do not "help" the scroll along with `speed`. The default gets there in
+# about 22 seconds and only the default 20s timeout was ever the problem;
+# raising speed to 100 did not scroll AT ALL — the run's screenshot has the
+# card still at the very top after 62 seconds of trying. A swipe that fast is
+# not a scroll as far as the view is concerned.
+- scrollUntilVisible:
+    element:
+      id: 'morse-string'
+    direction: DOWN
+    timeout: 60000
 
 # --- nothing switched on means nothing to signal with ---
 # Sound is the only one still on by now; every other section put its own

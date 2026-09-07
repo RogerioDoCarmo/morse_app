@@ -136,18 +136,19 @@ describe('audio-playback.yaml', () => {
   });
 
   /**
-   * `playing-badge` is the liveness signal because of WHERE it is: the Morse
-   * card's head, on screen for the whole run. `playback-progress` and
-   * `playback-clock` are in that card's FOOT, and a message long enough to
-   * outlast a section is about fourteen rows of chips on a 320dp screen — so
-   * the foot is below the region the cards scroll in. The Android run said so
-   * plainly: `playing-badge` visible in 0.5s, `playback-progress` not found
-   * after 18.9 seconds of looking.
+   * A message long enough to outlast a section is about fourteen rows of chips
+   * on a 320dp screen, so anything at the FOOT of the Morse card is below the
+   * region the cards scroll in. The Android run said so plainly:
+   * `playing-badge`, in the card's head, visible in 0.5s; `playback-progress`,
+   * then in its foot, not found after 18.9 seconds of looking.
    *
-   * So the footer may be asserted, but only where the flow has scrolled to it.
+   * The progress bar and clock have since moved out of the card altogether and
+   * are pinned above the channel strip, so they need no scrolling. What is
+   * left in the foot is `morse-string`, and it may only be asserted where the
+   * flow has scrolled to it.
    */
   it('only looks for the card footer where it has scrolled to it', () => {
-    const footer = /id: '(playback-progress|playback-clock|morse-string)'/g;
+    const footer = /id: 'morse-string'/g;
     const scrolled = flow.indexOf('scrollUntilVisible');
 
     expect(scrolled).toBeGreaterThan(-1);
