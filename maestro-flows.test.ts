@@ -125,11 +125,34 @@ describe('audio-playback.yaml', () => {
   });
 
   // Guards the scan above: a rename that stopped it finding anything would
-  // make every assertion in this file vacuously true.
+  // make every assertion in this file vacuously true. The counts are also a
+  // deliberate speed bump — a section added or removed lands here first, and
+  // the settle rule above is only worth anything if the scan can see it.
   it('finds the taps it is reasoning about', () => {
     const found = taps(flow);
 
-    expect(found.filter((tap) => tap.id === 'signal-button')).toHaveLength(10);
-    expect(found.filter((tap) => tap.skipsSettle)).toHaveLength(7);
+    expect(found.filter((tap) => tap.id === 'signal-button')).toHaveLength(12);
+    expect(found.filter((tap) => tap.skipsSettle)).toHaveLength(8);
+  });
+
+  /**
+   * `playing-badge` is the liveness signal because of WHERE it is: the Morse
+   * card's head, on screen for the whole run. `playback-progress` and
+   * `playback-clock` are in that card's FOOT, and a message long enough to
+   * outlast a section is about fourteen rows of chips on a 320dp screen — so
+   * the foot is below the region the cards scroll in. The Android run said so
+   * plainly: `playing-badge` visible in 0.5s, `playback-progress` not found
+   * after 18.9 seconds of looking.
+   *
+   * So the footer may be asserted, but only where the flow has scrolled to it.
+   */
+  it('only looks for the card footer where it has scrolled to it', () => {
+    const footer = /id: '(playback-progress|playback-clock|morse-string)'/g;
+    const scrolled = flow.indexOf('scrollUntilVisible');
+
+    expect(scrolled).toBeGreaterThan(-1);
+    for (const match of flow.matchAll(footer)) {
+      expect(match.index).toBeGreaterThan(scrolled);
+    }
   });
 });
