@@ -2,9 +2,23 @@
 # ships in three languages and the CI device locale is not guaranteed.
 appId: com.rogeriodocarmo.morse
 ---
-- launchApp:
-    clearState: true
-- runFlow: ../dismiss-first-run.yaml
+# ⚠️ Wrapped in a retry because the EMULATOR loses this, not the app. Twice in
+# two runs a flow starting straight after a heavy one found no app at all:
+#
+#   ActivityManager: Force stopping com.rogeriodocarmo.morse ...
+#   ActivityManager: Start proc ... for next-top-activity MainActivity
+#   ActivityManager: Killing ... (adj -10000): remove task
+#   DeadObjectException: ... remote process probably died, but this could also
+#     be caused by running out of binder buffer space
+#
+# `clearState` force-stops and relaunches, and the kill races the launch. There
+# is nothing to fix in the app, and a red suite for it teaches nobody anything.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
 - assertVisible:
     id: 'translator-screen'
 
@@ -221,6 +235,12 @@ appId: com.rogeriodocarmo.morse
     element:
       id: 'playback-progress'
     direction: DOWN
+    # Fourteen rows of chips is a long way down, and the defaults do not get
+    # there: the first attempt scrolled for the full default 20s, timed out,
+    # and its own failure screenshot shows the progress bar on screen — it had
+    # arrived, and was not given the moment to say so.
+    speed: 100
+    timeout: 60000
 - assertVisible:
     id: 'playback-clock'
 - tapOn:

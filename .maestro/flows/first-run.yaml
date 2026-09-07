@@ -2,13 +2,22 @@
 # ships in three languages and the CI device locale is not guaranteed.
 appId: com.rogeriodocarmo.morse
 ---
-- launchApp:
-    clearState: true
-
-# It exists because Light starts off: without it the torch is a feature nobody
-# finds and the output strip looks like decoration.
-- assertVisible:
-    id: 'first-run'
+# ⚠️ Wrapped in a retry because the EMULATOR loses this, not the app — see the
+# note in translator.yaml. `clearState` force-stops and relaunches, and the
+# kill races the launch.
+#
+# The retry has to carry an assertion of its own: `launchApp` succeeds even
+# when the process is killed a moment later, so the launch alone would not
+# notice.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      # It exists because Light starts off: without it the torch is a feature
+      # nobody finds and the output strip looks like decoration.
+      - assertVisible:
+          id: 'first-run'
 - assertVisible:
     id: 'first-run-art-chips'
 - assertVisible:
