@@ -41,6 +41,24 @@ describe('the Translator on a tablet', () => {
 
   // Everything the phone does still works; a wider window is not a different
   // app, and the encoding is the whole point of the screen.
+  // The mirror of the phone case. A tablet card has a fixed height to fill, so
+  // the chips scroll inside it and the pair of cards do not scroll at all —
+  // which is the layout `design/screens/TabletTranslator.dc.html` draws.
+  it('keeps the fixed layout, scrolling the chips inside their card', () => {
+    renderWithProviders(<TranslatorScreen />);
+
+    expect(screen.queryByTestId('cards-scroll')).toBeNull();
+    expect(screen.getByTestId('morse-scroll')).toBeOnTheScreen();
+  });
+
+  it('scrolls the cards instead once it is a phone', () => {
+    mockWidth = 402;
+    renderWithProviders(<TranslatorScreen />);
+
+    expect(screen.getByTestId('cards-scroll')).toBeOnTheScreen();
+    expect(screen.queryByTestId('morse-scroll')).toBeNull();
+  });
+
   it('still translates', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
