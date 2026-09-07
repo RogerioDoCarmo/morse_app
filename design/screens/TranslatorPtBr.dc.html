@@ -45,6 +45,19 @@
     </div>
   </div>
 
+  <!-- The two cards scroll together.
+
+       They used to share this space with no way out of it: the input card
+       cannot shrink, the Morse card absorbed every shortfall, and a few lines
+       of typing squeezed the dots and dashes down to nothing. On a 320dp
+       Android emulator they left the view hierarchy altogether.
+
+       `flex: 1; min-height: 0; overflow-y: auto` on the region, and
+       `flex-grow: 1` still on the Morse card inside it: short messages fill
+       the screen exactly as drawn here, longer ones make the region scroll
+       rather than making the output disappear. The channel strip and the Emit
+       button stay put below it — they are the controls. -->
+  <div style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
   <div style="padding: 14px 20px 0; flex-shrink: 0;">
     <div style="background: #ffffff; border-radius: 22px; padding: 16px 18px 14px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 10px 26px rgba(16, 24, 32, 0.05);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -134,6 +147,7 @@
       </sc-if>
 
     </div>
+  </div>
   </div>
 
   <!-- OUTPUT CHANNELS — which ways the one message is sent. Sound on, Light

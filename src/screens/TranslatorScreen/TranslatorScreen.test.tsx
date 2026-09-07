@@ -37,6 +37,36 @@ const pressLight = (): void => {
 };
 
 describe('TranslatorScreen', () => {
+  /**
+   * The defect this exists for: the two cards shared one fixed viewport, and
+   * because a Card does not shrink by default while `grow` made the Morse card
+   * absorb every shortfall, a few lines of typing squeezed it to nothing. On a
+   * 320dp Android emulator the dots and dashes did not merely get clipped —
+   * they left the view hierarchy, and the E2E run reported
+   * "Element not found: Id matching regex: morse-letter".
+   *
+   * Every test in this file passed throughout, because they all assert that
+   * something is present and it always was. So this asserts the mechanism:
+   * the cards scroll, and the chips do not scroll inside them.
+   */
+  describe('the cards scroll rather than crushing each other', () => {
+    it('puts the pair of cards in a scrolling region', () => {
+      renderWithProviders(<TranslatorScreen />);
+
+      expect(screen.getByTestId('cards-scroll')).toBeOnTheScreen();
+    });
+
+    // A scroll view inside a scroll view is a trap for the finger, and this
+    // one would have no definite height to flex against: `flex: 1` would
+    // resolve to zero and take the chips with it — the original bug, moved.
+    it('does not nest a second scroll view around the chips', () => {
+      renderWithProviders(<TranslatorScreen />);
+
+      expect(screen.queryByTestId('morse-scroll')).toBeNull();
+      expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
+    });
+  });
+
   it('encodes what is typed', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');

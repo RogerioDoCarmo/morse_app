@@ -51,6 +51,59 @@ type Props = Readonly<{
   onOpenSettings?: (() => void) | undefined;
 }>;
 
+type PaneProps = Readonly<{
+  /** True on a tablet, where there is room for a fixed layout. */
+  tablet: boolean;
+  children: React.ReactNode;
+}>;
+
+/**
+ * The pair of cards: a scrolling column on a phone, a fixed row on a tablet.
+ *
+ * The gap goes on `contentContainerStyle` rather than `style`, because a
+ * ScrollView's own style sizes the WINDOW and the content container sizes what
+ * moves inside it. Styling the window would leave the gap outside the
+ * scrollable area, where it does nothing.
+ */
+function ScrollableCards({ tablet, children }: PaneProps): React.JSX.Element {
+  if (tablet) return <View style={styles.columns}>{children}</View>;
+
+  return (
+    <ScrollView
+      testID="cards-scroll"
+      style={styles.cardScroll}
+      contentContainerStyle={styles.stack}
+      // A tap on a card while the keyboard is up has to reach the card rather
+      // than being spent dismissing the keyboard.
+      keyboardShouldPersistTaps="handled"
+    >
+      {children}
+    </ScrollView>
+  );
+}
+
+/**
+ * The dots and dashes.
+ *
+ * A tablet's card has a fixed height, so the chips scroll inside it. A phone's
+ * cards already scroll, so a second scroll view here would be a trap for the
+ * finger — and, with no definite height to flex against, `flex: 1` would
+ * resolve to zero and take the chips out of the view hierarchy entirely.
+ */
+function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
+  if (!tablet) return <View style={styles.outputScroll}>{children}</View>;
+
+  return (
+    <ScrollView
+      testID="morse-scroll"
+      style={styles.output}
+      contentContainerStyle={styles.outputScroll}
+    >
+      {children}
+    </ScrollView>
+  );
+}
+
 /**
  * The Translator screen — built from `design/screens/Main.dc.html`.
  *
@@ -247,10 +300,22 @@ export function TranslatorScreen({
             onChange={setDirection}
           />
 
-          {/* Side by side on a tablet: the two halves of one translation,
-              which the artboard puts next to each other because there is room
-              to read both at once. Stacked on a phone, where there is not. */}
-          <View style={tablet ? styles.columns : styles.stack}>
+          {/* On a phone the two cards SCROLL. They used to share one fixed
+              viewport, and because a Card does not shrink by default while
+              `grow` makes this one absorb every shortfall, a few lines of
+              typing squeezed the Morse card to nothing: on a 320dp Android
+              emulator the dots and dashes were not merely clipped, they left
+              the view hierarchy, and `morse-letter` could not be found at all.
+
+              Only the CARDS scroll, not the page. The channel strip and the
+              Emit button below them stay where they are, because they are the
+              controls — burying Emit under a long message on a small screen
+              would trade one defect for a worse one.
+
+              A tablet keeps the fixed layout the artboard draws: two full
+              height halves side by side, with the chips scrolling inside their
+              own card. There is room there for both to be whole. */}
+          <ScrollableCards tablet={tablet}>
             <Card>
               <View style={styles.cardHead}>
                 <Text style={styles.label}>
@@ -295,17 +360,14 @@ export function TranslatorScreen({
               {toMorse && showSurface ? (
                 <SignalSurface lit={playback.screenLit} />
               ) : toMorse ? (
-                <ScrollView
-                  style={styles.output}
-                  contentContainerStyle={styles.outputScroll}
-                >
+                <MorseOutput tablet={tablet}>
                   <MorseText
                     message={message}
                     selectedIndex={picked}
                     soundingIndex={playback.soundingIndex}
                     onSelectLetter={pickLetter}
                   />
-                </ScrollView>
+                </MorseOutput>
               ) : (
                 <View style={styles.decodedBlock}>
                   <Text testID="decoded-text" style={styles.decoded}>
@@ -361,7 +423,7 @@ export function TranslatorScreen({
                 </Text>
               </View>
             </Card>
-          </View>
+          </ScrollableCards>
 
           <OutputChannels cells={channelCells} />
 
@@ -413,7 +475,19 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.color.ground },
   // `stack` is what the cards already did; naming it makes the tablet branch a
   // choice between two layouts rather than one layout and an exception.
-  stack: { flex: 1, gap: theme.spacing.md },
+  // `flexGrow: 1` WITHOUT `flex: 1`, and the difference is the entire fix.
+  //
+  // This is a ScrollView's content container on a phone. flexGrow lets it
+  // stretch to fill the window when the cards are shorter than it, so a short
+  // message still looks like the artboard: the Morse card fills the screen.
+  // What it does not do is CAP the height at the window. Once the cards need
+  // more than that, the container is simply taller and the region scrolls —
+  // where the old `flex: 1` had no choice but to take the difference out of
+  // the Morse card, and took all of it.
+  stack: { flexGrow: 1, gap: theme.spacing.md },
+  // The scrolling window itself, which takes what is left between the
+  // direction toggle and the channel strip.
+  cardScroll: { flex: 1 },
   columns: { flex: 1, flexDirection: 'row', gap: theme.spacing.md },
   header: {
     height: 48,
@@ -475,7 +549,16 @@ const styles = StyleSheet.create({
   monoInput: { ...theme.type.monoLarge, color: theme.color.accent, padding: 0 },
   output: { flex: 1 },
   outputScroll: { paddingBottom: theme.spacing.sm },
-  decodedBlock: { flex: 1, justifyContent: 'center', gap: theme.spacing.xl },
+  decodedBlock: {
+    flex: 1,
+    // On a phone the card no longer has a fixed height to fill, so without a
+    // floor a one-word translation would collapse this pane onto a single
+    // line. Two lines of decoded text and the read-aloud button is the shape
+    // the artboard draws.
+    minHeight: theme.type.decoded.lineHeight * 2 + 46,
+    justifyContent: 'center',
+    gap: theme.spacing.xl,
+  },
   decoded: { ...theme.type.decoded, color: theme.color.ink },
   readAloud: {
     alignSelf: 'flex-start',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SURFACE_SIZE, SignalSurface } from './SignalSurface';
+import { SURFACE_SIZE, SignalSurface, largestSafeDiameter } from './SignalSurface';
 
 describe('SignalSurface', () => {
   it('is dark when the signal is off', () => {
@@ -23,16 +23,51 @@ describe('SignalSurface', () => {
   });
 
   /**
-   * ⚠️ A SAFETY test, not a layout one. Morse flashes at 4.2Hz at 10 words per
+   * ⚠️ SAFETY tests, not layout ones. Morse flashes at 4.2Hz at 10 words per
    * minute and 6.3Hz at 15, both far past WCAG 2.3.1's three-per-second limit,
    * so the only thing keeping this compliant is the area exemption: under 25%
-   * of the visual field. A 240pt disc is 13.7% of a 390×844 screen. Growing
-   * this without a photosensitivity warning ahead of it is not a style change.
+   * of the visual field. Growing this without a photosensitivity warning ahead
+   * of it is not a style change.
+   *
+   * The old version of this test checked SURFACE_SIZE against a 390x844 phone
+   * and called that "the smallest screen it ships on". It is not — the CI
+   * emulator alone is 320dp wide. That went unnoticed while the disc was given
+   * only the height the card had left over, which on a cramped screen was
+   * small by accident. The stage has a floor now, so the limit has to be
+   * computed rather than assumed.
    */
-  it('stays under a quarter of the smallest screen it ships on', () => {
-    const phone = 390 * 844;
-    const disc = Math.PI * (SURFACE_SIZE / 2) ** 2;
-    expect(disc).toBeLessThan(phone * 0.25);
+  describe('the flashing area', () => {
+    it.each([
+      ['a 390x844 phone', 390, 844],
+      ['a 320x640 emulator', 320, 640],
+      ['a 320x480 phone, about the smallest Android still shipping', 320, 480],
+    ])('stays under a quarter of %s', (_label, width, height) => {
+      const side = Math.min(SURFACE_SIZE, largestSafeDiameter(width, height));
+
+      expect(Math.PI * (side / 2) ** 2).toBeLessThan(width * height * 0.25);
+    });
+
+    // Literal values: a test that recomputed the formula would agree with any
+    // mistake in it.
+    it.each([
+      [390, 844, 323],
+      [320, 640, 255],
+      [320, 480, 221],
+      [1180, 820, 554],
+    ])('gives %ix%i a safe diameter of %i', (width, height, expected) => {
+      expect(largestSafeDiameter(width, height)).toBe(expected);
+    });
+
+    // If this ever stopped being true the cap would start changing how the app
+    // looks on ordinary phones, which is not what it is for.
+    it('leaves an ordinary phone alone — SURFACE_SIZE is what binds there', () => {
+      expect(largestSafeDiameter(390, 844)).toBeGreaterThan(SURFACE_SIZE);
+    });
+
+    // And on a small screen it is the one that binds, which is the whole point.
+    it('binds instead of SURFACE_SIZE once the screen is small enough', () => {
+      expect(largestSafeDiameter(320, 480)).toBeLessThan(SURFACE_SIZE);
+    });
   });
 
   it('takes the full size when there is room for it', () => {

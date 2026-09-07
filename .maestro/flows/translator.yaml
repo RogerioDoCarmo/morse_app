@@ -2,9 +2,23 @@
 # ships in three languages and the CI device locale is not guaranteed.
 appId: com.rogeriodocarmo.morse
 ---
-- launchApp:
-    clearState: true
-- runFlow: ../dismiss-first-run.yaml
+# ⚠️ Wrapped in a retry because the EMULATOR loses this, not the app. Twice in
+# two runs a flow starting straight after a heavy one found no app at all:
+#
+#   ActivityManager: Force stopping com.rogeriodocarmo.morse ...
+#   ActivityManager: Start proc ... for next-top-activity MainActivity
+#   ActivityManager: Killing ... (adj -10000): remove task
+#   DeadObjectException: ... remote process probably died, but this could also
+#     be caused by running out of binder buffer space
+#
+# `clearState` force-stops and relaunches, and the kill races the launch. There
+# is nothing to fix in the app, and a red suite for it teaches nobody anything.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
 - assertVisible:
     id: 'translator-screen'
 - assertVisible:
@@ -21,8 +35,16 @@ appId: com.rogeriodocarmo.morse
 # simulator defaults to a hardware keyboard and never showed the problem —
 # exactly the kind of cross-platform difference this tier exists to catch.
 - hideKeyboard
-- assertVisible:
-    id: 'morse-string'
+# The raw string sits at the foot of the Morse card, and the card is now as
+# tall as its content rather than as tall as the space left over. Even four
+# letters overflow the scrolling region by a few dozen points on a 320dp
+# screen, so this scrolls rather than assuming. It is one swipe here; the same
+# assertion in audio-playback is fourteen rows down.
+- scrollUntilVisible:
+    element:
+      id: 'morse-string'
+    direction: DOWN
+    timeout: 30000
 
 # Characters with no Morse code are dropped. They used to be dropped silently,
 # which left the sender believing the whole message went out. '#' is ASCII, so

@@ -7,11 +7,17 @@
 # shown BEFORE the OS is ever asked, and the way out of it.
 appId: com.rogeriodocarmo.morse
 ---
-- launchApp:
-    clearState: true
-    permissions:
-      all: unset
-- runFlow: ../dismiss-first-run.yaml
+# ⚠️ Wrapped in a retry because the EMULATOR loses this, not the app — see the
+# note in translator.yaml. `clearState` force-stops and relaunches, and the
+# kill races the launch.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+          permissions:
+            all: unset
+      - runFlow: ../dismiss-first-run.yaml
 
 # Light is the channel that needs the camera — the torch has no permission of
 # its own on either platform.
