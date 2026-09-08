@@ -263,7 +263,65 @@ without credentials, and the iOS build then fails on Crashlytics' build phase �
 it reads `GOOGLE_APP_ID` straight out of the plist, whatever the Expo plugins
 decide. Create them for every environment you build.
 
-Local builds need none of this: the files are already in the working tree.
+#### A local build cannot read them either
+
+This line used to say local builds need none of it, because the files are
+already in the working tree. They are, and it does not help.
+
+`eas build --local` archives the project **from git**, so a gitignored file is
+no more present in the copy it builds than on a remote builder — and the file
+variables above are `--visibility secret`, which `eas env:list` describes as
+"can only be accessed on EAS builder". Neither half of the arrangement reaches
+your own machine.
+
+What the build then does is the whole failure in one line: `app.config.js`
+finds nothing, reports no Firebase, skips both plugins — and the pods autolink
+anyway, because the packages are dependencies, so Crashlytics' build phase
+reads `GOOGLE_APP_ID` out of a plist that is not there:
+
+```text
+[!] Error building the application - see the log above
+Could not get GOOGLE_APP_ID in Google Services file from build environment
+```
+
+Hand the path over yourself. It may be absolute, and here it must be — the
+build runs from a copy of the project, and only an absolute path still points
+at the real file from inside one:
+
+```bash
+GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:local
+GOOGLE_SERVICES_JSON_PATH="$PWD/google-services.json" pnpm build:apk:local
+```
+
+#### Or archive in Xcode, which never had the problem
+
+`expo prebuild` run by hand runs in the REAL working tree, where the plist is
+sitting untracked, so `app.config.js` finds it on disk and the plugin copies it
+into `ios/` before Xcode ever opens. The whole failure above is a consequence of
+building from a copy, and this does not build from one.
+
+```bash
+npx expo prebuild --platform ios --clean
+open ios/Morse.xcworkspace
+```
+
+Then Any iOS Device → Product → Archive → Distribute App → App Store Connect.
+
+⚠️ **You take over the two things EAS was doing.** Signing is the first:
+`--local` fetches the certificate and profile from EAS into a throwaway
+keychain and destroys it afterwards, and Xcode instead uses whatever is in your
+login keychain and your Apple account.
+
+The BUILD NUMBER is the second, and it is the one that bites quietly.
+`appVersionSource: remote` means EAS owns that counter and `app.json` declares
+nothing, so a prebuilt `Info.plist` carries whatever the template left there.
+App Store Connect rejects a build number it has already seen for a version, and
+it does so after the upload. Set it deliberately, above anything EAS has
+issued, and tell EAS afterwards so its counter does not hand out the same one:
+
+```bash
+eas build:version:set --platform ios
+```
 
 ### Submitting
 
@@ -394,12 +452,29 @@ worth knowing before spending one:
 
 - **`eas submit` is free.** There is never a reason to rebuild in order to
   submit.
-- **`--local` is free too**, and compiles on this machine.
+- **`--local` is free too**, and compiles on this machine. It needs the
+  credential paths passed in — see [A local build cannot read them
+  either](#a-local-build-cannot-read-them-either).
 - **TestFlight beats ad-hoc for iOS testers.** Firebase's iOS channel is an
   ad-hoc build: every tester device must be registered *before* it, and adding
   one phone later means a whole new build. TestFlight has neither limit. Spend
   the quota on Android's Firebase channel, which has no such constraint, and
   send iOS testers to TestFlight.
+
+⚠️ **It is a shared credit pool, and running it out blocks EVERYTHING.** Not
+just iOS, and not just store builds: once the credits are gone, EAS refuses the
+build before it starts —
+
+```text
+You've reached your included build credits this billing period.
+New builds are blocked until your billing period resets.
+```
+
+— which takes the tester distribution with it, since
+`firebase-distribution.yml` builds through EAS like everything else. A refused
+build costs nothing, so nothing is lost by trying, but a version bump then
+lands a red run next to a release nobody can install. Until the period resets,
+`--local` is the only way to produce a binary at all.
 
 ### Build numbers live on EAS, not in app.json
 
