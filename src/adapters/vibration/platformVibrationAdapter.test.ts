@@ -2,6 +2,8 @@ import { Platform, Vibration } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { createRecordingCrashReporter } from '@/testing/recordingCrashReporter';
 import type { VibrationMark } from '@/core/ports';
+import { encode } from '@/core/domain/morse';
+import { signalMarks, toTimeline, unitMsForWpm } from '@/core/domain/timeline';
 import {
   createPlatformVibrationAdapter,
   toAndroidPattern,
@@ -43,6 +45,40 @@ describe('toAndroidPattern', () => {
       ]),
     ).toEqual([1000, 120, 120, 120]);
   });
+
+  /**
+   * ⚠️ These are the shape React Native's Android module REQUIRES, not a
+   * preference. `VibrationModule.kt` does:
+   *
+   *     patternLong[i] = pattern.getInt(i).toLong()
+   *     v.vibrate(VibrationEffect.createWaveform(patternLong, repeat))
+   *
+   * `getInt` wants integers, and `createWaveform` rejects an empty array and
+   * one that is entirely zeroes. Written down here because a Poco X5 5G did
+   * not vibrate at all on the first build anyone ran, and ruling this side out
+   * was half the investigation — the pattern is correct at every speed the
+   * app offers, so the fault is not here.
+   */
+  it.each([5, 10, 15])(
+    'gives Android a waveform it will accept at %i wpm',
+    (wordsPerMinute) => {
+      const unit = unitMsForWpm(wordsPerMinute);
+      const pattern = toAndroidPattern(
+        signalMarks(toTimeline(encode('SOS'))).map((mark) => ({
+          atMs: mark.atUnit * unit,
+          durationMs: mark.units * unit,
+          long: mark.long,
+        })),
+      );
+
+      expect(pattern.length).toBeGreaterThan(0);
+      expect(pattern.every(Number.isInteger)).toBe(true);
+      expect(pattern.every((entry) => entry >= 0)).toBe(true);
+      expect(pattern.some((entry) => entry > 0)).toBe(true);
+      // Delay, duration, delay, duration — an even count, opening with a wait.
+      expect(pattern.length % 2).toBe(0);
+    },
+  );
 
   it('has nothing to play for no marks', () => {
     expect(toAndroidPattern([])).toEqual([]);

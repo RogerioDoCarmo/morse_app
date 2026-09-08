@@ -1,18 +1,23 @@
 name: EAS build
 
+# ⚠️ A RELEASE TAG, not every merge to main.
+#
+# This used to build on any push to main that touched src, app.json or the
+# lockfile — path-filtered, which felt careful and was not nearly careful
+# enough. Five merges to main in one evening cost seven iOS builds, and the
+# free plan allows fifteen a month: the account hit 80% of its limit in a day,
+# with nothing to show for six of them because each was superseded by the next
+# merge before anyone submitted it.
+#
+# A tag is the honest trigger. It happens when someone has decided to release,
+# which is exactly when a store binary is worth building — and the release
+# convention already puts an annotated tag on main for every version.
+#
+# `workflow_dispatch` stays for the times a build is wanted without a release.
 on:
   push:
-    branches: [main]
-    # Path-filtered so docs- and CI-only changes do not burn build quota.
-    paths:
-      - 'src/**'
-      - 'assets/**'
-      - 'plugins/**'
-      - 'app.json'
-      - 'eas.json'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/eas-build.yml'
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       platform:
@@ -51,8 +56,11 @@ jobs:
 
   submit:
     name: Submit to the stores
-    # Deliberately opt-in only. Store submission is never automatic on merge —
-    # a release goes out because someone decided to release it.
+    # Deliberately opt-in only, and worth keeping that way now that the build
+    # above is tag-triggered: a tag should produce a binary without also
+    # pushing it at Apple. Submitting costs no build quota, so it can be done
+    # at any time against a build that already exists —
+    # `eas submit --platform ios --latest`.
     if: github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
