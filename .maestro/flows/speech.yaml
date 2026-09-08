@@ -32,9 +32,15 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'speech-title'
 
-# Nothing has been said yet, so there is nothing to show.
+# Nothing has been said yet, so there is nothing to show — and nothing to send
+# it with. A simulator has no microphone, so this is as far as the transcript
+# can be taken here; that the outputs appear WITH one is a unit test's job.
 - assertNotVisible:
     id: 'speech-transcript'
+- assertNotVisible:
+    id: 'output-channels'
+- assertNotVisible:
+    id: 'signal-button'
 
 # Every destination in the bar now reaches a screen; none are greyed.
 - assertVisible:

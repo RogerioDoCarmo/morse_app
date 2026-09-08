@@ -348,6 +348,42 @@ you are certain.
 
 `feat:` · `fix:` · `build:` · `ci:` · `test:` · `docs:` · `style:` · `refactor:` · `chore:`
 
+### Releasing — the tag IS the release notes
+
+The same shape Miroji and the website use: an **annotated** tag `vMAJOR.MINOR.PATCH`
+on `main`, whose **message is the release notes**. Pushing it fires
+`.github/workflows/release.yml`, which publishes a GitHub Release with that message as
+the body. The website automates it this way; Miroji does the same thing by hand.
+
+```bash
+# 1. Bump the version on develop — the workflow refuses a tag that disagrees
+#    with app.json, and EAS reads app.json rather than the tag.
+#    Leave ios.buildNumber / android.versionCode alone: eas.json has
+#    autoIncrement on the production profile.
+git checkout develop && git pull origin develop
+# edit app.json: expo.version
+git commit -am "chore: 0.2.0"
+
+# 2. Release PR develop → main, and merge it.
+gh pr create --base main --head develop --title "release: ..." --body "..."
+
+# 3. Tag the merge commit on main. -a is required: a lightweight tag has no
+#    message, and the workflow fails rather than publish an empty release.
+git checkout main && git pull origin main
+git tag -a v0.2.0
+git push origin v0.2.0
+```
+
+The first line of the tag message becomes the release title, so write it as one:
+`v1.3.4 — A release the pipeline could not have shipped` reads better in a list than
+`v1.3.4`.
+
+⚠️ **Releases carry no build artifacts.** The binaries come from EAS, not from CI —
+an APK or IPA built in Actions would be a different, unsigned thing from the one on
+TestFlight and Play, and attaching it is a good way for someone to install the wrong
+one. Miroji's releases have no assets either. The website's do, because there the
+`dist` archive *is* what it ships.
+
 ## Package Management
 
 ```bash

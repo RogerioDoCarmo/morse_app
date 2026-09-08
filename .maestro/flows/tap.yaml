@@ -32,6 +32,35 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'tap-clear'
 
+# The four ways out are shown from the START, before there is anything to
+# send. A TestFlight tester came to this screen looking for the vibration the
+# Translator offers and did not find it; showing the strip only once they had
+# already guessed it was there would repeat the mistake.
+- assertVisible:
+    id: 'output-channels'
+- assertVisible:
+    id: 'channel-buzz'
+- assertVisible:
+    id: 'channel-screen'
+# Nothing keyed means nothing to send, and the button says so rather than
+# playing silence. Scrolled to because it sits just under the strip, which on
+# the smallest screen puts it a little below the fold — the STRIP is the part
+# that has to be visible without asking, since that is what tells a user the
+# feature is there at all.
+- scrollUntilVisible:
+    element:
+      id: 'signal-button'
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: 'signal-button'
+    enabled: false
+- scrollUntilVisible:
+    element:
+      id: 'tap-decoded'
+    direction: UP
+    timeout: 30000
+
 # A quick tap is under the 180ms cut-off, so it is a dot.
 #
 # What this asserts is the DECODING, not the live letter row. Maestro's delay
@@ -60,12 +89,31 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-decoded'
 
 # The cut-off is a setting because "long" is relative to the operator.
-- assertVisible:
-    id: 'cutoff-value'
+#
+# Scrolled to rather than asserted where it sits. The screen gained a channel
+# strip and an Emit button, both pinned above the key because they are the
+# controls a person needs to find, and on a 320dp emulator that leaves the
+# cut-off below the fold of the region the card scrolls in. It is a tuning
+# control reached now and again, not something to keep on screen at the cost
+# of the two that are used every time. On a 390x844 phone it needs no scroll
+# at all.
+- scrollUntilVisible:
+    element:
+      id: 'cutoff-value'
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: 'cutoff-down'
 - tapOn:
     id: 'cutoff-up'
+
+# Back to the top, because everything after this is in the card the flow
+# scrolled away from.
+- scrollUntilVisible:
+    element:
+      id: 'tap-decoded'
+    direction: UP
+    timeout: 30000
 
 # Undoing the last mark. One press back, not one letter — everything on this
 # screen is derived from the press list.
@@ -87,6 +135,28 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-read'
 - assertVisible:
     id: 'tap-decoded'
+
+# And now there IS something to send, so the button offers itself. Started and
+# stopped rather than left running: the next step clears the message out from
+# under it.
+- scrollUntilVisible:
+    element:
+      id: 'signal-button'
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: 'signal-button'
+    enabled: true
+- tapOn:
+    id: 'signal-button'
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: 'signal-button'
+- scrollUntilVisible:
+    element:
+      id: 'tap-decoded'
+    direction: UP
+    timeout: 30000
 
 - tapOn:
     id: 'tap-clear'

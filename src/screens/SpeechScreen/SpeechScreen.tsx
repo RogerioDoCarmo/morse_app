@@ -5,12 +5,16 @@ import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePermissionGate } from '@/application/providers/PermissionGate';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { usePorts } from '@/application/providers/PortsProvider';
+import { useOutputChannels } from '@/application/useOutputChannels';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
+import { OutputChannels } from '@/components/OutputChannels';
+import { SignalButton } from '@/components/SignalButton';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
 import { encode, encodeToString } from '@/core/domain/morse';
+import { unitMsForWpm } from '@/core/domain/timeline';
 import type { TranslationKey } from '@/i18n';
 import { theme } from '@/theme';
 
@@ -73,6 +77,14 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
 
   const message = useMemo(() => encode(heard), [heard]);
   const morse = useMemo(() => encodeToString(heard), [heard]);
+
+  // What was heard is a message like any other, and it goes out the same four
+  // ways. A tester came to this screen looking for the vibration the
+  // Translator offers and found the transcript was a dead end.
+  const { playback, cells } = useOutputChannels(
+    message,
+    unitMsForWpm(settings.playbackWpm),
+  );
   const listening = phase === 'listening';
 
   const letGo = useCallback((): void => {
@@ -171,22 +183,40 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
         </View>
 
         {heard === '' ? null : (
-          <View style={styles.heard}>
-            <Card>
-              <Text style={styles.label}>{t('speech.heard')}</Text>
-              <Text testID="speech-transcript" style={styles.transcript}>
-                {heard}
-              </Text>
-              <View style={styles.morseBlock}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <MorseText message={message} testID="speech-morse" />
-                </ScrollView>
-                <Text testID="speech-morse-string" style={styles.mono}>
-                  {morse}
+          <>
+            {/* The transcript SHRINKS and scrolls; the stage above it and the
+                outputs below do not. A long transcript would otherwise push
+                one of them off the screen, and the stage's mic is 104pt of
+                fixed height that cannot give way. */}
+            <ScrollView style={styles.heard} contentContainerStyle={styles.heardContent}>
+              <Card>
+                <Text style={styles.label}>{t('speech.heard')}</Text>
+                <Text testID="speech-transcript" style={styles.transcript}>
+                  {heard}
                 </Text>
+                <View style={styles.morseBlock}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <MorseText message={message} testID="speech-morse" />
+                  </ScrollView>
+                  <Text testID="speech-morse-string" style={styles.mono}>
+                    {morse}
+                  </Text>
+                </View>
+              </Card>
+            </ScrollView>
+
+            <View style={styles.outputs}>
+              <OutputChannels cells={cells} />
+              <View style={styles.actions}>
+                <SignalButton
+                  playing={playback.playing}
+                  canPlay={playback.canPlay}
+                  onPress={playback.playing ? playback.stop : playback.play}
+                  label={playback.playing ? t('translator.stop') : t('translator.signal')}
+                />
               </View>
-            </Card>
-          </View>
+            </View>
+          </>
         )}
       </View>
     </AppFrame>
@@ -224,7 +254,12 @@ const styles = StyleSheet.create({
   status: { alignItems: 'center', maxWidth: 280, gap: 5 },
   title: { ...theme.type.action, fontSize: 17, color: theme.color.ink },
   hint: { ...theme.type.body, color: theme.color.muted, textAlign: 'center' },
-  heard: { paddingHorizontal: theme.gutter, paddingBottom: theme.spacing.md },
+  // flexShrink, not flex: with no transcript this is not rendered at all and
+  // the stage keeps the screen; with one, this is the part that gives way.
+  heard: { flexShrink: 1 },
+  heardContent: { paddingHorizontal: theme.gutter, paddingBottom: theme.spacing.md },
+  outputs: { paddingHorizontal: theme.gutter, gap: theme.spacing.md },
+  actions: { flexDirection: 'row', paddingBottom: theme.spacing.md },
   label: {
     ...theme.type.label,
     color: theme.color.faint,

@@ -2,7 +2,10 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
+import { encode } from '@/core/domain/morse';
 import { DEFAULT_UNIT_MS, UNITS } from '@/core/domain/tapping';
+import { toTimeline, unitMsForWpm } from '@/core/domain/timeline';
+import { renderWav } from '@/core/domain/tone';
 import { TapScreen } from './TapScreen';
 
 const show = (locale?: 'en' | 'pt-BR' | 'es'): void => {
@@ -465,5 +468,75 @@ describe('undoing the last thing keyed', () => {
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
     fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
+  });
+});
+
+/**
+ * A TestFlight tester came to this screen looking for the way to send what
+ * they had tapped out as vibration or a flashing screen, the way the
+ * Translator offers, and found the key was input only.
+ */
+describe('sending what was tapped', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  /** Keys E, which is one dot — the shortest thing that decodes to a letter. */
+  const keyE = (): void => {
+    hold(100);
+    wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
+  };
+
+  // Shown from the start, not once there is something to send. The complaint
+  // was that the feature could not be FOUND; hiding it until the user had
+  // already guessed it was there would repeat the mistake.
+  it('shows all four channels before anything has been keyed', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+
+    for (const channel of ['sound', 'light', 'screen', 'buzz']) {
+      expect(screen.getByTestId(`channel-${channel}`)).toBeOnTheScreen();
+    }
+  });
+
+  it('will not emit an empty message', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+
+    expect(screen.getByTestId('signal-button')).toBeDisabled();
+  });
+
+  it('emits what was keyed once there is something to emit', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    keyE();
+
+    expect(screen.getByTestId('signal-button')).not.toBeDisabled();
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.played).toHaveLength(1);
+  });
+
+  /**
+   * ⚠️ The cut-off and the playback speed are two different settings, and the
+   * domain says so in as many words: one is how sloppy a HUMAN's keying may be
+   * before a dot becomes a dash, the other is how fast the app reads a message
+   * back. Keying slowly and listening quickly is a reasonable thing to want.
+   */
+  it('plays back at the playback speed, not at the keying cut-off', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+    keyE();
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    // E is one dot. At the default 10 wpm that is 120ms of tone, not the
+    // 180ms the tap cut-off defaults to.
+    // Inline rather than in a variable: `renderWav` starts with "render", and
+    // testing-library's naming rule cannot tell it from a component render.
+    expect((ports.calls.played[0] as Uint8Array).length).toBe(
+      renderWav(toTimeline(encode('E')), { unitMs: unitMsForWpm(10) }).length,
+    );
   });
 });
