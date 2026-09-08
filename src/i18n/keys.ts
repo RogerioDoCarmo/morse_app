@@ -49,8 +49,6 @@ export type TranslationKey =
   | 'tap.decoded'
   | 'tap.hint'
   | 'tap.letter'
-  | 'tap.cutoff'
-  | 'tap.cutoffHint'
   | 'tap.key'
   | 'tap.clear'
   | 'tap.read'

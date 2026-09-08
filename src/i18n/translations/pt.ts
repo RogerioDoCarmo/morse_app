@@ -48,8 +48,6 @@ export const ptBR: TranslationMap = {
   'tap.decoded': 'Decodificado',
   'tap.hint': 'Segure a tecla para um traço, toque para um ponto.',
   'tap.letter': 'Letra',
-  'tap.cutoff': 'Corte ponto / traço',
-  'tap.cutoffHint': 'Mais que isso é um traço',
   'tap.key': 'Toque ou segure',
   'tap.clear': 'Limpar',
   'tap.read': 'Ler',

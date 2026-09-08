@@ -5,6 +5,10 @@ on:
     branches: [develop]
     paths:
       - 'package.json'
+  # A version bump is a heavy way to retry a distribution that failed for a
+  # reason of its own — which is how the `--output` bug below went unnoticed
+  # from the day this was written until the first bump ever fired it.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -27,6 +31,15 @@ jobs:
       # tell apart.
       - id: check
         run: |
+          # Dispatched by hand means someone has already decided; the gate is
+          # for the push trigger, which fires on every commit that touches
+          # package.json whether or not the version moved.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+            echo "Dispatched by hand; distributing whatever develop currently says."
+            exit 0
+          fi
           current=$(node -p "require('./package.json').version")
           previous=$(git show HEAD~1:package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version" || echo "none")
           echo "version=$current" >> "$GITHUB_OUTPUT"
@@ -74,10 +87,29 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ⚠️ NOT `--output`. That flag is accepted only for `--local` builds, and
+      # this is a cloud build: every run of this workflow died in seconds with
+      # "--output is allowed only for local builds" — from the day it was
+      # written until a version bump first fired it. A finished cloud build is
+      # fetched from the URL it reports.
       - name: Build a preview binary
         run: |
+          set -euo pipefail
           eas build --platform ${{ matrix.platform }} --profile preview \
-            --non-interactive --wait --output ${{ matrix.artifact }}
+            --non-interactive --wait --json > build.json
+          # The field has moved between EAS versions, so take the first URL the
+          # payload offers rather than naming one path through it.
+          url=$(jq -r '[.. | objects
+                        | (.applicationArchiveUrl? // .buildUrl?)
+                        | select(. != null and . != "")] | first' build.json)
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "::error::The build finished but reported no artifact URL."
+            cat build.json
+            exit 1
+          fi
+          echo "Downloading $url"
+          curl -fsSL -o "${{ matrix.artifact }}" "$url"
+          ls -lh "${{ matrix.artifact }}"
 
       - name: Distribute to testers
         uses: wzieba/Firebase-Distribution-Github-Action@v1

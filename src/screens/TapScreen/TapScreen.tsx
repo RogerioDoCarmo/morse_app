@@ -12,12 +12,9 @@ import { OutputChannels } from '@/components/OutputChannels';
 import { SignalButton } from '@/components/SignalButton';
 import type { TabName } from '@/components/TabBar';
 import {
-  MAX_UNIT_MS,
   UNITS,
-  MIN_UNIT_MS,
   classifyGap,
   classifyPress,
-  clampUnitMs,
   decodeTaps,
   tapsToMorse,
   type TapPress,
@@ -27,7 +24,6 @@ import { unitMsForWpm } from '@/core/domain/timeline';
 import { theme } from '@/theme';
 
 /** How much one press of the stepper moves the cut-off. */
-const STEP_MS = 20;
 
 /** The key's diameter, from the artboard. */
 const KEY_SIZE = 186;
@@ -52,7 +48,7 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
 
   // The cut-off is a saved preference, not screen state: the stepper here and
   // the slider in Settings move the same value, and it survives a relaunch.
-  const { settings, setTapUnitMs } = useSettings();
+  const { settings } = useSettings();
   const unitMs = settings.tapUnitMs;
   const [presses, setPresses] = useState<readonly TapPress[]>([]);
   const [down, setDown] = useState(false);
@@ -138,13 +134,6 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
       setClosed(true);
     }, UNITS.letterGap * unitMs);
   }, [stopClosing, unitMs]);
-
-  const step = useCallback(
-    (by: number): void => {
-      setTapUnitMs(clampUnitMs(unitMs + by));
-    },
-    [setTapUnitMs, unitMs],
-  );
 
   // The decoded text read back in the app language. AGENTS.md asks for this
   // on tap input specifically: keying a message you cannot hear is how you
@@ -290,42 +279,6 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 label={playback.playing ? t('translator.stop') : t('translator.signal')}
               />
             </View>
-
-            <View style={styles.cutoff}>
-              <View style={styles.cutoffCopy}>
-                <Text style={styles.cutoffTitle}>{t('tap.cutoff')}</Text>
-                <Text style={styles.cutoffHint}>{t('tap.cutoffHint')}</Text>
-              </View>
-              <View style={styles.stepper}>
-                <Pressable
-                  testID="cutoff-down"
-                  accessibilityRole="button"
-                  accessibilityLabel="cutoff-down"
-                  disabled={unitMs <= MIN_UNIT_MS}
-                  onPress={() => {
-                    step(-STEP_MS);
-                  }}
-                  style={styles.stepButton}
-                >
-                  <Icon name="minus" size={17} color={theme.color.ink} />
-                </Pressable>
-                <Text testID="cutoff-value" style={styles.cutoffValue}>
-                  {`${String(unitMs)} ms`}
-                </Text>
-                <Pressable
-                  testID="cutoff-up"
-                  accessibilityRole="button"
-                  accessibilityLabel="cutoff-up"
-                  disabled={unitMs >= MAX_UNIT_MS}
-                  onPress={() => {
-                    step(STEP_MS);
-                  }}
-                  style={styles.stepButton}
-                >
-                  <Icon name="plus" size={17} color={theme.color.ink} />
-                </Pressable>
-              </View>
-            </View>
           </ScrollView>
 
           {/* The only thing besides the key that does not scroll. These are
@@ -459,29 +412,6 @@ const styles = StyleSheet.create({
   dash: { width: 26, height: 10, borderRadius: 5 },
   markOn: { backgroundColor: theme.color.accent },
   markEmpty: { backgroundColor: '#e2e6ea' },
-  cutoff: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: theme.spacing.md,
-  },
-  cutoffCopy: { flexShrink: 1 },
-  cutoffTitle: { ...theme.type.chip, color: theme.color.ink },
-  cutoffHint: { ...theme.type.hint, fontSize: 11, color: theme.color.muted },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  stepButton: {
-    width: theme.hitTarget,
-    height: theme.hitTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cutoffValue: {
-    ...theme.type.mono,
-    fontSize: 14,
-    color: theme.color.ink,
-    minWidth: 58,
-    textAlign: 'center',
-  },
   // The part that gives way when there is more than fits: the card, the letter
   // row and the cut-off. `flexGrow` rather than `flex` so a short message
   // still fills the space instead of bunching at the top — the same

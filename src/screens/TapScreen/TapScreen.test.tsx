@@ -131,7 +131,7 @@ describe('TapScreen', () => {
   });
 });
 
-describe('TapScreen — the cut-off', () => {
+describe('TapScreen — the cut-off it reads', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -139,49 +139,51 @@ describe('TapScreen — the cut-off', () => {
     jest.useRealTimers();
   });
 
-  it('starts at the default the domain sets', () => {
-    show();
-    expect(screen.getByTestId('cutoff-value')).toHaveTextContent('180 ms');
-  });
+  /**
+   * The stepper used to live on this screen and no longer does: it is in
+   * Settings, which is where it always also was, and this screen could not
+   * hold it and the output channels both on a 320dp phone.
+   *
+   * What still belongs here is that the screen READS that setting. "Long" is
+   * relative to the operator's own speed, which is the whole reason it is a
+   * setting rather than a constant — and a 150ms press has to land on either
+   * side of it accordingly.
+   */
+  const holdingCutoff = (ms: string): FakePorts => {
+    const ports = createFakePorts();
+    return {
+      ...ports,
+      preferences: {
+        ...ports.preferences,
+        read: async (key: string) => (key === 'settings.tapUnitMs' ? ms : null),
+      },
+    };
+  };
 
-  it('steps in both directions', () => {
-    show();
-    fireEvent.press(screen.getByTestId('cutoff-up'));
-    expect(screen.getByTestId('cutoff-value')).toHaveTextContent('200 ms');
-
-    fireEvent.press(screen.getByTestId('cutoff-down'));
-    fireEvent.press(screen.getByTestId('cutoff-down'));
-    expect(screen.getByTestId('cutoff-value')).toHaveTextContent('160 ms');
-  });
-
-  // "Long" is relative to the operator's own speed, which is the whole reason
-  // this is a setting rather than a constant.
-  it('re-reads what was already keyed at the new cut-off', () => {
+  it('reads a 150ms press as a dot at the shipped default', () => {
     show();
     hold(150);
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
+  });
 
-    // Drop the cut-off below 150ms and the same press becomes a dash.
-    for (let i = 0; i < 3; i += 1) fireEvent.press(screen.getByTestId('cutoff-down'));
+  it('reads the same press as a dash under a lower cut-off', async () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports: holdingCutoff('120'),
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
+    });
 
-    expect(screen.getByTestId('cutoff-value')).toHaveTextContent('120 ms');
+    hold(150);
+
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('T');
   });
 
-  it('will not go below the range the domain allows', () => {
+  it('does not offer the stepper any more — Settings owns it', () => {
     show();
-    for (let i = 0; i < 10; i += 1) fireEvent.press(screen.getByTestId('cutoff-down'));
-
-    expect(screen.getByTestId('cutoff-value')).toHaveTextContent('80 ms');
-    expect(screen.getByTestId('cutoff-down')).toBeDisabled();
-  });
-
-  it('will not go above it either', () => {
-    show();
-    for (let i = 0; i < 20; i += 1) fireEvent.press(screen.getByTestId('cutoff-up'));
-
-    expect(screen.getByTestId('cutoff-value')).toHaveTextContent('400 ms');
-    expect(screen.getByTestId('cutoff-up')).toBeDisabled();
+    expect(screen.queryByTestId('cutoff-value')).toBeNull();
+    expect(screen.queryByTestId('cutoff-up')).toBeNull();
+    expect(screen.queryByTestId('cutoff-down')).toBeNull();
   });
 });
 
@@ -304,29 +306,21 @@ describe('the cut-off is a saved preference, not screen state', () => {
     };
   };
 
-  it('starts from what was stored rather than the shipped default', async () => {
+  // Reading it is this screen's half; writing it is the Settings slider's, and
+  // SettingsScreen.test.tsx covers that end.
+  it('decodes by what was stored rather than the shipped default', async () => {
     const ports = holding({ 'settings.tapUnitMs': '300' });
     renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
       ports,
     });
     await waitFor(() => {
-      expect(screen.getByTestId('cutoff-value')).toHaveTextContent('300 ms');
+      expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
     });
-  });
 
-  // The same value the Settings slider moves, so the stepper must write it
-  // through rather than keep a copy of its own.
-  it('writes the stepper through to storage', async () => {
-    const ports = createFakePorts();
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
-    fireEvent.press(screen.getByTestId('cutoff-up'));
-    await waitFor(() => {
-      expect(ports.calls.stored.some((row) => row.key === 'settings.tapUnitMs')).toBe(
-        true,
-      );
-    });
+    // 250ms is a dash at the 180ms default and a dot at 300.
+    hold(250);
+
+    expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
 });
 

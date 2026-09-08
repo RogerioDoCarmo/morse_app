@@ -48,8 +48,6 @@ export const en: TranslationMap = {
   'tap.decoded': 'Decoded',
   'tap.hint': 'Hold the key for a dash, tap it for a dot.',
   'tap.letter': 'Letter',
-  'tap.cutoff': 'Dot / dash cut-off',
-  'tap.cutoffHint': 'Longer than this is a dash',
   'tap.key': 'Tap or hold',
   'tap.clear': 'Clear',
   'tap.read': 'Read',
