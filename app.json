@@ -51,8 +51,7 @@
             ]
           }
         ]
-      },
-      "buildNumber": "3"
+      }
     },
     "android": {
       "package": "com.rogeriodocarmo.morse",
@@ -70,8 +69,7 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
-      "versionCode": 2
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
