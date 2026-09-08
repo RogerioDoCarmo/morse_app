@@ -42,26 +42,11 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-buzz'
 - assertVisible:
     id: 'channel-screen'
-# Nothing keyed means nothing to send, and the button says so rather than
-# playing silence. Emit sits just under the strip, which on the smallest screen
-# puts it a little below the fold — the STRIP is the part that has to be
-# visible without asking, since that is what tells a user the feature is there.
-#
-# ⚠️ `swipe: from:` rather than `scrollUntilVisible`. The latter swipes from the
-# CENTRE of the screen, and the centre of THIS screen is the key — a Pressable,
-# which scrolls nothing. Two runs failed with "No visible element found:
-# id: signal-button" while the screenshots showed a region that had never
-# moved. Anchor the swipe inside the region you mean to scroll.
-#
-# `tap-empty` and not `tap-decoded`: nothing has been keyed yet, so the card is
-# still holding the hint.
-- swipe:
-    from:
-      id: 'tap-empty'
-    direction: UP
-- assertVisible:
-    id: 'signal-button'
-    enabled: false
+# That Emit refuses an EMPTY message is a unit test's job, not this one's.
+# Asserting it here costs a scroll down to reach the button and a scroll back
+# to carry on, and the first version of this flow did exactly that — then
+# failed three steps later on `tap-back`, which the scroll had taken off
+# screen. One scroll, at the end, with nothing after it.
 
 # A quick tap is under the 180ms cut-off, so it is a dot.
 #
@@ -117,6 +102,11 @@ appId: com.rogeriodocarmo.morse
 # And now there IS something to send, so the button offers itself. Started and
 # stopped rather than left running: the next step clears the message out from
 # under it.
+# ⚠️ `swipe: from:` rather than `scrollUntilVisible`. The latter swipes from
+# the CENTRE of the screen, and the centre of THIS screen is the key — a
+# Pressable, which scrolls nothing. Runs on both platforms failed with "No
+# visible element found" while their own screenshots showed a region that had
+# never moved. Anchor the swipe inside the region you mean to scroll.
 - swipe:
     from:
       id: 'tap-decoded'
@@ -129,6 +119,13 @@ appId: com.rogeriodocarmo.morse
     waitToSettleTimeoutMs: 0
 - tapOn:
     id: 'signal-button'
+
+# Back to the top: the card head carries the steps below, and the strip is what
+# is on screen to swipe from now.
+- swipe:
+    from:
+      id: 'output-channels'
+    direction: DOWN
 
 - tapOn:
     id: 'tap-clear'
