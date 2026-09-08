@@ -9,6 +9,18 @@ on:
   # reason of its own — which is how the `--output` bug below went unnoticed
   # from the day this was written until the first bump ever fired it.
   workflow_dispatch:
+    inputs:
+      platform:
+        # ⚠️ Retries are usually ONE-SIDED. iOS fails for reasons Android
+        # cannot have — an ad-hoc profile with no registered devices, most
+        # often — and rebuilding the good platform to retry the bad one costs a
+        # second EAS build AND hands testers two identical releases they cannot
+        # tell apart, which is the very thing the gate below exists to prevent.
+        description: Platform to build and distribute
+        required: true
+        default: all
+        type: choice
+        options: [all, android, ios]
 
 permissions:
   contents: read
@@ -21,6 +33,7 @@ jobs:
     outputs:
       bumped: ${{ steps.check.outputs.bumped }}
       version: ${{ steps.check.outputs.version }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,6 +64,27 @@ jobs:
             echo "Version unchanged at $current; nothing to distribute."
           fi
 
+      # ⚠️ iOS goes out as an AD-HOC build, so every tester device must be
+      # registered with `eas device:create` first and a new device needs a
+      # rebuild — the UDID list is baked into the IPA at signing time.
+      # TestFlight has no such limit and is handled by eas-build.yml's opt-in
+      # submit job; this is the faster channel, not the only one.
+      - id: plan
+        run: |
+          set -euo pipefail
+          want='${{ inputs.platform || 'all' }}'
+          all='{"include":[
+            {"platform":"android","artifact":"build.apk","app_id_secret":"FIREBASE_ANDROID_APP_ID"},
+            {"platform":"ios","artifact":"build.ipa","app_id_secret":"FIREBASE_IOS_APP_ID"}
+          ]}'
+          if [ "$want" = "all" ]; then
+            matrix=$(jq -c . <<<"$all")
+          else
+            matrix=$(jq -c --arg p "$want" '{include: [.include[] | select(.platform == $p)]}' <<<"$all")
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "Distributing: $want"
+
   distribute:
     name: Distribute ${{ matrix.platform }}
     needs: gate
@@ -59,19 +93,10 @@ jobs:
     strategy:
       # One platform failing should not deny testers the other.
       fail-fast: false
-      matrix:
-        include:
-          - platform: android
-            artifact: build.apk
-            app_id_secret: FIREBASE_ANDROID_APP_ID
-          # ⚠️ iOS goes out as an AD-HOC build, so every tester device must be
-          # registered with `eas device:create` first and a new device needs a
-          # rebuild — the UDID list is baked into the IPA at signing time.
-          # TestFlight has no such limit and is handled by eas-build.yml's
-          # opt-in submit job; this is the faster channel, not the only one.
-          - platform: ios
-            artifact: build.ipa
-            app_id_secret: FIREBASE_IOS_APP_ID
+      # Built by the gate rather than written here, so a dispatch can ask for
+      # one platform. `jobs.<id>.if` cannot see the `matrix` context, so
+      # filtering has to happen before the matrix exists.
+      matrix: ${{ fromJSON(needs.gate.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
