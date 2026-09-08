@@ -161,6 +161,39 @@ describe('TranslatorScreen — direction', () => {
     expect(screen.queryByTestId('speak-input')).toBeNull();
   });
 
+  /**
+   * Both were drawn on the artboard and neither was ever wired. A tester
+   * pressed Speak, watched nothing happen, and reasonably concluded the
+   * microphone was broken — so this asserts the press LANDS somewhere, which
+   * is the whole of the defect.
+   */
+  it('sends Speak to the tab that owns the microphone', () => {
+    const onSelectTab = jest.fn();
+    renderWithProviders(<TranslatorScreen onSelectTab={onSelectTab} />);
+
+    fireEvent.press(screen.getByTestId('speak-input'));
+
+    expect(onSelectTab).toHaveBeenCalledWith('speak');
+  });
+
+  it('sends its twin to the tab that owns the key', () => {
+    const onSelectTab = jest.fn();
+    renderWithProviders(<TranslatorScreen onSelectTab={onSelectTab} />);
+    fireEvent.press(screen.getByTestId('segment-toText'));
+
+    fireEvent.press(screen.getByTestId('tap-input'));
+
+    expect(onSelectTab).toHaveBeenCalledWith('tap');
+  });
+
+  it('survives being pressed on a screen with nowhere to send it', () => {
+    renderWithProviders(<TranslatorScreen />);
+
+    expect(() => {
+      fireEvent.press(screen.getByTestId('speak-input'));
+    }).not.toThrow();
+  });
+
   it('decodes typed Morse back to text', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.press(screen.getByTestId('segment-toText'));
@@ -664,6 +697,50 @@ describe('TranslatorScreen — output channels', () => {
 
     fireEvent.press(screen.getByTestId('signal-button'));
     expect(ports.calls.torchEnabled).toEqual([true, false]);
+  });
+
+  /**
+   * The camera is held for the RUN, not for the mark.
+   *
+   * Mounting one per mark meant a fresh camera every 80ms at 15 wpm: the torch
+   * could not open that fast and each mount blinked a black rectangle across
+   * half a Poco X5 5G's display. `torchEnabled` moves with the marks;
+   * `torchActive` must move twice a message and no more.
+   */
+  it('holds the camera for the whole run rather than for each mark', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await enableLight();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(600);
+
+    expect(ports.calls.torchActive).toEqual([true]);
+    expect(ports.calls.torchEnabled.length).toBeGreaterThan(2);
+  });
+
+  it('lets the camera go once the run is stopped', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await enableLight();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(60);
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(30);
+
+    expect(ports.calls.torchActive).toEqual([true, false]);
+  });
+
+  // Switching Light on is not a reason to open a camera: nothing is going out
+  // yet, and holding one would light the phone's camera indicator over a
+  // screen that is doing nothing.
+  it('opens no camera for a channel switched on outside a run', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    await enableLight();
+    await advance(60);
+
+    expect(ports.calls.torchActive).toEqual([]);
   });
 
   // The promise of one run, several channels: the light joins what is already

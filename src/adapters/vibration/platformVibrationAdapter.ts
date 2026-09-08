@@ -1,6 +1,29 @@
 import { Platform, Vibration } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
 import * as Haptics from 'expo-haptics';
 import type { ICrashReportingPort, IVibrationPort, VibrationMark } from '@/core/ports';
+
+/**
+ * `modules/morse-vibration` — the local Android module, and the only caller in
+ * this tree that tells the platform what the vibration is FOR.
+ *
+ * `vibratePattern` answers whether it managed anything, so a device with no
+ * motor and a build without the module are told apart from a vibration that
+ * played.
+ */
+type MorseVibration = Readonly<{
+  vibratePattern: (pattern: readonly number[]) => boolean;
+  cancelVibration: () => void;
+}>;
+
+/**
+ * Looked up per call rather than once at import.
+ *
+ * It costs a map lookup, it is only reached on Android, and it keeps this file
+ * free of module-load state that a test would have to reset.
+ */
+const morseVibration = (): MorseVibration | null =>
+  requireOptionalNativeModule<MorseVibration>('MorseVibration');
 
 /** Non-Error throws are legal in JS; reports need a stack either way. */
 const asError = (thrown: unknown): Error =>
@@ -9,26 +32,27 @@ const asError = (thrown: unknown): Error =>
 /**
  * Android's pattern form: a delay, then alternating buzz and silence.
  *
- * ⚠️ THE ANDROID SIDE OF THIS IS AT THE MERCY OF A SETTING THE APP CANNOT SEE.
+ * ⚠️ THE PATTERN WAS NEVER THE PROBLEM, AND THREE BUILDS WERE SPENT FINDING
+ * THAT OUT.
  *
- * A Poco X5 5G felt nothing at all on the first build anyone ran, and the app
- * is not why. The pattern is well formed at every speed offered (a test pins
- * it), `android.permission.VIBRATE` is in the shipped APK (`aapt2 dump
- * permissions` says so), and the composition root wires the real adapter.
+ * A Poco X5 5G felt nothing at all while the same code buzzed on an iPhone.
+ * The pattern is well formed at every speed offered (a test pins it),
+ * `android.permission.VIBRATE` is in the shipped APK (`aapt2 dump permissions`
+ * says so), and the composition root wires the real adapter.
  *
  * What React Native does with the pattern is:
  *
  *     v.vibrate(VibrationEffect.createWaveform(patternLong, repeat))
  *
- * — the DEPRECATED single-argument overload, with no `VibrationAttributes`.
- * Nothing in the dependency tree sets them, expo-haptics included. A vibration
- * with no stated usage is `USAGE_UNKNOWN`, and the platform applies the user's
- * touch-feedback intensity to it: with haptic feedback turned down, the OS
- * drops it silently. Nothing in JS can raise that.
+ * — the single-argument overload, with no `VibrationAttributes`. Nothing in
+ * the dependency tree sets them, expo-haptics included. A vibration with no
+ * stated usage is `USAGE_UNKNOWN`, and the platform applies the user's
+ * TOUCH-FEEDBACK intensity to it: turned down, the OS drops it silently.
  *
- * If this needs to work regardless of that setting, it takes a native module
- * calling `vibrate(effect, VibrationAttributes)` with a usage the system does
- * not suppress. Switching to expo-haptics would not help — it has the same
+ * So `modules/morse-vibration` says the usage out loud — `USAGE_ALARM`, which
+ * is what a message the user asked to be sent actually is — and this adapter
+ * prefers it, falling back to `Vibration` where the module is not linked.
+ * Switching to expo-haptics instead would not have helped: it has the same
  * gap, and canned effects cannot carry a dot and a dash apart anyway.
  *
  * Built from the gaps between marks rather than from the timeline's silences,
@@ -81,7 +105,14 @@ export function createPlatformVibrationAdapter(
 
       try {
         if (Platform.OS === 'android') {
-          Vibration.vibrate(toAndroidPattern(marks), false);
+          const pattern = toAndroidPattern(marks);
+          // The local module first, because it states a usage the platform
+          // will not silently scale away. React Native's own Vibration is the
+          // fallback for a build without it — it plays on a phone whose touch
+          // feedback is turned up, which is most of them.
+          if (morseVibration()?.vibratePattern(pattern) !== true) {
+            Vibration.vibrate(pattern, false);
+          }
           return Promise.resolve();
         }
 
@@ -106,6 +137,9 @@ export function createPlatformVibrationAdapter(
     stop() {
       clearPulses();
       try {
+        // Both, and unconditionally: whichever one started the run, this has
+        // to end it, and neither minds being asked to cancel nothing.
+        if (Platform.OS === 'android') morseVibration()?.cancelVibration();
         Vibration.cancel();
       } catch (error) {
         return crash.recordError(asError(error), 'vibration: could not stop');

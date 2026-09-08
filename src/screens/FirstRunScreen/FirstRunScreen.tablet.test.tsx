@@ -31,19 +31,39 @@ describe('the carousel on a tablet', () => {
 
   it('still walks all three slides and lands on Start', () => {
     show();
-    expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
+    expect(screen.getByText('Type it, see it')).toBeOnTheScreen();
     fireEvent.press(screen.getByTestId('first-run-next'));
-    expect(screen.getByTestId('first-run-art-channels')).toBeOnTheScreen();
+    expect(screen.getByText('Choose how it goes out')).toBeOnTheScreen();
     fireEvent.press(screen.getByTestId('first-run-next'));
-    expect(screen.getByTestId('first-run-art-letter')).toBeOnTheScreen();
+    expect(screen.getByText('Hear one letter at a time')).toBeOnTheScreen();
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
 
-  it('still leaves only by Start', () => {
+  /**
+   * Only the illustration swipes here. The copy keeps its own column beside
+   * it — that is the artboard's tablet layout — so it changes with the index
+   * rather than travelling with the gesture, and there is exactly ONE set of
+   * dots and one button however many pages are mounted.
+   */
+  it('swipes the illustration and moves the copy with it', () => {
+    show();
+    const pager = screen.getByTestId('first-run-pager');
+
+    fireEvent(pager, 'layout', {
+      nativeEvent: { layout: { width: 520, height: 700, x: 0, y: 0 } },
+    });
+    fireEvent(pager, 'momentumScrollEnd', {
+      nativeEvent: { contentOffset: { x: 1040, y: 0 } },
+    });
+
+    expect(screen.getByText('Hear one letter at a time')).toBeOnTheScreen();
+    expect(screen.getByTestId('first-run-dots')).toBeOnTheScreen();
+    expect(screen.getByTestId('first-run-next')).toBeOnTheScreen();
+  });
+
+  it('leaves on Skip here too', () => {
     const onDone = show();
     fireEvent.press(screen.getByTestId('first-run-skip'));
-    expect(onDone).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByTestId('first-run-next'));
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 

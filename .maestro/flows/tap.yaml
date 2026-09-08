@@ -116,9 +116,26 @@ appId: com.rogeriodocarmo.morse
     enabled: true
 - tapOn:
     id: 'signal-button'
-    waitToSettleTimeoutMs: 0
-- tapOn:
-    id: 'signal-button'
+
+# ⚠️ NOT stopped again, and not asserted against while it runs. What is keyed
+# here is a single letter — one dot, 120ms at the default speed — so the run
+# has ended on its own before the next step can look at it.
+#
+# The key coming back is what makes a second tap unreliable rather than merely
+# redundant. While the key is away the scrolling region is ~200pt taller and
+# the scroll offset is clamped to match; the offset does not come back when the
+# key does, so the region returns to the top and Emit goes below the fold. The
+# flow failed there with "Element not found: signal-button" against a
+# screenshot showing the key back and the strip at the bottom of the screen.
+#
+# That the key disappears at all is `TapScreen.test.tsx`'s job — it can hold
+# the clock still, which is what asserting on a 120ms window needs.
+#
+# The settle-skip flag came off the tap above with the second one: it exists to
+# dodge a wait that never ends while a message plays, and this message is over
+# before the wait would have started.
+- assertVisible:
+    id: 'tap-key'
 
 # Back to the top: the card head carries the steps below, and the strip is what
 # is on screen to swipe from now.

@@ -35,7 +35,32 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-next'
 - assertVisible:
     id: 'first-run-art-letter'
-# Skip is gone on the last slide — Start is the single way out.
+# Skip is gone on the last slide: there is nothing left to skip, and Start
+# already says the same thing.
+- assertNotVisible:
+    id: 'first-run-skip'
+
+# It swipes as well as it taps. The three slides are mounted side by side in a
+# paging scroll view, which is the whole of the gesture — so what this proves
+# is that the DOTS and the BUTTON follow it, rather than the pager and the
+# index drifting apart. Back to the middle slide, then on again.
+#
+# ⚠️ Percentages, not `from: <element>`. An element swipe travels a fraction of
+# that element, and a paging scroll view snaps BACK unless the drag passes half
+# a page or carries real velocity: the first version of this swiped from the
+# illustration, moved nothing, and failed against a screenshot of the slide it
+# had never left. This one crosses three quarters of the screen.
+#
+# 45% height keeps it inside the pager on every slide — below the Skip row,
+# above the dots and the button.
+- swipe:
+    start: 12%, 45%
+    end: 88%, 45%
+- assertVisible:
+    id: 'first-run-skip'
+- swipe:
+    start: 88%, 45%
+    end: 12%, 45%
 - assertNotVisible:
     id: 'first-run-skip'
 
@@ -53,3 +78,17 @@ appId: com.rogeriodocarmo.morse
     id: 'translator-screen'
 - assertNotVisible:
     id: 'first-run'
+
+# Skip is the other way out, and it goes all the way out. It used to jump to
+# the last slide, which meant "skip this" was answered with one more slide and
+# one more button.
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: 'first-run'
+- tapOn:
+    id: 'first-run-skip'
+- assertNotVisible:
+    id: 'first-run'
+- assertVisible:
+    id: 'translator-screen'

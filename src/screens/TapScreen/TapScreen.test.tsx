@@ -536,6 +536,42 @@ describe('sending what was tapped', () => {
   });
 
   /**
+   * A 186pt disc is most of a phone's remaining height, and there is nothing
+   * to key while the message is going out. Worse, a press would change the
+   * decoded text — and so the message, and so the effect keyed on it — tearing
+   * the run down halfway through.
+   */
+  it('takes the key off the screen while the message is going out', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    keyE();
+    expect(screen.getByTestId('tap-key')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(screen.queryByTestId('tap-key')).toBeNull();
+  });
+
+  it('gives the key back the moment the message stops', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    keyE();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(screen.getByTestId('tap-key')).toBeOnTheScreen();
+  });
+
+  // Emit goes nowhere without it, and it is the control that ends the run.
+  it('keeps Emit where it is, so there is still a way to stop', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    keyE();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(screen.getByTestId('signal-button')).toBeOnTheScreen();
+  });
+
+  /**
    * ⚠️ The cut-off and the playback speed are two different settings, and the
    * domain says so in as many words: one is how sloppy a HUMAN's keying may be
    * before a dot becomes a dash, the other is how fast the app reads a message

@@ -3,6 +3,8 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { SettingsScreen } from './SettingsScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
+import { APP_VERSION } from '@/appVersion';
+import appJson from '../../../app.json';
 
 /** A fake whose storage already holds values. */
 function portsHolding(stored: Readonly<Record<string, string>>): FakePorts {
@@ -172,5 +174,48 @@ describe('getting the welcome guide back', () => {
     show();
     expect(screen.getByText('ABOUT')).toBeOnTheScreen();
     expect(screen.getByTestId('settings-about-morse')).toBeOnTheScreen();
+  });
+});
+
+describe('which build this is', () => {
+  /**
+   * The one thing on the phone that says which build is on it. Firebase App
+   * Distribution hands out several in a day and they are identical from the
+   * inside, so a tester reporting "the vibration still does not work" could
+   * not say what they were testing.
+   *
+   * Read from `app.json` rather than typed out here: it is the same file EAS
+   * builds from and the same one `release.yml` checks a tag against, so this
+   * asserts against the declaration itself and cannot go stale.
+   */
+  it('shows the version the app claims', () => {
+    show();
+
+    expect(screen.getByTestId('settings-version')).toHaveTextContent(
+      `Version ${appJson.expo.version}`,
+    );
+  });
+
+  it('says it in the interface language', () => {
+    renderWithProviders(
+      <SettingsScreen
+        onBack={jest.fn()}
+        onOpenLearn={jest.fn()}
+        onOpenLanguage={jest.fn()}
+        onShowGuide={jest.fn()}
+      />,
+      { locale: 'pt-BR' },
+    );
+
+    expect(screen.getByTestId('settings-version')).toHaveTextContent(
+      `Versão ${appJson.expo.version}`,
+    );
+  });
+
+  // The guard the constant exists for. A version typed out by hand would be a
+  // third declaration of the same fact — after `app.json` and the git tag —
+  // and the first of the three to go stale.
+  it('reads the version rather than restating it', () => {
+    expect(APP_VERSION).toBe(appJson.expo.version);
   });
 });
