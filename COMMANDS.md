@@ -358,8 +358,8 @@ the body. The website automates it this way; Miroji does the same thing by hand.
 ```bash
 # 1. Bump the version on develop — the workflow refuses a tag that disagrees
 #    with app.json, and EAS reads app.json rather than the tag.
-#    Leave ios.buildNumber / android.versionCode alone: eas.json has
-#    autoIncrement on the production profile.
+#    There are no build numbers in app.json to touch — eas.json uses
+#    appVersionSource: remote, so EAS keeps that counter itself.
 git checkout develop && git pull origin develop
 # edit app.json: expo.version
 git commit -am "chore: 0.2.0"
@@ -377,6 +377,24 @@ git push origin v0.2.0
 The first line of the tag message becomes the release title, so write it as one:
 `v1.3.4 — A release the pipeline could not have shipped` reads better in a list than
 `v1.3.4`.
+
+### Build numbers live on EAS, not in app.json
+
+`eas.json` sets `appVersionSource: remote`, so EAS owns `ios.buildNumber` and
+`android.versionCode` and `autoIncrement` advances them per build. `app.json`
+declares neither — the same shape Miroji uses.
+
+⚠️ It was `local` once, and that quietly broke every CI build. With `local`,
+`autoIncrement` reads the number out of `app.json`, uses the next one, and
+writes it back — which on a runner is thrown away with the workspace. **Four
+consecutive iOS builds all came out as build 4**, and only the first could ever
+be submitted; App Store Connect rejects a build number it has already seen for
+a version. Nothing failed loudly, the builds all went green.
+
+```bash
+eas build:version:get --platform ios      # what EAS thinks the next one is
+eas build:version:set --platform ios      # move it, after a manual upload
+```
 
 ⚠️ **Releases carry no build artifacts.** The binaries come from EAS, not from CI —
 an APK or IPA built in Actions would be a different, unsigned thing from the one on
