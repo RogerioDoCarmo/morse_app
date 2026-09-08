@@ -47,8 +47,6 @@ export const es: TranslationMap = {
   'tap.decoded': 'Decodificado',
   'tap.hint': 'Mantén pulsada la tecla para una raya, tócala para un punto.',
   'tap.letter': 'Letra',
-  'tap.cutoff': 'Corte punto / raya',
-  'tap.cutoffHint': 'Más que esto es una raya',
   'tap.key': 'Toca o mantén',
   'tap.clear': 'Borrar',
   'tap.read': 'Leer',

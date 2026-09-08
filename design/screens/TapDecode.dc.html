@@ -82,32 +82,16 @@
 
   <div style="height: 54px; flex-shrink: 0;"></div>
 
-  <div style="padding: 10px 20px 0; flex-shrink: 0;">
-    <div style="display: flex; align-items: center; justify-content: space-between; height: 52px; padding: 0 8px 0 18px; background: #eef0f3; border-radius: 16px;">
-      <div>
-        <div style="font-size: 13px; font-weight: 700;">Dot / dash cut-off</div>
-        <div style="font-size: 11px; font-weight: 500; color: #6a7480;">Longer than this is a dash</div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 2px;">
-        <button onClick="{{ slower }}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #101820;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-        <span style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 14px; font-weight: 500; min-width: 58px; text-align: center;">{{ unit }} ms</span>
-        <button onClick="{{ faster }}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #101820;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-      </div>
-    </div>
-  </div>
   <!-- WHAT SCROLLS AND WHAT DOES NOT, on a 320dp phone.
 
-       Everything above this line scrolls: the card, the four ways out, and the
-       cut-off. Below it, nothing does — the letter row and the key.
+       Everything above this line scrolls: the card and the four ways out.
+       Below it, nothing does — the letter row and the key.
 
-       Pinning the strip and Emit as well was tried and did not fit: the
-       scrolling region came out about 70pt, clipping the decoded text mid-word
-       with too little room for a swipe to register. A screen can only have so
-       many things that must always be visible. -->
+       The dot/dash cut-off used to sit here and is now only in Settings, where
+       it always also was. This screen could not hold it and the output
+       channels both: on a 320dp phone the content ran about 120pt past the
+       screen, and the strip was being clipped mid-label. A screen can only
+       have so many things on it. -->
   <div style="padding: 12px 20px 0; flex-shrink: 0;">
     <div style="display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 18px; background: #ffffff; border-radius: 18px; box-shadow: 0 1px 2px rgba(16, 24, 32, 0.04), 0 6px 16px rgba(16, 24, 32, 0.05);">
       <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: #9aa3ad; flex-shrink: 0;">Letter</span>
