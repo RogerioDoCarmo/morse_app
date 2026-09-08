@@ -9,6 +9,7 @@ import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { AppFrame } from '@/components/AppFrame';
 import { OutputChannels } from '@/components/OutputChannels';
+import { SignalSurface } from '@/components/SignalSurface';
 import { SignalButton } from '@/components/SignalButton';
 import type { TabName } from '@/components/TabBar';
 import {
@@ -82,6 +83,11 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
     message,
     unitMsForWpm(settings.playbackWpm),
   );
+
+  // While the screen is carrying the message, the square IS the message. Without
+  // this the Screen channel switched on and nothing happened: the toggle worked,
+  // the run started, and no surface existed to flash.
+  const showSurface = playback.playing && playback.channels.screen;
 
   /**
    * The marks of the letter still being keyed.
@@ -249,7 +255,9 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                   )}
                 </View>
               </View>
-              {text === '' ? (
+              {showSurface ? (
+                <SignalSurface lit={playback.screenLit} />
+              ) : text === '' ? (
                 <Text testID="tap-empty" style={styles.emptyHint}>
                   {t('tap.hint')}
                 </Text>

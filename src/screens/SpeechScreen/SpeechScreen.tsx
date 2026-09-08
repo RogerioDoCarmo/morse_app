@@ -10,6 +10,7 @@ import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
+import { SignalSurface } from '@/components/SignalSurface';
 import { SignalButton } from '@/components/SignalButton';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
@@ -85,6 +86,12 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
     message,
     unitMsForWpm(settings.playbackWpm),
   );
+
+  // While the screen is carrying the message, the square IS the message and the
+  // chips would only compete with it — the same trade the Translator makes.
+  // Without this the Screen channel switched on and nothing happened: the
+  // toggle worked, the run started, and no surface existed to flash.
+  const showSurface = playback.playing && playback.channels.screen;
   const listening = phase === 'listening';
 
   const letGo = useCallback((): void => {
@@ -194,14 +201,18 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
                 <Text testID="speech-transcript" style={styles.transcript}>
                   {heard}
                 </Text>
-                <View style={styles.morseBlock}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <MorseText message={message} testID="speech-morse" />
-                  </ScrollView>
-                  <Text testID="speech-morse-string" style={styles.mono}>
-                    {morse}
-                  </Text>
-                </View>
+                {showSurface ? (
+                  <SignalSurface lit={playback.screenLit} />
+                ) : (
+                  <View style={styles.morseBlock}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <MorseText message={message} testID="speech-morse" />
+                    </ScrollView>
+                    <Text testID="speech-morse-string" style={styles.mono}>
+                      {morse}
+                    </Text>
+                  </View>
+                )}
               </Card>
             </ScrollView>
 
