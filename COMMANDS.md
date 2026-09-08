@@ -474,7 +474,7 @@ the body. The website automates it this way; Miroji does the same thing by hand.
 #    There are no build numbers in app.json to touch — eas.json uses
 #    appVersionSource: remote, so EAS keeps that counter itself.
 git checkout develop && git pull origin develop
-# edit app.json: expo.version
+# edit app.json: expo.version   (and package.json, unless — see below)
 git commit -am "chore: 0.2.0"
 
 # 2. Release PR develop → main, and merge it.
@@ -490,6 +490,24 @@ git push origin v0.2.0
 The first line of the tag message becomes the release title, so write it as one:
 `v1.3.4 — A release the pipeline could not have shipped` reads better in a list than
 `v1.3.4`.
+
+#### The two version fields answer to different things
+
+`app.json`'s `expo.version` is what the tag must match and what the store
+build carries. `package.json`'s is what `firebase-distribution.yml` gates on.
+They normally move together — a release that testers cannot get is a strange
+release — and PR #55 says so.
+
+⚠️ They CAN be moved apart, and 0.2.1 was: bumping `package.json` fires a
+tester distribution, which on the free plan is an iOS build, and 0.2.1 changed
+no app behaviour at all — its only source edit was a doc comment. Spending a
+scarce build to hand testers a binary identical to the one they have is worse
+than the inconsistency.
+
+So: move both by default. Move only `app.json` when the release is
+documentation or CI and there is genuinely nothing for a tester to look at.
+Never move only `package.json` — that distributes a build the tag cannot
+describe.
 
 Only the `version` moves here. Build numbers are EAS's — see
 [Build numbers live on EAS, not in app.json](#build-numbers-live-on-eas-not-in-appjson).
