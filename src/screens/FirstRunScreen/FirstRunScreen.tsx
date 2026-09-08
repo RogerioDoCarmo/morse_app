@@ -110,6 +110,25 @@ function Pager({ index, onIndex, pages, style }: PagerProps): React.JSX.Element 
     if (landed !== index) onIndex(landed);
   };
 
+  /**
+   * The same, for a page that never announced itself.
+   *
+   * ⚠️ A momentum event is not guaranteed. The CI emulator runs with
+   * `animator_duration_scale 0`, and a paging scroll view there can finish its
+   * snap inside the drag and emit no `onMomentumScrollEnd` at all — the swipe
+   * moved the pager, the dots did not follow, and the flow failed on a screen
+   * whose own screenshot showed the slide it was asserting against.
+   *
+   * Trusted only when the offset has ALREADY landed on a page boundary. A drag
+   * that still has a snap coming is somewhere in between, and reading a page
+   * out of it would fight the snap.
+   */
+  const dragged = (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+    if (width <= 0) return;
+    const offset = event.nativeEvent.contentOffset.x;
+    if (Math.abs(offset - Math.round(offset / width) * width) < 1) settled(event);
+  };
+
   return (
     <ScrollView
       testID="first-run-pager"
@@ -119,6 +138,7 @@ function Pager({ index, onIndex, pages, style }: PagerProps): React.JSX.Element 
       showsHorizontalScrollIndicator={false}
       onLayout={measure}
       onMomentumScrollEnd={settled}
+      onScrollEndDrag={dragged}
       style={style}
     >
       {pages.map((page, page_index) => (
