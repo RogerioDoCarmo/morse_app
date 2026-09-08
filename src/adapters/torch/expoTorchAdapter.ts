@@ -16,23 +16,35 @@ import type { ICrashReportingPort, ITorchPort } from '@/core/ports';
 const asError = (thrown: unknown): Error =>
   thrown instanceof Error ? thrown : new Error(String(thrown));
 
+/**
+ * What the host has to know: whether to have a camera at all, and whether that
+ * camera's torch is lit.
+ *
+ * They are separate because they change on different clocks. `active` moves
+ * twice a message; `enabled` moves twice a UNIT — up to twenty-five times a
+ * second at the fastest speed the app offers — and mounting a camera at that
+ * rate is what made the torch useless and the screen flicker.
+ */
+export type TorchState = Readonly<{ active: boolean; enabled: boolean }>;
+
 export type TorchAdapter = ITorchPort &
   Readonly<{
     /** Subscribes a mounted camera view to the requested torch state. */
-    subscribe: (listener: (enabled: boolean) => void) => () => void;
+    subscribe: (listener: (state: TorchState) => void) => () => void;
   }>;
 
 export function createExpoTorchAdapter(crash: ICrashReportingPort): TorchAdapter {
-  const listeners = new Set<(enabled: boolean) => void>();
+  const listeners = new Set<(state: TorchState) => void>();
   let enabled = false;
+  let active = false;
 
   // Every call into a listener goes through here. `subscribe` seeds the new
   // listener with the current state immediately, and that call needs the same
   // guard as a later emit — a view that throws on mount would otherwise take
   // out whoever subscribed it.
-  const notify = (listener: (enabled: boolean) => void): void => {
+  const notify = (listener: (state: TorchState) => void): void => {
     try {
-      listener(enabled);
+      listener({ active, enabled });
     } catch (error) {
       // One misbehaving view must not stop the others from being told, nor
       // leave the caller of setEnabled with a rejected promise.
@@ -57,14 +69,24 @@ export function createExpoTorchAdapter(crash: ICrashReportingPort): TorchAdapter
         return false;
       }
     },
+    async setActive(next) {
+      if (next === active) return;
+      active = next;
+      // Dropping the camera necessarily puts the torch out — the prop goes
+      // with the view. Saying so here keeps the two from disagreeing about a
+      // torch that is lit on a camera that no longer exists.
+      if (!next) enabled = false;
+      emit();
+    },
     async setEnabled(next) {
       if (next === enabled) return;
       enabled = next;
       emit();
     },
     async release() {
-      if (!enabled) return;
+      if (!enabled && !active) return;
       enabled = false;
+      active = false;
       emit();
     },
     subscribe(listener) {

@@ -1,10 +1,36 @@
 import React from 'react';
+import { Dimensions } from 'react-native';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { FirstRunScreen } from './FirstRunScreen';
 
 const next = (): void => {
   fireEvent.press(screen.getByTestId('first-run-next'));
+};
+
+/** Which dot is lit — the one thing that says where the carousel is now. */
+const at = (): number =>
+  [0, 1, 2].findIndex(
+    (dot) =>
+      screen.getByTestId(`first-run-dot-${String(dot)}`).props.accessibilityState
+        ?.selected === true,
+  );
+
+/**
+ * A swipe that lands on `page`.
+ *
+ * The pager measures itself, so the width has to arrive before an offset means
+ * anything — which is also true on a device, and why nothing moves until the
+ * first layout.
+ */
+const swipeTo = (page: number, width = 390): void => {
+  const pager = screen.getByTestId('first-run-pager');
+  fireEvent(pager, 'layout', {
+    nativeEvent: { layout: { width, height: 700, x: 0, y: 0 } },
+  });
+  fireEvent(pager, 'momentumScrollEnd', {
+    nativeEvent: { contentOffset: { x: page * width, y: 0 } },
+  });
 };
 
 describe('FirstRunScreen', () => {
@@ -18,15 +44,61 @@ describe('FirstRunScreen', () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     next();
-    expect(screen.getByText('Choose how it goes out')).toBeOnTheScreen();
+    expect(at()).toBe(1);
     next();
-    expect(screen.getByText('Hear one letter at a time')).toBeOnTheScreen();
+    expect(at()).toBe(2);
   });
 
   it('marks how far through it is', () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
-    expect(screen.getAllByTestId('first-run-dot')).toHaveLength(2);
-    expect(screen.getAllByTestId('first-run-dot-on')).toHaveLength(1);
+    expect(at()).toBe(0);
+    next();
+    expect(at()).toBe(1);
+  });
+
+  /**
+   * The slides are all mounted side by side, which is what makes the gesture
+   * free — and it means every illustration is in the tree from the start. What
+   * page you are ON is the dots, not what exists.
+   */
+  it('mounts every slide, so there is something to swipe to', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
+    expect(screen.getByTestId('first-run-art-channels')).toBeOnTheScreen();
+    expect(screen.getByTestId('first-run-art-letter')).toBeOnTheScreen();
+  });
+
+  it('follows a swipe rather than only the button', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    swipeTo(2);
+
+    expect(at()).toBe(2);
+    expect(screen.getByText('Start')).toBeOnTheScreen();
+    expect(screen.queryByTestId('first-run-skip')).toBeNull();
+  });
+
+  it('follows a swipe back as well', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    swipeTo(2);
+    swipeTo(1);
+
+    expect(at()).toBe(1);
+    expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
+  });
+
+  // The pager measures itself a frame after the first paint. Pages a frame
+  // wide of zero would be a blank carousel on the very first screen a new user
+  // ever sees, so until the real width arrives it uses the window's.
+  it('reads as wide as the window before it has been measured', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    fireEvent(screen.getByTestId('first-run-pager'), 'momentumScrollEnd', {
+      nativeEvent: { contentOffset: { x: 2 * Dimensions.get('window').width, y: 0 } },
+    });
+
+    expect(at()).toBe(2);
   });
 
   it('finishes only on the last slide', () => {
@@ -41,16 +113,26 @@ describe('FirstRunScreen', () => {
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  // Skip jumps to the last slide rather than dismissing, so Start stays the
-  // single way out and nobody leaves by a door they did not mean.
-  it('skips to the last slide rather than straight out', () => {
+  // Skip used to jump to the last slide, on the reasoning that Start should
+  // be the single way out. Answering "skip this" with one more slide and one
+  // more button reads as the guide refusing to let go, and Settings keeps a
+  // row that brings it back.
+  it('leaves outright on Skip', () => {
     const onDone = jest.fn();
     renderWithProviders(<FirstRunScreen onDone={onDone} />);
 
     fireEvent.press(screen.getByTestId('first-run-skip'));
 
-    expect(onDone).not.toHaveBeenCalled();
-    expect(screen.getByText('Hear one letter at a time')).toBeOnTheScreen();
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers Skip on every slide but the last, where Start says it', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
+    next();
+    expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
+    next();
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
 

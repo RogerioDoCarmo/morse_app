@@ -12,6 +12,9 @@ import { toTimeline, unitMsForWpm } from '@/core/domain/timeline';
 const FLOW = path.join(__dirname, '.maestro', 'flows', 'audio-playback.yaml');
 const flow = fs.readFileSync(FLOW, 'utf8');
 
+const DISMISS = path.join(__dirname, '.maestro', 'dismiss-first-run.yaml');
+const dismiss = fs.readFileSync(DISMISS, 'utf8');
+
 /**
  * The wall-clock cost of the flow's longest section on the CI simulator,
  * measured from the recording of the run that failed: a tap that starts the
@@ -155,5 +158,22 @@ describe('audio-playback.yaml', () => {
     for (const match of flow.matchAll(footer)) {
       expect(match.index).toBeGreaterThan(scrolled);
     }
+  });
+});
+
+/**
+ * Six flows start by running this one, so a mistake here does not fail here —
+ * it fails six flows later, on whatever screen they thought they were on.
+ */
+describe('dismiss-first-run.yaml', () => {
+  // Skip used to jump to the last slide, which meant leaving took a tap on
+  // Skip and then a tap on Start. It now leaves outright, and a leftover
+  // second tap would land on the Translator underneath.
+  it('leaves the guide in exactly one tap', () => {
+    expect(taps(dismiss).map((tap) => tap.id)).toStrictEqual(['first-run-skip']);
+  });
+
+  it('checks it actually left, rather than trusting the tap', () => {
+    expect(dismiss).toMatch(/assertNotVisible:\s*\n\s*id: 'first-run'/);
   });
 });

@@ -109,6 +109,7 @@ export type TranslationKey =
   | 'settings.aboutMorse'
   | 'settings.showGuide'
   | 'settings.showGuideHint'
+  | 'settings.version'
   | 'language.title'
   | 'language.interface'
   | 'language.matchInterface'

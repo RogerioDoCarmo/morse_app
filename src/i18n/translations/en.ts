@@ -121,6 +121,7 @@ export const en: TranslationMap = {
   'settings.aboutMorse': 'What is Morse code?',
   'settings.showGuide': 'Show the welcome guide',
   'settings.showGuideHint': 'The three slides from your first run',
+  'settings.version': 'Version {{version}}',
   'language.title': 'Language',
   'language.interface': 'INTERFACE',
   'language.speech': 'SPEECH RECOGNITION',

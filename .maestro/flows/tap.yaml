@@ -120,6 +120,13 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'signal-button'
 
+# ⚠️ That the key DISAPPEARS while the message is going out is a unit test's
+# job, not this one's. What is keyed here is a single letter — one dot, 120ms
+# at the default speed — and the run is over long before an assertion can look
+# at it. Buying a longer message would mean keying one press at a time through
+# the flow, which is a lot of steps for something `TapScreen.test.tsx` can
+# hold the clock still for.
+
 # Back to the top: the card head carries the steps below, and the strip is what
 # is on screen to swipe from now.
 - swipe:

@@ -119,6 +119,7 @@ export const es: TranslationMap = {
   'settings.aboutMorse': '¿Qué es el código Morse?',
   'settings.showGuide': 'Ver la guía de bienvenida',
   'settings.showGuideHint': 'Las tres diapositivas de la primera vez',
+  'settings.version': 'Versión {{version}}',
   'language.title': 'Idioma',
   'language.interface': 'INTERFAZ',
   'language.speech': 'RECONOCIMIENTO DE VOZ',

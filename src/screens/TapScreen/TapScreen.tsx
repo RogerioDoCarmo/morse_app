@@ -318,25 +318,33 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
             </View>
           </View>
 
-          <View style={styles.keyStage}>
-            <Pressable
-              testID="tap-key"
-              accessibilityRole="button"
-              accessibilityLabel="tap-key"
-              accessibilityState={{ selected: down }}
-              onPressIn={onDown}
-              onPressOut={onUp}
-              style={[styles.key, down && styles.keyDown]}
-            >
-              {/* A dot and a dash on the key itself: the two things it makes,
-                drawn at the size the output draws them. */}
-              <View style={styles.keyMarks}>
-                <View style={styles.keyDot} />
-                <View style={styles.keyDash} />
-              </View>
-              <Text style={styles.keyLabel}>{t('tap.key')}</Text>
-            </Pressable>
-          </View>
+          {/* Gone while the message is going out, and it buys most of the
+              screen back: the key is 186pt of a phone's height and there is
+              nothing to key at that moment. It is also the one control that
+              would ruin the run — a press changes the decoded text, the
+              message derived from it, and the playback effect keyed on that
+              message tears the run down mid-transmission. */}
+          {playback.playing ? null : (
+            <View style={styles.keyStage}>
+              <Pressable
+                testID="tap-key"
+                accessibilityRole="button"
+                accessibilityLabel="tap-key"
+                accessibilityState={{ selected: down }}
+                onPressIn={onDown}
+                onPressOut={onUp}
+                style={[styles.key, down && styles.keyDown]}
+              >
+                {/* A dot and a dash on the key itself: the two things it
+                    makes, drawn at the size the output draws them. */}
+                <View style={styles.keyMarks}>
+                  <View style={styles.keyDot} />
+                  <View style={styles.keyDash} />
+                </View>
+                <Text style={styles.keyLabel}>{t('tap.key')}</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       </View>
     </AppFrame>

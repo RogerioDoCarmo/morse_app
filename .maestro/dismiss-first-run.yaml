@@ -1,13 +1,15 @@
 # The first-run guide appears on every clearState launch, because clearing
 # state is exactly what makes a device look brand new. Flows that are not
 # about the guide walk past it here rather than each repeating the steps.
+#
+# ⚠️ ONE tap. Skip used to jump to the last slide, so this needed a second tap
+# on Start; it now leaves outright. If it ever takes two taps again, every
+# flow in the suite starts on the wrong screen.
 appId: com.rogeriodocarmo.morse
 ---
 - assertVisible:
     id: 'first-run'
 - tapOn:
     id: 'first-run-skip'
-- tapOn:
-    id: 'first-run-next'
 - assertNotVisible:
     id: 'first-run'

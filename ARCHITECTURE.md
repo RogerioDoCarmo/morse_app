@@ -36,14 +36,36 @@ That is enforced by ESLint (`no-restricted-imports`), not by discipline — see
 | `src/application` | DI providers and the composition root | everything |
 | `src/components`, `src/screens`, `src/hooks` | presentation | ports via hooks, never adapters |
 | `src/i18n` | the three locales, completeness enforced by the type | domain types |
+| `modules/` | local native modules, autolinked by Expo | — |
 
 ## Why the torch is shaped oddly
 
 `expo-camera` exposes the torch as a **`CameraView` prop**, not as an imperative call, so
 something must be mounted for it to switch. `createExpoTorchAdapter` therefore holds the
-requested state and lets a host component observe it (`TorchHost`), which mounts a 1×1
-invisible camera only while the torch is on. The decision to switch stays behind the port;
-only the mounting lives in the UI layer.
+requested state and lets a host component observe it (`TorchHost`). The decision to switch
+stays behind the port; only the mounting lives in the UI layer.
+
+The port carries **two** flags, and the difference is load-bearing. `setActive` opens and
+closes the camera and moves twice a message; `setEnabled` lights the torch and moves twice
+a unit — twenty-five times a second at the fastest speed offered. Driving the mount from
+`setEnabled` meant a fresh camera every 80 ms: the torch barely lit, because a camera does
+not open that fast, and every mount put a new SurfaceView through the compositor, which a
+Poco X5 5G reported twice as a black rectangle blinking across half the display. The run
+holds the camera; only the prop follows the marks.
+
+## Native code lives in `modules/`
+
+One local Expo module, `modules/morse-vibration`, Android only. It exists because nothing
+in the dependency tree — not React Native's `Vibration`, not `expo-haptics` — states a
+`VibrationAttributes` usage, so Android files every buzz under `USAGE_UNKNOWN`, applies
+the user's touch-feedback intensity to it, and drops it silently when that is turned down.
+The module says `USAGE_ALARM`, which is what a message the user pressed Emit to send
+actually is.
+
+`platformVibrationAdapter` asks for it through `requireOptionalNativeModule` and falls
+back to `Vibration` when it is not linked, so a checkout without a prebuild, and the test
+runner, behave exactly as before. Autolinking picks the directory up on its own; there is
+nothing to register.
 
 ## Ports
 

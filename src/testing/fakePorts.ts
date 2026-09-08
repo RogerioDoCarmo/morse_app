@@ -7,6 +7,8 @@ export type FakePorts = Ports &
   Readonly<{
     calls: {
       torchEnabled: boolean[];
+      /** Every hold and release of the camera, in order. */
+      torchActive: boolean[];
       spoken: { text: string; locale: AppLocale }[];
       played: Uint8Array[];
       awake: boolean[];
@@ -28,6 +30,7 @@ export function createFakePorts(
 ): FakePorts {
   const calls: FakePorts['calls'] = {
     torchEnabled: [],
+    torchActive: [],
     spoken: [],
     played: [],
     awake: [],
@@ -44,11 +47,15 @@ export function createFakePorts(
   const base: Ports = {
     torch: {
       isAvailable: async () => true,
+      setActive: async (active) => {
+        calls.torchActive.push(active);
+      },
       setEnabled: async (enabled) => {
         calls.torchEnabled.push(enabled);
       },
       release: async () => {
         calls.torchEnabled.push(false);
+        calls.torchActive.push(false);
       },
     },
     audio: {

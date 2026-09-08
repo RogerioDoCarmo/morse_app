@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CameraView } from 'expo-camera';
-import type { TorchAdapter } from '@/adapters/torch/expoTorchAdapter';
+import type { TorchAdapter, TorchState } from '@/adapters/torch/expoTorchAdapter';
 
 /**
  * How large the hidden camera is, and how far off screen it sits.
@@ -12,37 +12,45 @@ import type { TorchAdapter } from '@/adapters/torch/expoTorchAdapter';
  */
 const HIDDEN = 120;
 
+const AT_REST: TorchState = { active: false, enabled: false };
+
 /**
  * Drives the real torch.
  *
  * expo-camera exposes the torch only as a `CameraView` prop, so something has
  * to be mounted for it to switch. This host subscribes to the torch adapter and
- * mounts a camera **only while the torch is on**, so the app is not holding the
- * camera open the rest of the time.
+ * mounts a camera **while a run is holding one**, switching `enableTorch` on
+ * the camera that is already there.
  *
- * ⚠️ It is hidden by being OFF SCREEN, not by being tiny and transparent.
+ * ⚠️ MOUNTING PER MARK IS THE BUG THIS EXISTS TO AVOID, and it was the second
+ * report from the same Poco X5 5G.
  *
- * The first version was 1x1 at `opacity: 0`, and on a Poco X5 5G that produced
- * a black rectangle flickering over the bottom half of the display whenever
- * Light was switched on — while the torch itself never lit. A camera preview is
- * a SurfaceView: it draws straight to its own hardware layer, so the parent's
- * opacity does not touch it, and a 1x1 request is not a preview size any camera
- * offers — the HAL picks a real one and composites it wherever the surface
- * happens to be. Off screen, at a size a camera will actually agree to, is the
- * shape that has neither problem.
+ * The first version mounted the camera whenever the torch was ON, which at
+ * 15 wpm means opening and closing one every 80ms. A camera does not open in
+ * 80ms — so the torch barely lit — and every mount put a fresh SurfaceView
+ * through the compositor, which is what the black rectangle blinking across
+ * half the display actually was. Moving it off screen moved the rectangle from
+ * the bottom half to the top; it did not stop it, because the flicker was the
+ * mounting, not the position.
+ *
+ * ⚠️ It is ALSO hidden by being off screen rather than transparent. A camera
+ * preview is a SurfaceView: it draws straight to its own hardware layer, so a
+ * parent's opacity does not touch it.
  */
 export function TorchHost({
   adapter,
 }: Readonly<{ adapter: TorchAdapter }>): React.JSX.Element | null {
-  const [enabled, setEnabled] = useState(false);
+  const [torch, setTorch] = useState<TorchState>(AT_REST);
 
-  useEffect(() => adapter.subscribe(setEnabled), [adapter]);
+  useEffect(() => adapter.subscribe(setTorch), [adapter]);
 
-  if (!enabled) return null;
+  // `active` is the run holding the camera; `enabled` alone covers anything
+  // that lights the torch without having asked for a camera first.
+  if (!torch.active && !torch.enabled) return null;
 
   return (
     <View style={styles.host} pointerEvents="none" testID="torch-host">
-      <CameraView style={styles.camera} enableTorch facing="back" />
+      <CameraView style={styles.camera} enableTorch={torch.enabled} facing="back" />
     </View>
   );
 }

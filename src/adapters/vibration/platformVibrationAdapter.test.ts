@@ -1,4 +1,5 @@
 import { Platform, Vibration } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
 import * as Haptics from 'expo-haptics';
 import { createRecordingCrashReporter } from '@/testing/recordingCrashReporter';
 import type { VibrationMark } from '@/core/ports';
@@ -13,6 +14,19 @@ jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(() => Promise.resolve()),
   ImpactFeedbackStyle: { Light: 'light', Heavy: 'heavy' },
 }));
+
+// The local Android module. Absent by default, which is exactly what a build
+// without it — or iOS, or this test runner — sees.
+jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn(() => null) }));
+const mockRequireModule = jest.mocked(requireOptionalNativeModule);
+
+/** A stand-in for `modules/morse-vibration`, and what it did. */
+const nativeModule = (
+  played: boolean,
+): { vibratePattern: jest.Mock; cancelVibration: jest.Mock } => ({
+  vibratePattern: jest.fn(() => played),
+  cancelVibration: jest.fn(),
+});
 
 const marks: VibrationMark[] = [
   { atMs: 0, durationMs: 120, long: false },
@@ -88,6 +102,7 @@ describe('toAndroidPattern', () => {
 describe('platformVibrationAdapter', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRequireModule.mockReturnValue(null);
     jest.useFakeTimers();
   });
   afterEach(() => {
@@ -103,6 +118,77 @@ describe('platformVibrationAdapter', () => {
 
     expect(vibrate).toHaveBeenCalledWith([0, 120, 120, 360], false);
     expect(Haptics.impactAsync).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The defect three builds were spent on. React Native's Vibration states no
+   * usage, so Android treats the buzz as touch feedback and drops it outright
+   * when that intensity is turned down — silently, with nothing to catch. The
+   * local module is the only caller here that says what the vibration is for,
+   * so it has to be the one that gets asked first.
+   */
+  it('prefers the module that can state a usage the OS will not suppress', async () => {
+    onPlatform('android');
+    const native = nativeModule(true);
+    mockRequireModule.mockReturnValue(native);
+    const vibrate = jest.spyOn(Vibration, 'vibrate').mockImplementation(() => undefined);
+
+    await createPlatformVibrationAdapter(createRecordingCrashReporter()).play(marks);
+
+    expect(native.vibratePattern).toHaveBeenCalledWith([0, 120, 120, 360]);
+    expect(vibrate).not.toHaveBeenCalled();
+  });
+
+  it('falls back to React Native when the module is not in this build', async () => {
+    onPlatform('android');
+    mockRequireModule.mockReturnValue(null);
+    const vibrate = jest.spyOn(Vibration, 'vibrate').mockImplementation(() => undefined);
+
+    await createPlatformVibrationAdapter(createRecordingCrashReporter()).play(marks);
+
+    expect(vibrate).toHaveBeenCalledWith([0, 120, 120, 360], false);
+  });
+
+  // A device with no motor at all answers false. Falling back then costs
+  // nothing and keeps one answer — "it did not play" — from meaning two
+  // different things.
+  it('falls back when the module says it played nothing', async () => {
+    onPlatform('android');
+    const native = nativeModule(false);
+    mockRequireModule.mockReturnValue(native);
+    const vibrate = jest.spyOn(Vibration, 'vibrate').mockImplementation(() => undefined);
+
+    await createPlatformVibrationAdapter(createRecordingCrashReporter()).play(marks);
+
+    expect(native.vibratePattern).toHaveBeenCalledTimes(1);
+    expect(vibrate).toHaveBeenCalledWith([0, 120, 120, 360], false);
+  });
+
+  it('leaves the Android module alone on iOS', async () => {
+    onPlatform('ios');
+    const native = nativeModule(true);
+    mockRequireModule.mockReturnValue(native);
+
+    const port = createPlatformVibrationAdapter(createRecordingCrashReporter());
+    await port.play(marks);
+    await port.stop();
+
+    expect(native.vibratePattern).not.toHaveBeenCalled();
+    expect(native.cancelVibration).not.toHaveBeenCalled();
+  });
+
+  // Whichever one started the run has to be the one that can end it, and the
+  // adapter does not track which that was.
+  it('stops both engines on Android, since either could be the one running', async () => {
+    onPlatform('android');
+    const native = nativeModule(true);
+    mockRequireModule.mockReturnValue(native);
+    const cancel = jest.spyOn(Vibration, 'cancel').mockImplementation(() => undefined);
+
+    await createPlatformVibrationAdapter(createRecordingCrashReporter()).stop();
+
+    expect(native.cancelVibration).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 
   // iOS cannot vary the length of a vibration, so the difference between a dot

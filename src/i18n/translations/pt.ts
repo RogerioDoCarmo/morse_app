@@ -120,6 +120,7 @@ export const ptBR: TranslationMap = {
   'settings.aboutMorse': 'O que é o código Morse?',
   'settings.showGuide': 'Ver o guia de boas-vindas',
   'settings.showGuideHint': 'Os três slides da primeira vez',
+  'settings.version': 'Versão {{version}}',
   'language.title': 'Idioma',
   'language.interface': 'INTERFACE',
   'language.speech': 'RECONHECIMENTO DE FALA',

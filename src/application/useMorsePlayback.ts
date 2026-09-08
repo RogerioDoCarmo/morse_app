@@ -129,6 +129,8 @@ export function useMorsePlayback(
   const surface = useRef(false);
   /** Whether the screen is being held awake, so it is held and freed once. */
   const held = useRef(false);
+  /** The same, for the camera the torch needs open. */
+  const holding = useRef(false);
 
   const elapsedUnits = useCallback(
     (): number => (Date.now() - startedAt.current) / unit,
@@ -146,6 +148,20 @@ export function useMorsePlayback(
       void (on ? keepAwake.activate() : keepAwake.release());
     },
     [keepAwake],
+  );
+
+  /**
+   * Opens the camera the torch lives on, or lets it go. Idempotent for the
+   * same reason `keepScreenOn` is: this is asked on every render that touches
+   * it, and a native call per render is a native call per keystroke.
+   */
+  const holdCamera = useCallback(
+    (on: boolean): void => {
+      if (on === holding.current) return;
+      holding.current = on;
+      void torch.setActive(on);
+    },
+    [torch],
   );
 
   /** Puts every on/off output back to dark. Safe to call twice. */
@@ -284,6 +300,25 @@ export function useMorsePlayback(
     [audio, message, playing, unit],
   );
 
+  /**
+   * Holds the camera open for the whole run, rather than for each mark.
+   *
+   * The torch is a camera-view prop, so lighting it needs a camera that is
+   * already open — and opening one takes longer than a dot. Driving the mount
+   * from `setEnabled` meant a fresh camera every 80ms at 15 wpm: the torch
+   * barely lit, and each mount blinked a black rectangle across half the
+   * display. The mount now follows the RUN, and only the prop follows the
+   * marks.
+   *
+   * No cleanup function here on purpose. This effect re-runs whenever either
+   * dependency moves, and a cleanup that released the camera would release it
+   * between two renders that both want it held — an unmount and a remount per
+   * toggle, which is the thing being fixed.
+   */
+  useEffect(() => {
+    holdCamera(playing && channels.light);
+  }, [playing, channels.light, holdCamera]);
+
   // Editing the text mid-playback, or leaving the screen, must not leave a
   // clock running — or, worse, the torch switched on — over a message that is
   // no longer on screen.
@@ -291,13 +326,16 @@ export function useMorsePlayback(
     return () => {
       clearTimers();
       darken();
+      // Not just dark — GONE. Leaving the screen with the camera still held
+      // would keep it open behind whatever comes next.
+      holdCamera(false);
       void audio.stop();
       void vibration.stop();
       keepScreenOn(false);
       setPlaying(false);
       setElapsedMs(0);
     };
-  }, [message, audio, clearTimers, darken, keepScreenOn, vibration]);
+  }, [message, audio, clearTimers, darken, holdCamera, keepScreenOn, vibration]);
 
   return {
     playing,
