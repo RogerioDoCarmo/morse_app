@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { APP_VERSION } from '@/appVersion';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { Icon } from '@/components/Icon';
@@ -189,6 +190,14 @@ export function SettingsScreen({
             </Pressable>
           </View>
         </View>
+
+        {/* Last thing on the last screen, which is where every app puts it and
+            where a tester goes looking. It is the only way to tell which build
+            is on the phone: Firebase App Distribution hands out several in a
+            day and they are otherwise identical from the inside. */}
+        <Text testID="settings-version" style={styles.version}>
+          {t('settings.version', { version: APP_VERSION })}
+        </Text>
       </ScrollView>
     </View>
   );
@@ -323,4 +332,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   toggleCopy: { flex: 1, gap: 2 },
+  version: {
+    ...theme.type.hint,
+    fontSize: 12,
+    color: theme.color.faint,
+    textAlign: 'center',
+    paddingTop: theme.spacing.sm,
+  },
 });

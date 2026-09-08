@@ -22,7 +22,20 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'translator-screen'
 
-# The tab bar was decorative until now.
+# The Translator's own way in. It was drawn on the artboard and never wired: a
+# tester pressed Speak, watched nothing happen, and concluded the microphone
+# was broken. There is no second recogniser inside that card — the button goes
+# to the screen that owns one.
+- tapOn:
+    id: 'speak-input'
+- assertVisible:
+    id: 'speech-screen'
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'
+
+# And the tab bar, which was decorative until now.
 - tapOn:
     id: 'tab-speak'
 - assertVisible:

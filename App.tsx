@@ -95,12 +95,12 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
     return (
       <View style={styles.root}>
         <StatusBar style="dark" />
+        <TorchHost adapter={torch} />
         <LanguageScreen
           onBack={() => {
             setLanguageOpen(false);
           }}
         />
-        <TorchHost adapter={torch} />
       </View>
     );
   }
@@ -109,6 +109,7 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
     return (
       <View style={styles.root}>
         <StatusBar style="dark" />
+        <TorchHost adapter={torch} />
         <SettingsScreen
           onBack={() => {
             setSettingsOpen(false);
@@ -124,7 +125,6 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           // so this is where dismissing it should land.
           onShowGuide={firstRun.replay}
         />
-        <TorchHost adapter={torch} />
       </View>
     );
   }
@@ -132,6 +132,19 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
+      {/* FIRST, so every screen paints over it.
+
+          It is a camera preview, and a camera preview on Android is a
+          SurfaceView drawing to its own hardware layer — it ignores a parent's
+          opacity, which is how the first version of this ended up flashing a
+          black rectangle across half a Poco X5 5G. It is positioned off screen
+          as well, but ordering it behind the opaque screens costs nothing and
+          covers the case where the surface does not stay where the view is.
+
+          Outside the screens, because the torch keeps burning across a tab
+          change and a host that unmounted with the screen would drop it
+          mid-message. */}
+      <TorchHost adapter={torch} />
       {tab === 'speak' ? (
         <SpeechScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
       ) : tab === 'tap' ? (
@@ -147,9 +160,6 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           }}
         />
       )}
-      {/* Outside the screens: the torch keeps burning across a tab change, and
-          a host that unmounted with the screen would drop it mid-message. */}
-      <TorchHost adapter={torch} />
     </View>
   );
 }

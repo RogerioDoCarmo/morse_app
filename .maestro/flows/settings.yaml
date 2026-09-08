@@ -63,12 +63,21 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run'
 - tapOn:
     id: 'first-run-skip'
-- tapOn:
-    id: 'first-run-next'
 - assertNotVisible:
     id: 'first-run'
 - assertVisible:
     id: 'settings-screen'
+
+# Which build this is. The only thing on the phone that says so — App
+# Distribution hands out several a day and they are identical from the inside.
+#
+# Scrolled to rather than asserted where it stands: it is the LAST thing on
+# the last screen, and the guide round trip above unmounts Settings, so the
+# scroll position is back at the top by the time this runs.
+- scrollUntilVisible:
+    element:
+      id: 'settings-version'
+    direction: DOWN
 
 # ABOUT leaves for Learn, which is a different screen rather than a modal.
 - scrollUntilVisible:

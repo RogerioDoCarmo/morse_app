@@ -274,11 +274,25 @@ export function TranslatorScreen({
                 <Text style={styles.label}>
                   {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
                 </Text>
+                {/* The other two ways of getting text in. Both were drawn on
+                    the artboard and neither was ever wired: a tester pressed
+                    Speak, watched nothing happen, and reasonably concluded
+                    the microphone was broken.
+
+                    They go to the tab that owns that input rather than
+                    opening anything here. Speech needs a permission, a live
+                    transcript and a recogniser state machine; tapping needs a
+                    key, a cut-off and a letter row. Both already exist, one
+                    tab away, and a second copy inside this card would be a
+                    second thing to keep right. */}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={toMorse ? 'speak-input' : 'tap-input'}
                   testID={toMorse ? 'speak-input' : 'tap-input'}
-                  style={styles.textAction}
+                  onPress={() => {
+                    onSelectTab?.(toMorse ? 'speak' : 'tap');
+                  }}
+                  style={({ pressed }) => [styles.textAction, pressed && styles.dimmed]}
                 >
                   <Icon
                     name={toMorse ? 'mic' : 'tap'}
@@ -491,6 +505,7 @@ const styles = StyleSheet.create({
     marginRight: -6,
   },
   textActionLabel: { ...theme.type.chip, color: theme.color.accent },
+  dimmed: { opacity: 0.6 },
   input: { ...theme.type.input, color: theme.color.ink, padding: 0 },
   monoInput: { ...theme.type.monoLarge, color: theme.color.accent, padding: 0 },
   output: { flex: 1 },

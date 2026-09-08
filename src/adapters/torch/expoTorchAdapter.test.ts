@@ -1,6 +1,6 @@
 import { Camera } from 'expo-camera';
 import { createRecordingCrashReporter } from '@/testing/recordingCrashReporter';
-import { createExpoTorchAdapter } from './expoTorchAdapter';
+import { createExpoTorchAdapter, type TorchState } from './expoTorchAdapter';
 
 jest.mock('expo-camera', () => ({
   Camera: { getCameraPermissionsAsync: jest.fn() },
@@ -28,50 +28,110 @@ describe('expoTorchAdapter', () => {
 
   it('pushes the current state to a subscriber immediately', () => {
     const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
-    const seen: boolean[] = [];
-    adapter.subscribe((enabled) => seen.push(enabled));
-    expect(seen).toEqual([false]);
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
+    expect(seen).toEqual([{ active: false, enabled: false }]);
   });
 
   it('notifies subscribers when the torch is switched', async () => {
     const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
-    const seen: boolean[] = [];
-    adapter.subscribe((enabled) => seen.push(enabled));
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
 
     await adapter.setEnabled(true);
     await adapter.setEnabled(false);
-    expect(seen).toEqual([false, true, false]);
+    expect(seen).toEqual([
+      { active: false, enabled: false },
+      { active: false, enabled: true },
+      { active: false, enabled: false },
+    ]);
   });
 
   it('does not re-notify when nothing changed', async () => {
     const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
-    const seen: boolean[] = [];
-    adapter.subscribe((enabled) => seen.push(enabled));
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
 
     await adapter.setEnabled(true);
     await adapter.setEnabled(true);
-    expect(seen).toEqual([false, true]);
+    expect(seen).toHaveLength(2);
+  });
+
+  // The whole point of the second flag: a run holds the camera once, then
+  // switches the torch inside it as many times as the message has marks, and
+  // the host must not be told to mount anything again in between.
+  it('holds the camera across a run without re-announcing it', async () => {
+    const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
+
+    await adapter.setActive(true);
+    await adapter.setEnabled(true);
+    await adapter.setEnabled(false);
+    await adapter.setEnabled(true);
+
+    expect(seen.map((state) => state.active)).toEqual([false, true, true, true, true]);
+    expect(seen.map((state) => state.enabled)).toEqual([false, false, true, false, true]);
+  });
+
+  it('does not re-announce a camera it is already holding', async () => {
+    const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
+
+    await adapter.setActive(true);
+    await adapter.setActive(true);
+
+    expect(seen).toHaveLength(2);
+  });
+
+  // A torch lit on a camera that is gone is a state the host cannot render.
+  it('puts the torch out when the camera is let go', async () => {
+    const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
+
+    await adapter.setActive(true);
+    await adapter.setEnabled(true);
+    await adapter.setActive(false);
+
+    expect(seen.at(-1)).toEqual({ active: false, enabled: false });
   });
 
   it('release turns the torch off, and is safe to call twice', async () => {
     const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
-    const seen: boolean[] = [];
-    adapter.subscribe((enabled) => seen.push(enabled));
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
 
     await adapter.setEnabled(true);
     await adapter.release();
     await adapter.release();
-    expect(seen).toEqual([false, true, false]);
+    expect(seen).toEqual([
+      { active: false, enabled: false },
+      { active: false, enabled: true },
+      { active: false, enabled: false },
+    ]);
+  });
+
+  it('release also lets go of a camera nothing had lit', async () => {
+    const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
+    const seen: TorchState[] = [];
+    adapter.subscribe((state) => seen.push(state));
+
+    await adapter.setActive(true);
+    await adapter.release();
+
+    expect(seen.at(-1)).toEqual({ active: false, enabled: false });
   });
 
   it('stops notifying after unsubscribe', async () => {
     const adapter = createExpoTorchAdapter(createRecordingCrashReporter());
-    const seen: boolean[] = [];
-    const unsubscribe = adapter.subscribe((enabled) => seen.push(enabled));
+    const seen: TorchState[] = [];
+    const unsubscribe = adapter.subscribe((state) => seen.push(state));
 
     unsubscribe();
     await adapter.setEnabled(true);
-    expect(seen).toEqual([false]);
+    expect(seen).toHaveLength(1);
   });
 });
 
@@ -94,15 +154,15 @@ describe('expoTorchAdapter — error reporting', () => {
   it('survives a listener that throws, and still notifies the others', async () => {
     const crash = createRecordingCrashReporter();
     const adapter = createExpoTorchAdapter(crash);
-    const seen: boolean[] = [];
+    const seen: TorchState[] = [];
 
     adapter.subscribe(() => {
       throw new Error('view exploded');
     });
-    adapter.subscribe((enabled) => seen.push(enabled));
+    adapter.subscribe((state) => seen.push(state));
 
     await expect(adapter.setEnabled(true)).resolves.toBeUndefined();
-    expect(seen).toContain(true);
+    expect(seen.map((state) => state.enabled)).toContain(true);
     expect(crash.reports).toContainEqual({
       message: 'view exploded',
       context: 'torch: notifying a mounted view',
