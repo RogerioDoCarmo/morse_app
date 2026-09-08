@@ -32,6 +32,18 @@ jobs:
           # the previous tag is found by walking back from this one.
           fetch-depth: 0
 
+      # ⚠️ Without this the tag arrives LIGHTWEIGHT and the guard below rejects
+      # a perfectly good release. actions/checkout writes `refs/tags/<name>`
+      # pointing straight at the commit, so `git cat-file -t` answers "commit"
+      # and the annotation — which IS the release notes — is nowhere on the
+      # runner. v0.2.0 was refused this way while `git cat-file -t` said "tag"
+      # locally and the remote plainly held a tag object.
+      #
+      # `--force` because that lightweight ref is already there and has to be
+      # overwritten by the real one.
+      - name: Fetch the real tag objects
+        run: git fetch --force --tags origin
+
       - name: Read the tag
         id: tag
         run: |
