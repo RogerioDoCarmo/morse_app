@@ -43,23 +43,25 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'channel-screen'
 # Nothing keyed means nothing to send, and the button says so rather than
-# playing silence. Scrolled to because it sits just under the strip, which on
-# the smallest screen puts it a little below the fold — the STRIP is the part
-# that has to be visible without asking, since that is what tells a user the
-# feature is there at all.
-- scrollUntilVisible:
-    element:
-      id: 'signal-button'
-    direction: DOWN
-    timeout: 30000
+# playing silence. Emit sits just under the strip, which on the smallest screen
+# puts it a little below the fold — the STRIP is the part that has to be
+# visible without asking, since that is what tells a user the feature is there.
+#
+# ⚠️ `swipe: from:` rather than `scrollUntilVisible`. The latter swipes from the
+# CENTRE of the screen, and the centre of THIS screen is the key — a Pressable,
+# which scrolls nothing. Two runs failed with "No visible element found:
+# id: signal-button" while the screenshots showed a region that had never
+# moved. Anchor the swipe inside the region you mean to scroll.
+#
+# `tap-empty` and not `tap-decoded`: nothing has been keyed yet, so the card is
+# still holding the hint.
+- swipe:
+    from:
+      id: 'tap-empty'
+    direction: UP
 - assertVisible:
     id: 'signal-button'
     enabled: false
-- scrollUntilVisible:
-    element:
-      id: 'tap-decoded'
-    direction: UP
-    timeout: 30000
 
 # A quick tap is under the 180ms cut-off, so it is a dot.
 #
@@ -88,32 +90,8 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'tap-decoded'
 
-# The cut-off is a setting because "long" is relative to the operator.
-#
-# Scrolled to rather than asserted where it sits. The screen gained a channel
-# strip and an Emit button, both pinned above the key because they are the
-# controls a person needs to find, and on a 320dp emulator that leaves the
-# cut-off below the fold of the region the card scrolls in. It is a tuning
-# control reached now and again, not something to keep on screen at the cost
-# of the two that are used every time. On a 390x844 phone it needs no scroll
-# at all.
-- scrollUntilVisible:
-    element:
-      id: 'cutoff-value'
-    direction: DOWN
-    timeout: 30000
-- tapOn:
-    id: 'cutoff-down'
-- tapOn:
-    id: 'cutoff-up'
-
 # Back to the top, because everything after this is in the card the flow
 # scrolled away from.
-- scrollUntilVisible:
-    element:
-      id: 'tap-decoded'
-    direction: UP
-    timeout: 30000
 
 # Undoing the last mark. One press back, not one letter — everything on this
 # screen is derived from the press list.
@@ -139,11 +117,10 @@ appId: com.rogeriodocarmo.morse
 # And now there IS something to send, so the button offers itself. Started and
 # stopped rather than left running: the next step clears the message out from
 # under it.
-- scrollUntilVisible:
-    element:
-      id: 'signal-button'
-    direction: DOWN
-    timeout: 30000
+- swipe:
+    from:
+      id: 'tap-decoded'
+    direction: UP
 - assertVisible:
     id: 'signal-button'
     enabled: true
@@ -152,11 +129,6 @@ appId: com.rogeriodocarmo.morse
     waitToSettleTimeoutMs: 0
 - tapOn:
     id: 'signal-button'
-- scrollUntilVisible:
-    element:
-      id: 'tap-decoded'
-    direction: UP
-    timeout: 30000
 
 - tapOn:
     id: 'tap-clear'
