@@ -290,11 +290,14 @@ Store submission is **manual only** — never automatic on merge.
 git diff app.json
 ```
 
-EAS rewrites `app.json` without saying so. `autoIncrement` writes build numbers
-back, which is wanted and should be committed. But `eas update:configure` has
-also **appended a duplicate copy of every `ios.privacyManifests` entry** —
-leaving eight declared APIs where there are four. That does not fail a build; it
-fails the upload, after Apple has processed it, by email.
+EAS rewrites `app.json` without saying so. `eas update:configure` has
+**appended a duplicate copy of every `ios.privacyManifests` entry** — leaving
+eight declared APIs where there are four. That does not fail a build; it fails
+the upload, after Apple has processed it, by email.
+
+It no longer writes build numbers: `appVersionSource: remote` keeps those on
+EAS, and `app.json` declares neither. Anything EAS writes there now is
+something to look at, not something to commit.
 
 Repair by reverting and re-applying the legitimate part:
 
@@ -304,6 +307,96 @@ git checkout app.json     # then add back what EAS was right to write
 
 A rejected build number is spent — Apple will not take it again, so a fix means
 a new build, not a re-upload.
+
+### Every EAS command this project has actually needed
+
+Not the whole CLI — the ones a release here has genuinely called for, with what
+each was learnt from.
+
+```bash
+eas whoami                       # which account the CLI is acting as
+```
+
+**Building.** The profile decides everything else; `eas.json` holds the rest.
+
+```bash
+eas build --platform all --profile production --non-interactive --no-wait
+eas build --platform ios --profile preview --non-interactive --wait --json
+eas build --platform ios --profile preview        # interactive — see credentials
+```
+
+`--no-wait` queues on EAS and returns, which is what CI wants; `--wait` blocks
+until the artifact exists, which is what a script that needs the binary wants.
+
+⚠️ **`--output` is refused for anything but `--local`.** The Firebase workflow
+carried it from the day it was written and died in seconds every time — and
+nothing fired that workflow until the first version bump, months later. A cloud
+build is fetched from the URL it reports:
+
+```bash
+eas build --platform android --profile preview --non-interactive --wait --json > build.json
+jq -r '[.. | objects | (.applicationArchiveUrl? // .buildUrl?) | select(. != null)] | first' build.json
+```
+
+**Looking at builds.**
+
+```bash
+eas build:list --platform ios --limit 3
+eas build:list --platform ios --limit 3 --non-interactive --json    # scriptable
+```
+
+**Build numbers.** They live on EAS, not in `app.json` — see below.
+
+```bash
+eas build:version:get --platform ios
+eas build:version:set --platform ios      # interactive; takes no value flag
+```
+
+**Environment variables**, per environment, per the section above.
+
+```bash
+eas env:list production
+eas env:create --environment preview --name GOOGLE_SERVICES_JSON_PATH \
+  --type file --visibility secret --value ./google-services.json
+```
+
+**Devices**, for iOS ad-hoc builds only — the `preview` profile's
+`distribution: internal`. A device registered after a build is not in it: the
+UDID list is baked into the IPA at signing time.
+
+```bash
+eas device:create                                     # register one
+eas device:list --apple-team-id <TEAM_ID>             # what EAS holds
+```
+
+⚠️ **Registering a device is not enough on its own.** The ad-hoc *provisioning
+profile* still has to exist, and EAS will not mint credentials
+non-interactively — a CI build refuses with "couldn't find any credentials
+suitable for internal distribution". One interactive `eas build --profile
+preview` creates it; every CI build afterwards reuses it.
+
+**Submitting.**
+
+```bash
+eas submit --platform ios --latest --profile production --non-interactive
+```
+
+### Build numbers live on EAS, not in app.json
+
+`eas.json` sets `appVersionSource: remote`, so EAS owns `ios.buildNumber` and
+`android.versionCode`, and `autoIncrement` advances them per build. `app.json`
+declares neither — the same shape Miroji uses.
+
+⚠️ It was `local` once, and that quietly broke every CI build. With `local`,
+`autoIncrement` reads the number out of `app.json`, uses the next one, and
+writes it back — which on a runner is thrown away with the workspace. **Four
+consecutive iOS builds all came out as build 4**, and 0.1.0 had produced two 4s
+before that. Only the first of each could ever be submitted; App Store Connect
+rejects a build number it has already seen for a version. Nothing failed
+loudly — every one of those builds went green.
+
+Moving to `remote` needs the counter seeded above whatever has been used, or
+the collision simply continues.
 
 ## Git Workflow
 
@@ -378,23 +471,8 @@ The first line of the tag message becomes the release title, so write it as one:
 `v1.3.4 — A release the pipeline could not have shipped` reads better in a list than
 `v1.3.4`.
 
-### Build numbers live on EAS, not in app.json
-
-`eas.json` sets `appVersionSource: remote`, so EAS owns `ios.buildNumber` and
-`android.versionCode` and `autoIncrement` advances them per build. `app.json`
-declares neither — the same shape Miroji uses.
-
-⚠️ It was `local` once, and that quietly broke every CI build. With `local`,
-`autoIncrement` reads the number out of `app.json`, uses the next one, and
-writes it back — which on a runner is thrown away with the workspace. **Four
-consecutive iOS builds all came out as build 4**, and only the first could ever
-be submitted; App Store Connect rejects a build number it has already seen for
-a version. Nothing failed loudly, the builds all went green.
-
-```bash
-eas build:version:get --platform ios      # what EAS thinks the next one is
-eas build:version:set --platform ios      # move it, after a manual upload
-```
+Only the `version` moves here. Build numbers are EAS's — see
+[Build numbers live on EAS, not in app.json](#build-numbers-live-on-eas-not-in-appjson).
 
 ⚠️ **Releases carry no build artifacts.** The binaries come from EAS, not from CI —
 an APK or IPA built in Actions would be a different, unsigned thing from the one on
