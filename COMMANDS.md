@@ -375,11 +375,31 @@ non-interactively — a CI build refuses with "couldn't find any credentials
 suitable for internal distribution". One interactive `eas build --profile
 preview` creates it; every CI build afterwards reuses it.
 
-**Submitting.**
+**Submitting.** ⚠️ Costs **no build quota** — it uploads a binary that already
+exists, so a build sitting on EAS can reach TestFlight at any time.
 
 ```bash
 eas submit --platform ios --latest --profile production --non-interactive
 ```
+
+### The free plan allows fifteen iOS builds a month
+
+Five merges to `main` in one evening cost **seven** of them, and the account
+reached 80% of its limit in a day. Six were superseded by the next merge before
+anyone submitted them: they existed, cost quota, and nobody ever installed
+them.
+
+So a store build runs on a **release tag** now, not on a merge. Three things
+worth knowing before spending one:
+
+- **`eas submit` is free.** There is never a reason to rebuild in order to
+  submit.
+- **`--local` is free too**, and compiles on this machine.
+- **TestFlight beats ad-hoc for iOS testers.** Firebase's iOS channel is an
+  ad-hoc build: every tester device must be registered *before* it, and adding
+  one phone later means a whole new build. TestFlight has neither limit. Spend
+  the quota on Android's Firebase channel, which has no such constraint, and
+  send iOS testers to TestFlight.
 
 ### Build numbers live on EAS, not in app.json
 
