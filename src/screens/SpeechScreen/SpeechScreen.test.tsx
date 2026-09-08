@@ -129,6 +129,26 @@ describe('SpeechScreen', () => {
       }
     });
 
+    // The Screen channel had no surface on this screen either — the toggle
+    // worked and nothing flashed. Reported from hardware, not caught by any
+    // test, because every test here asserted that a control was PRESENT.
+    it('flashes a surface when the Screen channel carries the message', async () => {
+      const mic = recogniser();
+      render(mic.port);
+      await tapMic();
+      act(() => {
+        mic.emit({ transcript: 'SOS', isFinal: true });
+      });
+
+      expect(screen.queryByTestId('signal-surface')).toBeNull();
+
+      fireEvent.press(screen.getByTestId('channel-screen'));
+      fireEvent.press(screen.getByTestId('signal-button'));
+
+      expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
+      expect(screen.queryByTestId('speech-morse-string')).toBeNull();
+    });
+
     // Built here rather than through `render`, which returns the ports and so
     // trips testing-library's render-result naming rule.
     it('plays the transcript through the port when Emit is pressed', async () => {

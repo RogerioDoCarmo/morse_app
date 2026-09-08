@@ -498,6 +498,30 @@ describe('sending what was tapped', () => {
     expect(screen.getByTestId('signal-button')).toBeDisabled();
   });
 
+  /**
+   * Reported from a Poco X5 5G, on the first Android build a person ever ran:
+   * "the new output options in the other screens dont work, only the button to
+   * activate them works."
+   *
+   * The Screen channel had no surface here. Toggling it worked, the run
+   * started, the progress ran — and nothing flashed, because the Translator
+   * was the only screen that rendered anything for `screenLit`. The channel
+   * strip was wired to a hook that had no consumer.
+   */
+  it('flashes a surface when the Screen channel carries the message', () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    keyE();
+
+    expect(screen.queryByTestId('signal-surface')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
+    // The square IS the message while it carries it.
+    expect(screen.queryByTestId('tap-decoded')).toBeNull();
+  });
+
   it('emits what was keyed once there is something to emit', () => {
     const ports = createFakePorts();
     renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
