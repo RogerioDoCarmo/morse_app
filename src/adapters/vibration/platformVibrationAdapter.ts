@@ -9,6 +9,28 @@ const asError = (thrown: unknown): Error =>
 /**
  * Android's pattern form: a delay, then alternating buzz and silence.
  *
+ * ⚠️ THE ANDROID SIDE OF THIS IS AT THE MERCY OF A SETTING THE APP CANNOT SEE.
+ *
+ * A Poco X5 5G felt nothing at all on the first build anyone ran, and the app
+ * is not why. The pattern is well formed at every speed offered (a test pins
+ * it), `android.permission.VIBRATE` is in the shipped APK (`aapt2 dump
+ * permissions` says so), and the composition root wires the real adapter.
+ *
+ * What React Native does with the pattern is:
+ *
+ *     v.vibrate(VibrationEffect.createWaveform(patternLong, repeat))
+ *
+ * — the DEPRECATED single-argument overload, with no `VibrationAttributes`.
+ * Nothing in the dependency tree sets them, expo-haptics included. A vibration
+ * with no stated usage is `USAGE_UNKNOWN`, and the platform applies the user's
+ * touch-feedback intensity to it: with haptic feedback turned down, the OS
+ * drops it silently. Nothing in JS can raise that.
+ *
+ * If this needs to work regardless of that setting, it takes a native module
+ * calling `vibrate(effect, VibrationAttributes)` with a usage the system does
+ * not suppress. Switching to expo-haptics would not help — it has the same
+ * gap, and canned effects cannot carry a dot and a dash apart anyway.
+ *
  * Built from the gaps between marks rather than from the timeline's silences,
  * so it stays correct for a set of marks that starts part-way through a
  * message — which is what joining a run in progress produces.
