@@ -78,6 +78,41 @@ describe('FirstRunScreen', () => {
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
 
+  /**
+   * A momentum event is not guaranteed: the CI emulator runs with animations
+   * off, and a paging scroll view there can finish its snap inside the drag
+   * and never emit one. The swipe moved the pager, the dots did not follow.
+   */
+  it('follows a swipe that never reports momentum', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    const pager = screen.getByTestId('first-run-pager');
+
+    fireEvent(pager, 'layout', {
+      nativeEvent: { layout: { width: 390, height: 700, x: 0, y: 0 } },
+    });
+    fireEvent(pager, 'scrollEndDrag', {
+      nativeEvent: { contentOffset: { x: 780, y: 0 } },
+    });
+
+    expect(at()).toBe(2);
+  });
+
+  // A drag with a snap still to come is somewhere between two pages, and
+  // reading a page out of it would fight the snap.
+  it('ignores a drag that has not landed on a page yet', () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    const pager = screen.getByTestId('first-run-pager');
+
+    fireEvent(pager, 'layout', {
+      nativeEvent: { layout: { width: 390, height: 700, x: 0, y: 0 } },
+    });
+    fireEvent(pager, 'scrollEndDrag', {
+      nativeEvent: { contentOffset: { x: 250, y: 0 } },
+    });
+
+    expect(at()).toBe(0);
+  });
+
   it('follows a swipe back as well', () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 

@@ -44,16 +44,23 @@ appId: com.rogeriodocarmo.morse
 # paging scroll view, which is the whole of the gesture — so what this proves
 # is that the DOTS and the BUTTON follow it, rather than the pager and the
 # index drifting apart. Back to the middle slide, then on again.
+#
+# ⚠️ Percentages, not `from: <element>`. An element swipe travels a fraction of
+# that element, and a paging scroll view snaps BACK unless the drag passes half
+# a page or carries real velocity: the first version of this swiped from the
+# illustration, moved nothing, and failed against a screenshot of the slide it
+# had never left. This one crosses three quarters of the screen.
+#
+# 45% height keeps it inside the pager on every slide — below the Skip row,
+# above the dots and the button.
 - swipe:
-    from:
-      id: 'first-run-art-letter'
-    direction: RIGHT
+    start: 12%, 45%
+    end: 88%, 45%
 - assertVisible:
     id: 'first-run-skip'
 - swipe:
-    from:
-      id: 'first-run-art-channels'
-    direction: LEFT
+    start: 88%, 45%
+    end: 12%, 45%
 - assertNotVisible:
     id: 'first-run-skip'
 
