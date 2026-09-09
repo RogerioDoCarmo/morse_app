@@ -30,6 +30,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Local editor config (e.g. SonarLint connected mode)
+.vscode/
+
 # local env files
 .env*.local
 
