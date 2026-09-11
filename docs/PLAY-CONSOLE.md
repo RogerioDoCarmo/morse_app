@@ -145,7 +145,7 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 | **App access** | *All functionality is available without special access.* There is no account, no login, no region lock and no paywall — every screen is reachable on a fresh install. Nothing to write in the credentials box |
 | Privacy policy | <https://rogeriodocarmo.github.io/morse_app/privacy-policy.html> |
 | Ads | **No ads** |
-| Data safety | **Crash logs** and **Device or other IDs** — see below |
+| Data safety | **Crash logs**, **Device or other IDs**, **App activity** — see below |
 | Content rating | IARC questionnaire; a translator with no user-generated content rates lowest everywhere |
 | Target audience | **13+** — keeps it out of the Families policy |
 | News app | No |
@@ -156,7 +156,7 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ### Data safety, in detail
 
-Declare **two** things collected:
+Declare **three** things collected:
 
 - **Crash logs** — collected, **not shared**, **not linked** to identity, **not**
   used for tracking. Purpose: app functionality / diagnostics. Optional, because
@@ -164,6 +164,7 @@ Declare **two** things collected:
   no-op.
 - **Device or other IDs** — same answers: collected, not shared, not linked, not
   tracking, app functionality / diagnostics.
+- **App activity** — same answers again. Not collected yet; see below.
 
 ⚠️ **That second one is easy to miss, and missing it is the expensive kind of
 mistake.** An earlier version of this file said "declare crash logs and nothing
@@ -187,8 +188,34 @@ same thing.** If `PRIVACY.md` names something that leaves the device, the form
 has to account for it. Read one against the other before submitting, rather
 than filling the form from memory.
 
-Declare nothing beyond those two. Messages, decoded text and every preference
+**App activity** is declared too, and it is the one entry that is deliberately
+AHEAD of the code. The app collects none today; Firebase Analytics is planned,
+tagging UI interactions as events to find out which flows people actually use,
+and declaring it now saves revisiting the form then.
+
+⚠️ **That makes this the one place the policy and the form are allowed to
+disagree — and only until Analytics ships.** When it does, three things move
+together:
+
+1. `PRIVACY.md` and `docs/privacy-policy.html` gain a section, and the
+   published page is republished.
+2. **`Advertising ID` flips to YES.** Firebase Analytics collects the Android
+   advertising ID by default. The current NO is correct only while the app
+   ships Crashlytics alone, and adding Analytics without revisiting it turns a
+   correct answer into a false one. `google_analytics_adid_collection_enabled`
+   can suppress it — decide which way deliberately rather than by default.
+3. Analytics gets **its own opt-out** beside the crash-reports toggle. This app
+   already treats sending anything off-device as something a user may refuse,
+   and analytics without that switch would break a promise it already makes.
+
+Declare nothing beyond those three. Messages, decoded text and every preference
 stay on the device.
+
+⚠️ **Personal info: NOTHING.** Not even *User IDs*. That category means an
+identifier for an identifiable PERSON — an account ID, a username — and the
+crash adapter never calls `setUserId`, `setCustomKey` or `setAttribute`. The
+installation identifier is not a user ID; it belongs under Device or other IDs.
+This was ticked by mistake once, which is why it is written down.
 
 ⚠️ **Advertising ID: no.** The app ships Crashlytics only, not Analytics.
 Play asks per SDK and it is easy to tick the wrong box from memory. An
