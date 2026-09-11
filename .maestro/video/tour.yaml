@@ -12,8 +12,15 @@
 # `repeat` of a cheap assertion, each iteration of which costs a real hierarchy
 # fetch.
 #
-# The tail of the clip is also covered by the recorder, which runs for a fixed
-# length and never stops early.
+# ⚠️ AND THE WHOLE TOUR HAS TO FIT IN 180 SECONDS. `screenrecord` stops dead at
+# its own ceiling, and the first version of this ran 175 seconds — it was still
+# playing the message when the recording ended, and Speak, Tap and Learn were
+# never captured at all. Nothing failed; the camera simply ran out.
+#
+# The dwell `repeat`s are what cost it: each iteration is a real hierarchy
+# fetch, one to two seconds on a software-rendered emulator, and there were
+# enough of them to account for most of those 175 seconds. They are halved
+# here. If this tour grows again, that budget is the thing to check.
 #
 # ⚠️ The Light channel is never switched on, here or in any recorded flow. It
 # raises the camera permission dialog, and a system dialog in a store asset is
@@ -31,7 +38,7 @@ appId: com.rogeriodocarmo.morse
 # The carousel, swiped rather than skipped past — it is the first thing a new
 # user sees, and it introduces the output channels the rest of the tour uses.
 - repeat:
-    times: 8
+    times: 4
     commands:
       - assertVisible:
           id: 'first-run'
@@ -40,7 +47,7 @@ appId: com.rogeriodocarmo.morse
       id: 'first-run-pager'
     direction: LEFT
 - repeat:
-    times: 8
+    times: 4
     commands:
       - assertVisible:
           id: 'first-run'
@@ -49,7 +56,7 @@ appId: com.rogeriodocarmo.morse
       id: 'first-run-pager'
     direction: LEFT
 - repeat:
-    times: 8
+    times: 4
     commands:
       - assertVisible:
           id: 'first-run'
@@ -72,7 +79,7 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'settings-screen'
 - repeat:
-    times: 6
+    times: 3
     commands:
       - assertVisible:
           id: 'settings-screen'
@@ -98,7 +105,7 @@ appId: com.rogeriodocarmo.morse
 - inputText: 'OMNIMORSE ENCODE DECODE LEARN'
 - hideKeyboard
 - repeat:
-    times: 6
+    times: 3
     commands:
       - assertVisible:
           id: 'translator-screen'
@@ -132,7 +139,7 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'speech-screen'
 - repeat:
-    times: 10
+    times: 5
     commands:
       - assertVisible:
           id: 'mic-button'
@@ -154,7 +161,7 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'tap-decoded'
 - repeat:
-    times: 8
+    times: 4
     commands:
       - assertVisible:
           id: 'tap-decoded'
@@ -164,19 +171,19 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'learn-screen'
 - repeat:
-    times: 6
+    times: 3
     commands:
       - assertVisible:
           id: 'learn-alphabet'
 - scroll
 - repeat:
-    times: 6
+    times: 3
     commands:
       - assertVisible:
           id: 'learn-screen'
 - scroll
 - repeat:
-    times: 8
+    times: 4
     commands:
       - assertVisible:
           id: 'learn-screen'
