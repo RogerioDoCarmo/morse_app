@@ -1,9 +1,7 @@
-# Morse
+# OmniMorse
 
 A Morse code translator for Android and iOS. Type or speak, watch it as dots and dashes,
 play it on the torch — and tap it back in to decode.
-
-> **Morse** is a placeholder wordmark, not the final app name.
 
 ## Status
 

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Morse",
+    "name": "OmniMorse",
     "slug": "morse-app",
     "owner": "rogeriodocarmo",
     "version": "0.3.0",
@@ -14,11 +14,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rogeriodocarmo.morse",
       "infoPlist": {
-        "NSCameraUsageDescription": "Morse switches the camera flash on and off to play a message as light. The camera preview is never opened and no image is captured.",
-        "NSMicrophoneUsageDescription": "Morse listens so it can turn what you say into Morse code. The app never stores your audio. The recognition itself is done by iOS, which may send it to Apple to transcribe.",
-        "NSSpeechRecognitionUsageDescription": "Morse turns what you say into text so it can be encoded as Morse code. iOS decides whether to do that on the device or by sending your audio to Apple.",
+        "NSCameraUsageDescription": "OmniMorse switches the camera flash on and off to play a message as light. The camera preview is never opened and no image is captured.",
+        "NSMicrophoneUsageDescription": "OmniMorse listens so it can turn what you say into Morse code. The app never stores your audio. The recognition itself is done by iOS, which may send it to Apple to transcribe.",
+        "NSSpeechRecognitionUsageDescription": "OmniMorse turns what you say into text so it can be encoded as Morse code. iOS decides whether to do that on the device or by sending your audio to Apple.",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "Morse never opens your photo library. This is declared only because the camera component that switches the torch on and off references it."
+        "NSPhotoLibraryUsageDescription": "OmniMorse never opens your photo library. This is declared only because the camera component that switches the torch on and off references it."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -89,7 +89,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Morse switches the camera flash on and off to play a message as light.",
+          "cameraPermission": "OmniMorse switches the camera flash on and off to play a message as light.",
           "recordAudioAndroid": false
         }
       ],

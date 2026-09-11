@@ -7,7 +7,7 @@ Information**. Kept here so the next release does not start from a blank box.
 
 ## Beta App Description
 
-Morse turns text into Morse code and Morse code back into text.
+OmniMorse turns text into Morse code and Morse code back into text.
 
 Type a message and watch it become dots and dashes letter by letter, or tap it
 in on a key that measures how long you hold it. A message can go out four ways —
@@ -75,7 +75,7 @@ submission, and worth having regardless: the app sends crash diagnostics._
 - **Sign-in required:** No. There is no account of any kind.
 - **Notes for the reviewer:**
 
-  > Morse needs no login and no network connection to work.
+  > OmniMorse needs no login and no network connection to work.
   >
   > The camera permission is used only to switch the torch on and off so a
   > message can be played as light — the camera preview is never opened and no
