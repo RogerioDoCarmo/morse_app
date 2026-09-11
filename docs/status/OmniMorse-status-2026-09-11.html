@@ -1,115 +1,425 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8" />
-<title>OmniMorse — Status</title>
-<style>
-  @page { size: A4; margin: 16mm 14mm; }
-  :root { --ink:#101820; --muted:#5a6472; --accent:#12a594; --deep:#0d7d70;
-          --line:#e3e8ef; --card:#f6f8fb; --warn:#9a3412; --warnbg:#fff7ed; }
-  * { box-sizing:border-box; }
-  body { margin:0; color:var(--ink); font:10.5pt/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
-  header { border-bottom:4px solid var(--accent); padding-bottom:10px; margin-bottom:18px; }
-  h1 { margin:0 0 2px; font-size:21pt; letter-spacing:-.3px; }
-  .sub { color:var(--muted); font-size:9.5pt; }
-  h2 { font-size:12.5pt; margin:20px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--line); }
-  h3 { font-size:10.5pt; margin:14px 0 5px; color:var(--deep); }
-  table { width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:9.5pt; }
-  th,td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { background:var(--card); font-weight:600; }
-  td.s { white-space:nowrap; width:1%; font-weight:600; }
-  .done { color:var(--deep); } .no { color:var(--warn); }
-  .warn { background:var(--warnbg); border-left:3px solid var(--warn); padding:8px 11px; margin:10px 0; font-size:9.5pt; }
-  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:9pt; background:var(--card); padding:1px 4px; border-radius:3px; }
-  ul { margin:5px 0 10px; padding-left:18px; } li { margin:3px 0; }
-  .grid { display:flex; gap:10px; margin:10px 0; }
-  .kpi { flex:1; background:var(--card); border:1px solid var(--line); border-radius:7px; padding:9px 11px; }
-  .kpi b { display:block; font-size:16pt; color:var(--deep); line-height:1.2; }
-  .kpi span { font-size:8.5pt; color:var(--muted); }
-  footer { margin-top:22px; padding-top:8px; border-top:1px solid var(--line); color:var(--muted); font-size:8.5pt; }
-  .pb { page-break-before:always; }
-</style></head><body>
-<header>
-  <h1>OmniMorse — where things stand</h1>
-  <div class="sub">Store-readiness status · 11 September 2026 · version 0.3.0 (build 6), unbumped and untagged on purpose</div>
-</header>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OmniMorse — Status</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 16mm 14mm;
+      }
+      :root {
+        --ink: #101820;
+        --muted: #5a6472;
+        --accent: #12a594;
+        --deep: #0d7d70;
+        --line: #e3e8ef;
+        --card: #f6f8fb;
+        --warn: #9a3412;
+        --warnbg: #fff7ed;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font:
+          10.5pt/1.5 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      header {
+        border-bottom: 4px solid var(--accent);
+        padding-bottom: 10px;
+        margin-bottom: 18px;
+      }
+      h1 {
+        margin: 0 0 2px;
+        font-size: 21pt;
+        letter-spacing: -0.3px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 9.5pt;
+      }
+      h2 {
+        font-size: 12.5pt;
+        margin: 20px 0 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--line);
+      }
+      h3 {
+        font-size: 10.5pt;
+        margin: 14px 0 5px;
+        color: var(--deep);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 8px 0 12px;
+        font-size: 9.5pt;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 5px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: var(--card);
+        font-weight: 600;
+      }
+      td.s {
+        white-space: nowrap;
+        width: 1%;
+        font-weight: 600;
+      }
+      .done {
+        color: var(--deep);
+      }
+      .no {
+        color: var(--warn);
+      }
+      .warn {
+        background: var(--warnbg);
+        border-left: 3px solid var(--warn);
+        padding: 8px 11px;
+        margin: 10px 0;
+        font-size: 9.5pt;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9pt;
+        background: var(--card);
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      ul {
+        margin: 5px 0 10px;
+        padding-left: 18px;
+      }
+      li {
+        margin: 3px 0;
+      }
+      .grid {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+      .kpi {
+        flex: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 9px 11px;
+      }
+      .kpi b {
+        display: block;
+        font-size: 16pt;
+        color: var(--deep);
+        line-height: 1.2;
+      }
+      .kpi span {
+        font-size: 8.5pt;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 22px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 8.5pt;
+      }
+      .pb {
+        page-break-before: always;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>OmniMorse — where things stand</h1>
+      <div class="sub">
+        Store-readiness status · 11 September 2026 · version 0.3.0 (build 6), unbumped and
+        untagged on purpose
+      </div>
+    </header>
 
-<div class="grid">
-  <div class="kpi"><b>951</b><span>unit &amp; property tests</span></div>
-  <div class="kpi"><b>9/9</b><span>E2E, both platforms</span></div>
-  <div class="kpi"><b>14</b><span>screenshots, both stores</span></div>
-  <div class="kpi"><b>0</b><span>usable video files</span></div>
-</div>
+    <div class="grid">
+      <div class="kpi"><b>951</b><span>unit &amp; property tests</span></div>
+      <div class="kpi"><b>9/9</b><span>E2E, both platforms</span></div>
+      <div class="kpi"><b>14</b><span>screenshots, both stores</span></div>
+      <div class="kpi"><b>0</b><span>usable video files</span></div>
+    </div>
 
-<h2>Done</h2>
-<table>
-  <tr><th>Item</th><th>State</th></tr>
-  <tr><td><b>Six tester-reported defects</b> from 0.2.1 — Android vibration, torch flicker, the dead Speak button, the Tap button covering the screen, the carousel, the version label</td><td class="s done">shipped in 0.3.0</td></tr>
-  <tr><td><b>App renamed OmniMorse</b>, punchline <i>Encode. Decode. Learn.</i> — app, store copy and the portfolio site</td><td class="s done">done</td></tr>
-  <tr><td><b>Default message SOS</b>, input focused on open, low-volume toast at ≤30%</td><td class="s done">done</td></tr>
-  <tr><td><b>Privacy policy</b> — live, verified byte for byte, two rename leftovers corrected</td><td class="s done">published</td></tr>
-  <tr><td><b>Support page</b> — answers the torch, vibration, volume, speech and tap questions</td><td class="s done">published</td></tr>
-  <tr><td><b>Play Console</b> — package registered, Data safety, store settings, three tags, listing copy in three languages</td><td class="s done">filled</td></tr>
-  <tr><td><b>App Store Connect copy</b> — subtitle, keywords, promotional text in three languages, plus the answers that are not per language</td><td class="s done">written</td></tr>
-  <tr><td><b>Android screenshots</b> — seven at 1080×2400</td><td class="s done">ready</td></tr>
-  <tr><td><b>iOS screenshots</b> — seven at 1320×2868</td><td class="s done">ready</td></tr>
-  <tr><td><b>Icons, splash, feature graphic</b> — generated from one script</td><td class="s done">done</td></tr>
-  <tr><td><b>CI</b> — Android build extracted to a shared action; screenshots workflow lost 120 duplicated lines</td><td class="s done">done</td></tr>
-</table>
+    <h2>Done</h2>
+    <table>
+      <tr>
+        <th>Item</th>
+        <th>State</th>
+      </tr>
+      <tr>
+        <td>
+          <b>Six tester-reported defects</b> from 0.2.1 — Android vibration, torch
+          flicker, the dead Speak button, the Tap button covering the screen, the
+          carousel, the version label
+        </td>
+        <td class="s done">shipped in 0.3.0</td>
+      </tr>
+      <tr>
+        <td>
+          <b>App renamed OmniMorse</b>, punchline <i>Encode. Decode. Learn.</i> — app,
+          store copy and the portfolio site
+        </td>
+        <td class="s done">done</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Default message SOS</b>, input focused on open, low-volume toast at ≤30%
+        </td>
+        <td class="s done">done</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Privacy policy</b> — live, verified byte for byte, two rename leftovers
+          corrected
+        </td>
+        <td class="s done">published</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Support page</b> — answers the torch, vibration, volume, speech and tap
+          questions
+        </td>
+        <td class="s done">published</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Play Console</b> — package registered, Data safety, store settings, three
+          tags, listing copy in three languages
+        </td>
+        <td class="s done">filled</td>
+      </tr>
+      <tr>
+        <td>
+          <b>App Store Connect copy</b> — subtitle, keywords, promotional text in three
+          languages, plus the answers that are not per language
+        </td>
+        <td class="s done">written</td>
+      </tr>
+      <tr>
+        <td><b>Android screenshots</b> — seven at 1080×2400</td>
+        <td class="s done">ready</td>
+      </tr>
+      <tr>
+        <td><b>iOS screenshots</b> — seven at 1320×2868</td>
+        <td class="s done">ready</td>
+      </tr>
+      <tr>
+        <td><b>Icons, splash, feature graphic</b> — generated from one script</td>
+        <td class="s done">done</td>
+      </tr>
+      <tr>
+        <td>
+          <b>CI</b> — Android build extracted to a shared action; screenshots workflow
+          lost 120 duplicated lines
+        </td>
+        <td class="s done">done</td>
+      </tr>
+    </table>
 
-<h2>Not done</h2>
-<table>
-  <tr><th>Item</th><th>State</th></tr>
-  <tr><td><b>The two videos</b> — Play promo and the LinkedIn four-up. Flows, composer, workflow and 47 tests all exist and are proven; no run has yet produced usable footage. One was dispatched as this session ended.</td><td class="s no">in flight</td></tr>
-  <tr><td><b>Play internal testing rollout</b> — <code>morse-0.3.0-6.aab</code> is built and not yet rolled out</td><td class="s no">pending</td></tr>
-  <tr><td><b>Confirm on the Poco</b> that vibration works and the torch stopped blinking</td><td class="s no">unverified</td></tr>
-  <tr><td><b>iPad</b> — <code>supportsTablet</code> is true, so Apple requires a 13-inch screenshot set no workflow produces</td><td class="s no">decision</td></tr>
-  <tr><td><b>The privacy manifest</b> declares <code>CrashData</code> alone while Play declares Device IDs too</td><td class="s no">to verify</td></tr>
-  <tr><td><b>Firebase Analytics</b> — four things move together when it ships, including the advertising-ID answer</td><td class="s no">deferred</td></tr>
-  <tr><td><b>Dependabot</b> — transitive advisories needing <code>pnpm.overrides</code></td><td class="s no">deferred</td></tr>
-  <tr><td><b><code>v0.3.0</code> tag and version bump</b> — deliberately held: both fire workflows that need EAS credits</td><td class="s no">after 1 Oct</td></tr>
-</table>
+    <h2>Not done</h2>
+    <table>
+      <tr>
+        <th>Item</th>
+        <th>State</th>
+      </tr>
+      <tr>
+        <td>
+          <b>The two videos</b> — Play promo and the LinkedIn four-up. Flows, composer,
+          workflow and 47 tests all exist and are proven; no run has yet produced usable
+          footage. One was dispatched as this session ended.
+        </td>
+        <td class="s no">in flight</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Play internal testing rollout</b> — <code>morse-0.3.0-6.aab</code> is built
+          and not yet rolled out
+        </td>
+        <td class="s no">pending</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Confirm on the Poco</b> that vibration works and the torch stopped blinking
+        </td>
+        <td class="s no">unverified</td>
+      </tr>
+      <tr>
+        <td>
+          <b>iPad</b> — <code>supportsTablet</code> is true, so Apple requires a 13-inch
+          screenshot set no workflow produces
+        </td>
+        <td class="s no">decision</td>
+      </tr>
+      <tr>
+        <td>
+          <b>The privacy manifest</b> declares <code>CrashData</code> alone while Play
+          declares Device IDs too
+        </td>
+        <td class="s no">to verify</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Firebase Analytics</b> — four things move together when it ships, including
+          the advertising-ID answer
+        </td>
+        <td class="s no">deferred</td>
+      </tr>
+      <tr>
+        <td>
+          <b>Dependabot</b> — transitive advisories needing <code>pnpm.overrides</code>
+        </td>
+        <td class="s no">deferred</td>
+      </tr>
+      <tr>
+        <td>
+          <b><code>v0.3.0</code> tag and version bump</b> — deliberately held: both fire
+          workflows that need EAS credits
+        </td>
+        <td class="s no">after 1 Oct</td>
+      </tr>
+    </table>
 
-<div class="warn">
-  <b>EAS builds are blocked until 1 October.</b> The credit pool is shared across platforms and ran out on 9 September. <code>--local</code> is free and unaffected, and <code>eas submit</code> never needed credits — there is no reason to rebuild in order to submit.
-</div>
+    <div class="warn">
+      <b>EAS builds are blocked until 1 October.</b> The credit pool is shared across
+      platforms and ran out on 9 September. <code>--local</code> is free and unaffected,
+      and <code>eas submit</code> never needed credits — there is no reason to rebuild in
+      order to submit.
+    </div>
 
-<h2 class="pb">The videos, in detail</h2>
-<p>This is the one unfinished deliverable, and the only one where the machinery is complete but the output is not. It is worth reading before the next attempt.</p>
+    <h2 class="pb">The videos, in detail</h2>
+    <p>
+      This is the one unfinished deliverable, and the only one where the machinery is
+      complete but the output is not. It is worth reading before the next attempt.
+    </p>
 
-<div class="warn">
-  <b>Three runs reported <code>success</code> and produced unusable footage.</b>
-  <code>continue-on-error</code> on the emulator step is what preserves partial footage when a flow falls over — and it also swallows five flows failing in a row. <b>Verification is looking at a frame</b>, not at the run's conclusion. Nothing else caught any of the three failures below.
-</div>
+    <div class="warn">
+      <b>Three runs reported <code>success</code> and produced unusable footage.</b>
+      <code>continue-on-error</code> on the emulator step is what preserves partial
+      footage when a flow falls over — and it also swallows five flows failing in a row.
+      <b>Verification is looking at a frame</b>, not at the run's conclusion. Nothing else
+      caught any of the three failures below.
+    </div>
 
-<table>
-  <tr><th>Run</th><th>Symptom</th><th>Cause, and the fix</th></tr>
-  <tr><td class="s">1</td><td>no clips at all</td><td><code>android-emulator-runner</code> splits its <code>script:</code> on newlines and runs each line through its own <code>sh -c</code>, so a shell function was torn apart mid-brace. The logic moved to a script file.</td></tr>
-  <tr><td class="s">2</td><td>“Pixel Launcher isn’t responding” across every frame</td><td>A <code>pixel_6</code> profile at 1080p through swiftshader, with animations on for the whole job, ANRs the launcher; the dialog then hid the app from Maestro. Error dialogs are suppressed, and animations moved from the workflow to the recorder — boot cheap, record properly.</td></tr>
-  <tr><td class="s">3</td><td>the wrong screen in three of four cells</td><td><code>waitForAnimationToEnd: timeout: N</code> does <b>not</b> wait for N — N is a maximum, and returns in under a second on a screen that is not animating. The dwell now comes from the recorder, which runs a fixed length and is never stopped early.</td></tr>
-</table>
+    <table>
+      <tr>
+        <th>Run</th>
+        <th>Symptom</th>
+        <th>Cause, and the fix</th>
+      </tr>
+      <tr>
+        <td class="s">1</td>
+        <td>no clips at all</td>
+        <td>
+          <code>android-emulator-runner</code> splits its <code>script:</code> on newlines
+          and runs each line through its own <code>sh -c</code>, so a shell function was
+          torn apart mid-brace. The logic moved to a script file.
+        </td>
+      </tr>
+      <tr>
+        <td class="s">2</td>
+        <td>“Pixel Launcher isn’t responding” across every frame</td>
+        <td>
+          A <code>pixel_6</code> profile at 1080p through swiftshader, with animations on
+          for the whole job, ANRs the launcher; the dialog then hid the app from Maestro.
+          Error dialogs are suppressed, and animations moved from the workflow to the
+          recorder — boot cheap, record properly.
+        </td>
+      </tr>
+      <tr>
+        <td class="s">3</td>
+        <td>the wrong screen in three of four cells</td>
+        <td>
+          <code>waitForAnimationToEnd: timeout: N</code> does <b>not</b> wait for N — N is
+          a maximum, and returns in under a second on a screen that is not animating. The
+          dwell now comes from the recorder, which runs a fixed length and is never
+          stopped early.
+        </td>
+      </tr>
+    </table>
 
-<h3>Two design decisions that came out of it</h3>
-<ul>
-  <li><b>Both outputs trim from the END of a clip, never the front.</b> Everything variable — boot, Maestro’s driver, the app launch, flow retries — happens at the front; what is worth watching is at the end. A fixed front trim was wrong by about fifty seconds the moment flows retried.</li>
-  <li><b>Playback drops to 5 WPM before signalling.</b> A message at the default speed is over in about three seconds, which is why the play assertion failed — and a cell that plays for three seconds of sixteen is a still image for the rest. Duration is bought with speed rather than with filler characters.</li>
-</ul>
+    <h3>Two design decisions that came out of it</h3>
+    <ul>
+      <li>
+        <b>Both outputs trim from the END of a clip, never the front.</b> Everything
+        variable — boot, Maestro’s driver, the app launch, flow retries — happens at the
+        front; what is worth watching is at the end. A fixed front trim was wrong by about
+        fifty seconds the moment flows retried.
+      </li>
+      <li>
+        <b>Playback drops to 5 WPM before signalling.</b> A message at the default speed
+        is over in about three seconds, which is why the play assertion failed — and a
+        cell that plays for three seconds of sixteen is a still image for the rest.
+        Duration is bought with speed rather than with filler characters.
+      </li>
+    </ul>
 
-<h3>When a run finally produces good footage</h3>
-<ul>
-  <li>Re-framing costs seconds of ffmpeg, not another run: re-compose from the <code>store-videos-raw-clips</code> artifact.</li>
-  <li><b>Play takes a YouTube URL for the promo video, not an upload</b> — and there are five ways to paste one it rejects: extra parameters, private, age-restricted, monetised, or no feature graphic for it to sit on.</li>
-  <li><b>There is no sound and there cannot be.</b> <code>screenrecord</code> captures video only. Music belongs on the YouTube upload.</li>
-</ul>
+    <h3>When a run finally produces good footage</h3>
+    <ul>
+      <li>
+        Re-framing costs seconds of ffmpeg, not another run: re-compose from the
+        <code>store-videos-raw-clips</code> artifact.
+      </li>
+      <li>
+        <b>Play takes a YouTube URL for the promo video, not an upload</b> — and there are
+        five ways to paste one it rejects: extra parameters, private, age-restricted,
+        monetised, or no feature graphic for it to sit on.
+      </li>
+      <li>
+        <b>There is no sound and there cannot be.</b> <code>screenrecord</code> captures
+        video only. Music belongs on the YouTube upload.
+      </li>
+    </ul>
 
-<h2>Where to read more</h2>
-<table>
-  <tr><th>File</th><th>What it holds</th></tr>
-  <tr><td><code>docs/NEXT-STEPS.md</code></td><td>the live handover — start here</td></tr>
-  <tr><td><code>docs/VIDEO.md</code></td><td>the video pipeline and every trap in it</td></tr>
-  <tr><td><code>docs/PLAY-CONSOLE.md</code></td><td>every Play answer, and the two that were wrong once</td></tr>
-  <tr><td><code>docs/APP-STORE.md</code></td><td>Apple’s fields, age rating, review notes, export compliance</td></tr>
-  <tr><td><code>docs/MACHINE-SETUP.md</code></td><td>reproducing this Mac: toolchain, credentials, quotas</td></tr>
-  <tr><td><code>docs/store-listing/</code></td><td>paste-ready copy, per language, for both stores</td></tr>
-</table>
+    <h2>Where to read more</h2>
+    <table>
+      <tr>
+        <th>File</th>
+        <th>What it holds</th>
+      </tr>
+      <tr>
+        <td><code>docs/NEXT-STEPS.md</code></td>
+        <td>the live handover — start here</td>
+      </tr>
+      <tr>
+        <td><code>docs/VIDEO.md</code></td>
+        <td>the video pipeline and every trap in it</td>
+      </tr>
+      <tr>
+        <td><code>docs/PLAY-CONSOLE.md</code></td>
+        <td>every Play answer, and the two that were wrong once</td>
+      </tr>
+      <tr>
+        <td><code>docs/APP-STORE.md</code></td>
+        <td>Apple’s fields, age rating, review notes, export compliance</td>
+      </tr>
+      <tr>
+        <td><code>docs/MACHINE-SETUP.md</code></td>
+        <td>reproducing this Mac: toolchain, credentials, quotas</td>
+      </tr>
+      <tr>
+        <td><code>docs/store-listing/</code></td>
+        <td>paste-ready copy, per language, for both stores</td>
+      </tr>
+    </table>
 
-<footer>OmniMorse 0.3.0 · generated 11 September 2026 · no app code changed since build 6</footer>
-</body></html>
+    <footer>
+      OmniMorse 0.3.0 · generated 11 September 2026 · no app code changed since build 6
+    </footer>
+  </body>
+</html>
