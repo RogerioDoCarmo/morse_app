@@ -196,7 +196,7 @@ describe('when the permission has not been asked for', () => {
     fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-headline')).toHaveTextContent(
-        'Morse needs the torch',
+        'OmniMorse needs the torch',
       );
     });
     fireEvent.press(screen.getByTestId('permission-primary'));

@@ -2,7 +2,7 @@ import type { TranslationMap } from '../keys';
 
 /** Spanish. */
 export const es: TranslationMap = {
-  'app.name': 'Morse',
+  'app.name': 'OmniMorse',
   'nav.translate': 'Traducir',
   'nav.speak': 'Hablar',
   'nav.tap': 'Pulsar',
@@ -44,7 +44,7 @@ export const es: TranslationMap = {
   'speech.doneHint': 'Toca el micrófono para grabar otra vez.',
   'speech.heard': 'Escuchado',
   'speech.unavailable': 'Este dispositivo no reconoce este idioma.',
-  'speech.denied': 'Morse necesita el micrófono para oírte.',
+  'speech.denied': 'OmniMorse necesita el micrófono para oírte.',
   'speech.failed': 'El reconocedor se detuvo. Toca para intentarlo otra vez.',
   'tap.decoded': 'Decodificado',
   'tap.hint': 'Mantén pulsada la tecla para una raya, tócala para un punto.',
@@ -143,13 +143,13 @@ export const es: TranslationMap = {
   'permission.microphoneRationale':
     'Para convertir lo que dices en Morse, la aplicación tiene que oírte. Escribir y pulsar funcionan sin esto, así que puedes omitirlo.',
   'permission.microphoneAssurance':
-    'El reconocimiento es del servicio del propio sistema, que puede enviar tu audio a sus servidores para transcribirlo. Morse nunca almacena ni envía nada de eso.',
+    'El reconocimiento es del servicio del propio sistema, que puede enviar tu audio a sus servidores para transcribirlo. OmniMorse nunca almacena ni envía nada de eso.',
   'permission.microphoneGrant': 'Permitir acceso al micrófono',
   'permission.blockedHint':
     'Esto seguirá desactivado hasta que concedas el acceso en los ajustes del sistema. El resto de la aplicación sigue funcionando.',
   'permission.openSettings': 'Abrir ajustes',
   'permission.notNow': 'Ahora no',
-  'permission.cameraHeadline': 'El Morse necesita la linterna',
+  'permission.cameraHeadline': 'OmniMorse necesita la linterna',
   'permission.microphoneHeadline': 'Hablar necesita el micrófono',
   'permission.cameraBlocked': 'El acceso a la cámara está desactivado',
   'permission.microphoneBlocked': 'El acceso al micrófono está desactivado',

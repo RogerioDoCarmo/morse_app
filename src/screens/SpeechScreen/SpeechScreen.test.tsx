@@ -216,7 +216,7 @@ describe('SpeechScreen', () => {
     });
 
     expect(screen.getByTestId('speech-hint')).toHaveTextContent(
-      'Morse needs the microphone to hear you.',
+      'OmniMorse needs the microphone to hear you.',
     );
   });
 

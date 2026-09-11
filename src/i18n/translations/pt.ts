@@ -2,7 +2,7 @@ import type { TranslationMap } from '../keys';
 
 /** Brazilian Portuguese. */
 export const ptBR: TranslationMap = {
-  'app.name': 'Morse',
+  'app.name': 'OmniMorse',
   'nav.translate': 'Traduzir',
   'nav.speak': 'Falar',
   'nav.tap': 'Tocar',
@@ -44,7 +44,7 @@ export const ptBR: TranslationMap = {
   'speech.doneHint': 'Toque no microfone para gravar de novo.',
   'speech.heard': 'Ouvido',
   'speech.unavailable': 'Este aparelho não reconhece este idioma.',
-  'speech.denied': 'O Morse precisa do microfone para ouvir você.',
+  'speech.denied': 'O OmniMorse precisa do microfone para ouvir você.',
   'speech.failed': 'O reconhecedor parou. Toque para tentar de novo.',
   'tap.decoded': 'Decodificado',
   'tap.hint': 'Segure a tecla para um traço, toque para um ponto.',
@@ -143,13 +143,13 @@ export const ptBR: TranslationMap = {
   'permission.microphoneRationale':
     'Para transformar o que você diz em Morse, o app precisa ouvir você. Digitar e tocar funcionam sem isto, então você pode pular.',
   'permission.microphoneAssurance':
-    'O reconhecimento é do serviço do próprio sistema, que pode enviar seu áudio aos servidores dele para transcrever. O Morse nunca armazena nem envia nada disso.',
+    'O reconhecimento é do serviço do próprio sistema, que pode enviar seu áudio aos servidores dele para transcrever. O OmniMorse nunca armazena nem envia nada disso.',
   'permission.microphoneGrant': 'Permitir acesso ao microfone',
   'permission.blockedHint':
     'Isto fica desativado até você liberar o acesso nos ajustes do sistema. O resto do app continua funcionando.',
   'permission.openSettings': 'Abrir ajustes',
   'permission.notNow': 'Agora não',
-  'permission.cameraHeadline': 'O Morse precisa da lanterna',
+  'permission.cameraHeadline': 'O OmniMorse precisa da lanterna',
   'permission.microphoneHeadline': 'Falar precisa do microfone',
   'permission.cameraBlocked': 'O acesso à câmera está desligado',
   'permission.microphoneBlocked': 'O acesso ao microfone está desligado',
