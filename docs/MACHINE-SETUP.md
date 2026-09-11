@@ -98,7 +98,7 @@ Nothing here lives in the repository. All of it is gitignored.
 | `google-services.json` | in the working tree, gitignored | Android Firebase |
 | `GoogleService-Info.plist` | in the working tree, gitignored | iOS Firebase |
 | Firebase service account | a JSON file outside the repo | `firebase appdistribution:distribute` |
-| Play service account | not created yet | `eas submit --platform android` |
+| Play service account | **not created yet** — [PLAY-SERVICE-ACCOUNT.md](PLAY-SERVICE-ACCOUNT.md) | `eas submit --platform android` |
 
 ⚠️ **On a fresh machine, the two Google files must be restored by hand.** They
 are not in git and not on EAS in a form a local build can read — the EAS
