@@ -10,12 +10,13 @@ Everything below is **outstanding**.
 | | |
 | --- | --- |
 | `main` and `develop` | in sync, **OmniMorse 0.3.0** |
-| Tests | 883 unit and property, E2E 9/9 both platforms |
+| Tests | 933 unit and property, E2E 9/9 both platforms |
 | Privacy policy | live and verified at the URL Play was given |
-| Play listing | text, icon, feature graphic and Android screenshots all ready |
+| Play listing | text, icon and feature graphic ready; screenshots need recapturing |
 | App Store listing | copy ready in all three languages — [APP-STORE.md](APP-STORE.md) |
-| Android screenshots | done — run 34612215523, all seven, wordmark correct |
-| iOS screenshots | dispatched — run 34613499598 |
+| ⚠️ Android screenshots | seven captured, but at **320×640** — Play's bare minimum. Recapture now that the emulator asks for a `pixel_6` profile |
+| iOS screenshots | done — run 34613499598, all seven at 1320×2868 |
+| Videos | flows, composer and workflow ready — see [VIDEO.md](VIDEO.md) |
 | ⚠️ Version | 0.3.0, **unbumped and untagged on purpose** — see §5 |
 | ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
 
@@ -25,38 +26,42 @@ What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
 
 ---
 
-## 1. The screenshots run that was in flight
+## 1. Recapture the Android screenshots, then record the videos
 
-⚠️ **Check this first.** Actions → **Screenshots** → run **34613499598**,
-dispatched against `develop` on 11 September at the end of the session. It was
-queued when the session ended and produces BOTH artifacts:
+Run **34613499598** finished: **iOS is done** — all seven at **1320×2868**,
+which is the 6.9-inch slot's native size and accepted alongside 1290×2796.
+Download `store-screenshots-ios` from that run and upload it as is.
 
-| Artifact | For |
-| --- | --- |
-| `store-screenshots-android` | Play — 2 to 8 phone screenshots |
-| `store-screenshots-ios` | App Store Connect — the 6.9-inch slot, which accepts 1290×2796 |
+⚠️ **Android is NOT done, and the earlier "done" was wrong.** All seven
+captured, the wordmark reads OmniMorse, and every one of them is **320×640** —
+the CI emulator's default profile, and Play's absolute minimum for the short
+side. They would be accepted and they would look it beside anything else on the
+store. Nobody measured the output, which is the whole lesson.
 
-Download whichever exist, green or red: both jobs keep what they captured even
-when a flow falls over part way. That is not a courtesy — an earlier run took
-six good screenshots and discarded them to report a failure, and the fix is the
-reason a partial run is still worth downloading.
+The emulator now asks for a `pixel_6` profile (1080×2400), so a re-run fixes
+it. That also makes the two sets consistent: both tall, both modern.
 
-**Before uploading the iOS set, check the dimensions the log printed.** The job
-prints each image's real size, and App Store Connect wants **1290×2796**. A
-fallback to a non-Pro-Max simulator warns in the log rather than failing, so a
-wrong size is visible there rather than at upload.
+⚠️ **The new profile is eight times the pixels, software-rendered.** If the
+Android job starts timing out or the flow gets flaky, that is the cause, and
+the fix is a smaller profile rather than a longer timeout.
 
-### Android is already done and good
-
-An earlier run, **34612215523**, produced all seven Android screenshots, the
-wordmark reads **OmniMorse**, and they are ready for Play. The run above
-re-takes them; either set is fine.
-
-Re-run any time, both platforms at once:
+Both platforms at once:
 
 ```bash
 gh workflow run screenshots.yml --ref develop
 ```
+
+Then the videos — a separate workflow, and the first run of it:
+
+```bash
+gh workflow run videos.yml --ref develop
+```
+
+It produces `promo-youtube.mp4` and `linkedin-fourup.mp4` in the
+`store-videos` artifact, plus the raw portrait recordings separately so the
+framing can be changed without re-recording. ⚠️ **Play takes a YouTube URL for
+the promo video, not an upload**, and there are five ways to paste a URL it
+rejects — all of them in [VIDEO.md](VIDEO.md).
 
 It needs no local build, which matters while the EAS credits are out.
 

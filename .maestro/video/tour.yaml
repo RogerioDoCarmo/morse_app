@@ -1,0 +1,136 @@
+# The Play Console promo video, which Play takes as a YouTube URL rather than
+# an upload. Recorded top to tail, composed by `tools/compose-video.sh`.
+#
+# ⚠️ Paced for watching, not for passing. Every `waitForAnimationToEnd` here is
+# a deliberate hold so a viewer can read the screen — the flows in `flows/`
+# race through the same taps in a fraction of the time and would produce
+# footage nobody could follow.
+#
+# ⚠️ The Light channel is never switched on, here or in any recorded flow. It
+# raises the camera permission dialog, and a system dialog in a store asset is
+# a rejection waiting to happen.
+appId: com.rogeriodocarmo.morse
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - assertVisible:
+          id: 'first-run'
+
+# The carousel, swiped rather than skipped past — it is the first thing a new
+# user sees, and it introduces the output channels the rest of the tour uses.
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    from:
+      id: 'first-run-pager'
+    direction: LEFT
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    from:
+      id: 'first-run-pager'
+    direction: LEFT
+- waitForAnimationToEnd:
+    timeout: 2000
+
+- tapOn:
+    id: 'first-run-skip'
+- assertNotVisible:
+    id: 'first-run'
+- hideKeyboard
+- assertVisible:
+    id: 'translator-screen'
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# A message of its own rather than the seeded SOS: the point of the shot is
+# that it encodes as you type, and SOS is already on screen when it opens.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'MORSE'
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# The channel strip is the app's main control and the thing the listing leads
+# with. Screen makes the playback visible in a silent video, which most feeds
+# are.
+- tapOn:
+    id: 'channel-screen'
+- tapOn:
+    id: 'channel-buzz'
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# ⚠️ `waitToSettleTimeoutMs: 0`. The message plays continuously, so the screen
+# never settles and Maestro would wait out its own timeout before moving on.
+- tapOn:
+    id: 'signal-button'
+    waitToSettleTimeoutMs: 0
+- assertVisible:
+    id: 'playing-badge'
+- waitForAnimationToEnd:
+    timeout: 9000
+- tapOn:
+    id: 'signal-button'
+- assertNotVisible:
+    id: 'playing-badge'
+
+- tapOn:
+    id: 'tab-speak'
+- assertVisible:
+    id: 'speech-screen'
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- tapOn:
+    id: 'tab-tap'
+- assertVisible:
+    id: 'tap-screen'
+- waitForAnimationToEnd:
+    timeout: 1500
+# S, then O, then S — three taps, three holds, three taps. The letter it spells
+# is the one the Translator seeds, which is not an accident.
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- waitForAnimationToEnd:
+    timeout: 1500
+- longPressOn:
+    id: 'tap-key'
+- longPressOn:
+    id: 'tap-key'
+- longPressOn:
+    id: 'tap-key'
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- assertVisible:
+    id: 'tap-decoded'
+- waitForAnimationToEnd:
+    timeout: 2500
+
+- tapOn:
+    id: 'tab-learn'
+- assertVisible:
+    id: 'learn-screen'
+- waitForAnimationToEnd:
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2500

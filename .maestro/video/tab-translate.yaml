@@ -1,0 +1,36 @@
+# The Translate cell of the LinkedIn four-up.
+#
+# ⚠️ It taps its OWN tab, which it is already on. That tap is redundant and
+# deliberate: it keeps this flow's lead-in the same length as the other three.
+appId: com.rogeriodocarmo.morse
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
+
+# ⚠️ The shared lead-in. All four tab flows launch, dismiss the guide and tap
+# exactly one tab before their own footage begins, because the four are played
+# side by side and nothing else keeps them in step. See README.md.
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# Screen and Vibrate, never Light — the camera permission dialog would land in
+# the middle of a published video.
+- tapOn:
+    id: 'channel-screen'
+- tapOn:
+    id: 'channel-buzz'
+- tapOn:
+    id: 'signal-button'
+    waitToSettleTimeoutMs: 0
+- assertVisible:
+    id: 'playing-badge'
+- waitForAnimationToEnd:
+    timeout: 18000

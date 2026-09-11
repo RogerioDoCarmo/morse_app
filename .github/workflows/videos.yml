@@ -1,0 +1,135 @@
+name: Videos
+
+# The two moving-image store assets, recorded from the app as it actually runs.
+#
+# ⚠️ Manual only, like Screenshots, and for the same reason: it builds the
+# whole app to produce footage, which is far too much work to do on every push.
+#
+# | Output | Goes to |
+# | --- | --- |
+# | `promo-youtube.mp4` | YouTube, whose URL is what Play Console's promo video field takes — Play does not accept an upload |
+# | `linkedin-fourup.mp4` | a LinkedIn post: all four tabs running side by side in one frame |
+#
+# The build steps are NOT repeated here. They live in
+# `.github/actions/build-android-app`, shared with `screenshots.yml`, because
+# that workflow's own header said solving it twice is how the two drift — and
+# then this one needed the same hundred lines.
+#
+# ⚠️ Android only, deliberately. Both assets are one video each, an emulator
+# and a simulator produce near-identical footage of the same app, and the
+# macOS runner has no ffmpeg preinstalled. A second platform would double the
+# cost of the job to produce a second copy of something only one of which can
+# be published.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: Record and compose
+    runs-on: ubuntu-latest
+    # Longer than Screenshots' 50: this runs five flows instead of one, and
+    # each is paced for WATCHING rather than for passing — the tour alone
+    # holds still for about forty seconds of deliberate waits.
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-android-app
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -1
+
+      # ⚠️ `continue-on-error`, so a flow that falls over on its last step
+      # still hands over the footage it recorded. The collect step below is
+      # what decides whether the job passed — the videos are the point. This
+      # is the same lesson the screenshots job learned by throwing away six
+      # good images to report a failure.
+      - name: Record the flows on an emulator
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 180000
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          # ⚠️ A REAL phone profile. Without it the emulator is 320x640, which
+          # is what the first set of store screenshots were captured at —
+          # Play's absolute minimum, and unusable as video.
+          profile: pixel_6
+          emulator-options: >-
+            -no-window -no-snapshot -noaudio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          # ⚠️ NOT disabled, unlike every other job here. Animations are the
+          # subject: a video of an app with its transitions turned off looks
+          # broken rather than fast.
+          disable-animations: false
+          script: |
+            set -x
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            mkdir -p clips
+
+            # ⚠️ Warm the driver BEFORE any recording starts. Maestro installs
+            # and launches its own instrumentation APK on first use, which
+            # takes the better part of a minute — and recorded, that minute is
+            # the emulator's launcher sitting there at the front of whichever
+            # flow happened to go first.
+            maestro hierarchy > /dev/null 2>&1 || true
+
+            record() {
+              name=$1
+              # screenrecord writes on the DEVICE and only finalises the MP4
+              # container when it is interrupted, so this cannot just be
+              # killed from the host side — an -9 leaves an unplayable file.
+              adb shell screenrecord --bit-rate 8000000 --time-limit 180 \
+                "/sdcard/$name.mp4" &
+              recorder=$!
+              sleep 2
+              maestro test ".maestro/video/$name.yaml" || \
+                echo "::warning::$name.yaml did not finish; keeping what it recorded."
+              adb shell pkill -INT screenrecord || true
+              wait "$recorder" || true
+              # The finalise is not instant and adb pull does not wait for it.
+              sleep 3
+              adb pull "/sdcard/$name.mp4" "clips/$name.mp4" || \
+                echo "::warning::No recording pulled for $name."
+            }
+
+            for flow in tab-translate tab-speak tab-tap tab-learn tour; do
+              record "$flow"
+            done
+            ls -la clips/
+
+      - name: Compose the two videos
+        if: always()
+        run: |
+          test -d clips || { echo "::error::The emulator step produced no clips directory."; exit 1; }
+          tools/compose-video.sh clips video
+
+      - name: Upload the videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-videos
+          path: video/
+          retention-days: 30
+
+      # The raw portrait recordings, kept separately. Re-composing is seconds
+      # of ffmpeg; re-recording is another forty minutes of this job, so a
+      # change of mind about the framing should not cost a rebuild.
+      - name: Upload the raw recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-videos-raw-clips
+          path: clips/
+          retention-days: 30
