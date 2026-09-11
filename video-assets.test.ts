@@ -310,19 +310,54 @@ describe('compose-video.sh', () => {
    * `maestro-flows.test.ts` does it, so the number cannot drift from what the
    * app will actually do.
    */
-  it.each(['tour', 'tab-translate'])('plays for longer than %s is recorded', (flow) => {
+  /** How long a flow's typed message takes to play, per the app's own code. */
+  function playbackSeconds(flow: string): number {
     const typed = /- inputText: '([^']+)'/u.exec(read(flow))?.[1];
     expect(typed).toBeDefined();
+    return (toTimeline(encode(typed as string)).totalUnits * unitMsForWpm(5)) / 1000;
+  }
 
-    const seconds =
-      (toTimeline(encode(typed as string)).totalUnits * unitMsForWpm(5)) / 1000;
+  it('plays for longer than tab-translate is recorded', () => {
     const rest = Number(
       capture(/^REST_SECONDS=\$\{REST_SECONDS:-(\d+)\}/mu, RECORDER, 'REST_SECONDS'),
     );
-
     // Twice the rest, so stopping the recorder still catches it mid-flash even
     // when the teardown takes as long again as the rest itself did.
-    expect(seconds).toBeGreaterThan(rest * 2);
+    expect(playbackSeconds('tab-translate')).toBeGreaterThan(rest * 2);
+  });
+
+  /**
+   * ⚠️ The tour needs the OPPOSITE of what tab-translate needs, and confusing
+   * the two cost a run.
+   *
+   * Its wait must expire while the message is still playing. A fifty-nine
+   * second message outlived a twenty-two second wait, so the "stop" tap that
+   * followed fired after playback had already ended naturally — it did not
+   * stop anything, it RESTARTED it, and the tour spent its last forty seconds
+   * replaying while Speak, Tap and Learn went unfilmed.
+   */
+  it('keeps the tour playing until its wait expires', () => {
+    const waitSeconds =
+      Number(
+        capture(/waitForAnimationToEnd:\n\s+timeout: (\d+)/u, read('tour'), 'tour wait'),
+      ) / 1000;
+    expect(playbackSeconds('tour')).toBeGreaterThan(waitSeconds);
+  });
+
+  // And it must not tap the play button a second time, because what that tap
+  // means depends on whether playback happens to have finished.
+  it('never taps the tour out of playback', () => {
+    expect([...commands(read('tour')).matchAll(/id: 'signal-button'/gu)]).toHaveLength(1);
+  });
+
+  /**
+   * ⚠️ `inputText` costs about a SECOND PER CHARACTER on a software-rendered
+   * emulator. Twenty-nine characters ate twenty-five seconds of a tour with a
+   * 178-second ceiling — at the fifty-second mark the screen still read "O".
+   */
+  it('does not spend the tour typing', () => {
+    const typed = capture(/- inputText: '([^']+)'/u, read('tour'), 'tour message');
+    expect(typed.length).toBeLessThanOrEqual(12);
   });
 
   it.each(['tour', 'tab-translate'])('slows playback before signalling in %s', (flow) => {

@@ -113,6 +113,36 @@ Re-framing costs seconds of ffmpeg, not another run:
 GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
 ```
 
+## ⚠️ `inputText` costs about a second per character
+
+Not a figure of speech. Twenty-nine characters ate **twenty-five seconds** of
+the tour's budget, and a frame at the fifty-second mark showed the input
+reading `O`. It is the single most expensive thing a recorded flow can do.
+
+`tab-translate` pays it willingly, because its cell needs a message long enough
+to still be playing when the recording stops. **The tour must not**: it wants a
+brief demonstration and then to move on, so it types ten characters, not
+twenty-nine.
+
+## ⚠️ The tour and the Translate cell want opposite things
+
+Confusing the two cost a run, and the failure was not obvious from the log.
+
+| | needs playback to |
+| --- | --- |
+| `tab-translate` | **outlast the recording**, so the trimmed tail is still flashing |
+| `tour` | **outlast only its own wait**, so it can move on to the other tabs |
+
+A fifty-nine-second message outlived the tour's twenty-two second wait. The
+"stop" tap that followed therefore fired *after* playback had already ended by
+itself — so it did not stop anything, it **restarted** it, and the tour spent
+its last forty seconds replaying the same message while Speak, Tap and Learn
+went unfilmed.
+
+⚠️ **There is no stop tap any more.** Walking away to the next tab is enough,
+and a tap whose meaning depends on whether playback happens to have finished
+does not belong in a recording.
+
 ## ⚠️ The tour has to fit inside 180 seconds
 
 `screenrecord` stops dead at its own ceiling. The first tour that ran the full
