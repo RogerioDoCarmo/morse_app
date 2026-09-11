@@ -1,7 +1,13 @@
-# The Translate cell of the LinkedIn four-up.
+# The Translate cell of the LinkedIn four-up, and the only one that moves.
 #
-# ⚠️ It taps its OWN tab, which it is already on. That tap is redundant and
-# deliberate: it keeps this flow's lead-in the same length as the other three.
+# ⚠️ This flow ENDS as soon as it has arrived. It does not try to hold still —
+# `waitForAnimationToEnd` cannot do that, because its timeout is a MAXIMUM and
+# it returns in under a second on a screen that is not animating. The dwell
+# comes from tools/record-video-clips.sh, which records for a fixed length and
+# never stops early, so the app rests here on camera after the flow returns.
+#
+# ⚠️ It taps its OWN tab, which it is already on, to keep its lead-in the
+# same length as the other three.
 appId: com.rogeriodocarmo.morse
 ---
 - retry:
@@ -12,14 +18,36 @@ appId: com.rogeriodocarmo.morse
       - runFlow: ../dismiss-first-run.yaml
 
 # ⚠️ The shared lead-in. All four tab flows launch, dismiss the guide and tap
-# exactly one tab before their own footage begins, because the four are played
-# side by side and nothing else keeps them in step. See README.md.
+# exactly one tab, because the four are played side by side. See README.md.
 - tapOn:
     id: 'tab-translate'
 - assertVisible:
     id: 'translator-screen'
-- waitForAnimationToEnd:
-    timeout: 1500
+
+# ⚠️ 5 WPM and a long message, both deliberate, and the same lesson
+# `audio-playback.yaml` already encodes: SOS at the default speed finishes in
+# about three seconds. The first recorded run asserted `playing-badge` and
+# FAILED because the message had already stopped — and a cell that plays for
+# three seconds of sixteen is a still image for the rest.
+#
+# Duration is bought with SPEED rather than with characters, so the screen
+# shows a real phrase instead of a wall of filler.
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'
+- tapOn:
+    id: 'segment-5'
+- tapOn:
+    id: 'settings-back'
+- assertVisible:
+    id: 'translator-screen'
+
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'MORSE CODE'
+- hideKeyboard
 
 # Screen and Vibrate, never Light — the camera permission dialog would land in
 # the middle of a published video.
@@ -27,10 +55,10 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-screen'
 - tapOn:
     id: 'channel-buzz'
+# ⚠️ `waitToSettleTimeoutMs: 0`: the message plays continuously, so the screen
+# never settles and Maestro would wait out its own timeout before moving on.
 - tapOn:
     id: 'signal-button'
     waitToSettleTimeoutMs: 0
 - assertVisible:
     id: 'playing-badge'
-- waitForAnimationToEnd:
-    timeout: 18000

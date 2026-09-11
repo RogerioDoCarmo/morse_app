@@ -1,5 +1,19 @@
-# The Tap cell of the LinkedIn four-up — three taps, three holds, three
-# taps, which is S O S.
+# The Tap cell of the LinkedIn four-up.
+#
+# ⚠️ This flow ENDS as soon as it has arrived. It does not try to hold still —
+# `waitForAnimationToEnd` cannot do that, because its timeout is a MAXIMUM and
+# it returns in under a second on a screen that is not animating. The dwell
+# comes from tools/record-video-clips.sh, which records for a fixed length and
+# never stops early, so the app rests here on camera after the flow returns.
+#
+# ⚠️ It does NOT spell anything in particular, and an earlier version of
+# this comment claimed it spelled SOS. It does not: Maestro's taps on a
+# software-rendered emulator are far enough apart that each one commits
+# as its own letter, so three taps and three holds decoded as EEETTT.
+# That is the app behaving correctly on the input it actually received.
+# What the cell needs is a key being worked and a decode appearing, and
+# claiming a specific word it cannot reliably produce is how a comment
+# starts lying.
 appId: com.rogeriodocarmo.morse
 ---
 - retry:
@@ -10,38 +24,17 @@ appId: com.rogeriodocarmo.morse
       - runFlow: ../dismiss-first-run.yaml
 
 # ⚠️ The shared lead-in. All four tab flows launch, dismiss the guide and tap
-# exactly one tab before their own footage begins, because the four are played
-# side by side and nothing else keeps them in step. See README.md.
+# exactly one tab, because the four are played side by side. See README.md.
 - tapOn:
     id: 'tab-tap'
 - assertVisible:
     id: 'tap-screen'
-- waitForAnimationToEnd:
-    timeout: 1500
-
-- tapOn:
-    id: 'tap-key'
-- tapOn:
-    id: 'tap-key'
-- tapOn:
-    id: 'tap-key'
-- waitForAnimationToEnd:
-    timeout: 1800
-- longPressOn:
-    id: 'tap-key'
-- longPressOn:
-    id: 'tap-key'
-- longPressOn:
-    id: 'tap-key'
-- waitForAnimationToEnd:
-    timeout: 1800
-- tapOn:
-    id: 'tap-key'
-- tapOn:
-    id: 'tap-key'
-- tapOn:
-    id: 'tap-key'
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: 'tap-key'
+      - longPressOn:
+          id: 'tap-key'
 - assertVisible:
     id: 'tap-decoded'
-- waitForAnimationToEnd:
-    timeout: 12000
