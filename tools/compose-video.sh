@@ -58,7 +58,11 @@ TOUR_SECONDS=${TOUR_SECONDS:-60}
 # It is belt and braces with REST_SECONDS in the recorder, deliberately: the
 # real rest is what captures a message still playing, and this is what
 # guarantees a tail when there was no motion to record.
-TAIL_PAD=${TAIL_PAD:-$GRID_SECONDS}
+# ⚠️ Deliberately SMALLER than GRID_SECONDS. Defaulting it to the same value
+# meant the trim window was exactly the cloned still, so every cell was a
+# freeze-frame no matter what the device had recorded. It is insurance against
+# a clip whose static tail never reached the file, not the tail itself.
+TAIL_PAD=${TAIL_PAD:-4}
 
 # One cell of the four-up. Four of these side by side is 1712 wide, which
 # leaves a margin inside 1920 and 130px of headroom inside 1080.

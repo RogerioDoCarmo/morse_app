@@ -75,6 +75,9 @@ ffmpeg -sseof -10 -i clips/tab-speak.mp4 -frames:v 1 frame.png
 | 3 | the wrong screen in three of four cells | `waitForAnimationToEnd: timeout: N` **does not wait for N** — N is a maximum, and returns in under a second on a screen that is not animating |
 
 All three are fixed, guarded by tests, and written up in [VIDEO.md](VIDEO.md).
+[VIDEO-PIPELINE.md](VIDEO-PIPELINE.md) explains where the work actually
+happens — all of it on GitHub's runners, including the emulator — and which
+parts you can run on your own machine instead.
 
 ### If the dispatched run is good
 

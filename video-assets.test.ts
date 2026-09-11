@@ -5,6 +5,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { encode } from '@/core/domain/morse';
+import { toTimeline, unitMsForWpm } from '@/core/domain/timeline';
+
 const VIDEO_DIR = path.join(__dirname, '.maestro', 'video');
 const COMPOSE = fs.readFileSync(
   path.join(__dirname, 'tools', 'compose-video.sh'),
@@ -202,9 +205,22 @@ describe('compose-video.sh', () => {
 
   // And clones the final frame onto the end, so the tail exists even when
   // there was no motion for the device to record.
-  it('clones a tail at least as long as the trim', () => {
+  it('clones a tail onto the end', () => {
     expect(code(COMPOSE)).toContain('tpad=stop_mode=clone');
-    expect(code(COMPOSE)).toContain('TAIL_PAD=${TAIL_PAD:-$GRID_SECONDS}');
+  });
+
+  /**
+   * ⚠️ The clone must be SHORTER than the window it sits inside.
+   *
+   * Defaulting TAIL_PAD to GRID_SECONDS meant the trim window was exactly the
+   * cloned still, so every cell was a freeze-frame no matter what the device
+   * had actually recorded. The pad is insurance against a clip whose static
+   * tail never reached the file — not a replacement for the footage.
+   */
+  it('pads less than it shows', () => {
+    const pad = Number(capture(/^TAIL_PAD=\$\{TAIL_PAD:-(\d+)\}/mu, COMPOSE, 'TAIL_PAD'));
+    expect(pad).toBeGreaterThan(0);
+    expect(pad).toBeLessThan(defaultOf('GRID_SECONDS'));
   });
 
   it('never seeks a clip from the front', () => {
@@ -248,6 +264,33 @@ describe('compose-video.sh', () => {
    * already stopped. `audio-playback.yaml` encodes the same lesson, and buys
    * its duration with SPEED rather than with characters.
    */
+  /**
+   * ⚠️ The message must outlast the RECORDING, not merely the assertion.
+   *
+   * "MORSE CODE" at 5 WPM plays for 21 seconds. The recorder rests 20 and then
+   * takes a while to stop, so playback finished about 24 seconds before the
+   * clip ended and the grid's window landed entirely in the static aftermath —
+   * a cell that was correct in every detail and completely still.
+   *
+   * Computed from the app's own encoder and timeline, the way
+   * `maestro-flows.test.ts` does it, so the number cannot drift from what the
+   * app will actually do.
+   */
+  it.each(['tour', 'tab-translate'])('plays for longer than %s is recorded', (flow) => {
+    const typed = /- inputText: '([^']+)'/u.exec(read(flow))?.[1];
+    expect(typed).toBeDefined();
+
+    const seconds =
+      (toTimeline(encode(typed as string)).totalUnits * unitMsForWpm(5)) / 1000;
+    const rest = Number(
+      capture(/^REST_SECONDS=\$\{REST_SECONDS:-(\d+)\}/mu, RECORDER, 'REST_SECONDS'),
+    );
+
+    // Twice the rest, so stopping the recorder still catches it mid-flash even
+    // when the teardown takes as long again as the rest itself did.
+    expect(seconds).toBeGreaterThan(rest * 2);
+  });
+
   it.each(['tour', 'tab-translate'])('slows playback before signalling in %s', (flow) => {
     const source = read(flow);
     expect(source).toContain("id: 'segment-5'");
