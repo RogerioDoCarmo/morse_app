@@ -18,9 +18,10 @@ export const es: TranslationMap = {
   'translator.readAloud': 'Leer en voz alta',
   'translator.copy': 'Copiar',
   'translator.play': 'Reproducir',
+  'translator.copied': 'Copiado',
+  'translator.typeHint': 'Toca para escribir',
   'translator.playing': 'Reproduciendo',
   'translator.unsupported': 'Sin código: {{chars}}',
-  'translator.signal': 'Emitir',
   'translator.stop': 'Detener',
   'translator.volumeLow':
     'El sonido está activado, pero este teléfono está muy bajo. Sube el volumen para oír el mensaje.',

@@ -229,7 +229,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
                   playing={playback.playing}
                   canPlay={playback.canPlay}
                   onPress={playback.playing ? playback.stop : playback.play}
-                  label={playback.playing ? t('translator.stop') : t('translator.signal')}
+                  label={playback.playing ? t('translator.stop') : t('translator.play')}
                 />
               </View>
             </View>

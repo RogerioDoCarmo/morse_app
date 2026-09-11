@@ -77,7 +77,6 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
    * changes, so without this every return to Translate raised the keyboard
    * over the tab bar that had just been tapped.
    */
-  const [navigated, setNavigated] = useState(false);
   // Settings is not a tab — it opens over whichever one you were on, and the
   // back arrow returns you there rather than to a fixed home.
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -86,12 +85,10 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
   const [languageOpen, setLanguageOpen] = useState(false);
 
   const goToTab = useCallback((next: TabName): void => {
-    setNavigated(true);
     setTab(next);
   }, []);
 
   const openSettings = useCallback((): void => {
-    setNavigated(true);
     setSettingsOpen(true);
   }, []);
   // Nothing at all until the stored answer is in: showing the Translator for a
@@ -171,7 +168,6 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
         <LearnScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
       ) : (
         <TranslatorScreen
-          autoFocusInput={!navigated}
           onSelectTab={goToTab}
           unavailableTabs={UNBUILT}
           onOpenSettings={openSettings}

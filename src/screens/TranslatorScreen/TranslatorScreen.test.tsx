@@ -131,7 +131,7 @@ describe('TranslatorScreen', () => {
 
   it('renders in the selected locale', () => {
     renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    expect(screen.getByText('Emitir')).toBeOnTheScreen();
+    expect(screen.getByText('Reproducir')).toBeOnTheScreen();
     expect(screen.getByText('Sonido')).toBeOnTheScreen();
   });
 });
@@ -1318,26 +1318,133 @@ describe('a phone too quiet to hear the message', () => {
 
 describe('where the caret starts', () => {
   /**
-   * Typing is what this screen is for, and a seeded sample you must tap
-   * before you can replace it is a step nobody wants twice.
+   * ⚠️ NOT auto-focused, and this replaces a test that asserted the opposite.
+   *
+   * It was focused on open so the seeded sample could be typed over without a
+   * tap. On a phone the keyboard then covered half the screen INCLUDING the
+   * sample it was meant to help you replace, which is a worse trade than the
+   * tap it saved. The dot beside the language label points at the field
+   * instead, and costs no screen space.
    */
-  it('takes the caret when the app opens', () => {
-    renderWithProviders(<TranslatorScreen autoFocusInput />);
-    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', true);
+  it('does not take the caret', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('translator-input')).not.toHaveProp('autoFocus', true);
+  });
+
+  it('points at the input with a dot until the field is touched', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('type-hint-dot')).toBeTruthy();
   });
 
   /**
-   * ⚠️ The defect the E2E suite caught before a person did.
-   *
-   * `autoFocus` fires on every MOUNT, and the shell unmounts a screen when the
-   * tab changes — so left on unconditionally, every return to Translate raised
-   * the keyboard over the tab bar that had just been tapped. On Android the
-   * `speech` flow could no longer find `tab-speak` at all.
-   *
-   * Off by default, so only the app's first look at this screen asks for it.
+   * ⚠️ On TOUCH, not on "the field is non-empty". The field is seeded with
+   * SOS, so an emptiness test would never show the dot at all — and clearing
+   * the field later is not a reason to start pointing at it again.
    */
-  it('leaves it alone on every mount after that', () => {
+  it('drops the dot once the field is typed in', () => {
     renderWithProviders(<TranslatorScreen />);
-    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', false);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+
+  it('drops the dot on focus alone, before anything is typed', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent(screen.getByTestId('translator-input'), 'focus');
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ Until 0.3.2 this button's handler was `() => undefined`.
+ *
+ * It was drawn on the artboard and never wired — the same defect a tester
+ * reported against Speak in 0.2.1, and indistinguishable from a broken one.
+ * These are the tests that would have caught it.
+ */
+describe('copying the Morse', () => {
+  it('puts the encoded Morse on the clipboard', async () => {
+    const ports = createFakePorts();
+    const written: string[] = [];
+    ports.clipboard.write = async (text: string) => {
+      written.push(text);
+      return true;
+    };
+    renderWithProviders(<TranslatorScreen />, { ports });
+
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await waitFor(() => expect(written).toHaveLength(1));
+    // SOS is what the field is seeded with.
+    expect(written[0]).toBe('... --- ...');
+  });
+
+  it('shows a tick on the button, then a toast saying so', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+
+    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+    expect(screen.getByTestId('toast')).toBeTruthy();
+  });
+
+  /**
+   * ⚠️ The toast must OUTLIVE the tick, and this is the test that was missing.
+   *
+   * Both read one `copied` flag at first, so the icon's 1.8s timer cleared the
+   * toast too — it lasted under two seconds instead of six, and the E2E flow
+   * failed asserting it in the gap between checking the icon and checking the
+   * toast. The unit tests all passed, because none of them looked at the two
+   * together after the icon reverted.
+   */
+  it('keeps the toast up after the tick has reverted', async () => {
+    jest.useFakeTimers();
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(screen.getByTestId('icon-copy')).toBeTruthy();
+    expect(screen.getByTestId('toast')).toBeTruthy();
+
+    // And it does go, on the Toast's own timer rather than the icon's.
+    await act(async () => {
+      jest.advanceTimersByTime(3500);
+    });
+    expect(screen.queryByTestId('toast')).toBeNull();
+    jest.useRealTimers();
+  });
+
+  /**
+   * ⚠️ The tick must revert itself. A button that stays a tick has stopped
+   * telling you what it does and started telling you what it did once.
+   */
+  it('turns back into a copy icon', async () => {
+    jest.useFakeTimers();
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+
+    // Past COPIED_ICON_MS, and deliberately not a round number near it: a test
+    // that only just clears the boundary starts failing when the boundary moves
+    // by a hundred milliseconds, which is not a regression worth a red build.
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(screen.getByTestId('icon-copy')).toBeTruthy();
+    jest.useRealTimers();
+  });
+
+  /**
+   * ⚠️ A refused clipboard must not claim success. The adapter swallows every
+   * failure into `false`, so this is the only place the difference survives.
+   */
+  it('says nothing when the platform refuses', async () => {
+    const ports = createFakePorts();
+    ports.clipboard.write = async () => false;
+    renderWithProviders(<TranslatorScreen />, { ports });
+
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(await screen.findByTestId('icon-copy')).toBeTruthy();
+    expect(screen.queryByTestId('toast')).toBeNull();
   });
 });

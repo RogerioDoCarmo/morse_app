@@ -1,4 +1,5 @@
 import { createExpoAudioAdapter } from '@/adapters/audio/expoAudioAdapter';
+import { createExpoClipboardAdapter } from '@/adapters/clipboard/expoClipboardAdapter';
 import { createFirebaseCrashReportingAdapter } from '@/adapters/crash/firebaseCrashReportingAdapter';
 import { createExpoKeepAwakeAdapter } from '@/adapters/keepAwake/expoKeepAwakeAdapter';
 import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashReportingAdapter';
@@ -46,6 +47,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
       vibration: createPlatformVibrationAdapter(crash),
       volume: createNativeVolumeAdapter(crash),
       preferences: createAsyncStoragePreferencesAdapter(crash),
+      clipboard: createExpoClipboardAdapter(),
       tts: createExpoSpeechAdapter(crash),
       speech: createExpoSpeechRecognitionAdapter(crash),
       locale: createExpoLocalizationAdapter(),

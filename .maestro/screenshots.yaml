@@ -32,9 +32,9 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-skip'
 - assertNotVisible:
     id: 'first-run'
-# The Translator autofocuses on open, so the keyboard is up and would cover
-# half of the first shot.
-- hideKeyboard
+# ⚠️ No `hideKeyboard`. The Translator no longer focuses its input on open, so
+# there is no keyboard covering this shot — and a dismiss with nothing to
+# dismiss goes looking for somewhere to tap, which cost this flow a run once.
 
 - assertVisible:
     id: 'translator-screen'

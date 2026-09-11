@@ -13,15 +13,10 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-skip'
 - assertNotVisible:
     id: 'first-run'
-
-# ⚠️ The Translator autofocuses its input ON OPEN, so the keyboard is up the
-# moment the guide closes — and on a phone it covers the TAB BAR. Every flow
-# that runs this one then reaches for `tab-tap`, `tab-speak` or `tab-learn`,
-# and would be tapping at a keyboard instead. Dismissed here, once, rather
-# than at the top of six flows.
+# ⚠️ There is NO `hideKeyboard` here any more, and its absence is load-bearing.
 #
-# Only on open: returning to Translate later does NOT focus the input, so no
-# flow needs a second dismissal. That was not true at first, and `speech` was
-# the flow that proved it — it goes to Speak through the Translator's own
-# button, comes back, and then reaches for the tab bar.
-- hideKeyboard
+# There used to be one, because the Translator focused its input on open and
+# the keyboard covered the tab bar every flow reaches for next. The input no
+# longer takes focus, so there is no keyboard — and a dismiss with nothing to
+# dismiss is not harmless: it goes looking for somewhere to tap and takes the
+# app with it. `screenshots.yaml` lost a whole run to exactly that.
