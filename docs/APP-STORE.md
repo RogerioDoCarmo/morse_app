@@ -178,6 +178,17 @@ drives either layout without knowing which it is on.
 change.** `screenshots-capture.test.ts` ties them together: while `app.json`
 says `supportsTablet: true`, the workflow must capture an iPad set.
 
+⚠️ **Simulator names are matched on a PREFIX, deliberately.** The first run
+asked for `iPad Pro 13-inch (M4)` on a runner that had `iPad Pro 13-inch (M5)`
+and captured nothing. The chip revision is not what decides the screen size, so
+it is not what to match on — and Apple will ship an M6.
+
+⚠️ **That run reported SUCCESS with an empty iPad artifact.** The check only
+looked at the iPhone directory. The job now fails when `app.json` declares
+`supportsTablet` and no iPad set was captured, because a green tick over a
+missing required asset is the same failure as the Android screenshots sitting
+at 320×640 for a week — found at upload, both times.
+
 ⚠️ **Check the dimensions the workflow printed before uploading.** The collect
 step prints each image's real size, and the job warns rather than fails when no
 Pro Max simulator was available on the runner — a fallback device produces

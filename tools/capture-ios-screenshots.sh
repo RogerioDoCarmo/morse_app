@@ -24,14 +24,23 @@ FLOW=${FLOW:-.maestro/screenshots.yaml}
 # wanted name straight into an awk pattern, which is fine for "iPhone 17 Pro
 # Max" and silently wrong for "iPad Pro 13-inch (M4)" — those parentheses are
 # a regex group, so it would match nothing and fall through to the warning.
+#
+# ⚠️ And a PREFIX, not the whole name. The first version asked for
+# "iPad Pro 13-inch (M4)" on a runner that had "iPad Pro 13-inch (M5)" and
+# found nothing. The chip revision is not the part that decides the screen
+# size, so it is not the part to match on — asking for "iPad Pro 13-inch"
+# survives Apple shipping an M6.
 udid=""
 chosen=""
 for want in "$@"; do
-  udid=$(xcrun simctl list devices available \
-         | grep -F "$want (" \
-         | head -1 \
-         | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/') || true
-  if [ -n "$udid" ]; then chosen=$want; break; fi
+  line=$(xcrun simctl list devices available | grep -F "$want" | head -1) || true
+  udid=$(printf '%s' "$line" | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')
+  if [ -n "$udid" ] && [ "$udid" != "$line" ]; then
+    # The full name as simctl reports it, so the log says which chip it got.
+    chosen=$(printf '%s' "$line" | sed -E 's/^ *(.*) \([0-9A-Fa-f-]{36}\).*/\1/')
+    break
+  fi
+  udid=""
 done
 
 if [ -z "$udid" ]; then
