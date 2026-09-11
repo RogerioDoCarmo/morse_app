@@ -10,13 +10,14 @@ Everything below is **outstanding**.
 | | |
 | --- | --- |
 | `main` and `develop` | in sync, **OmniMorse 0.3.0** |
-| Tests | 933 unit and property, E2E 9/9 both platforms |
+| Tests | 951 unit and property, E2E 9/9 both platforms |
 | Privacy policy | live and verified at the URL Play was given |
-| Play listing | text, icon and feature graphic ready; screenshots need recapturing |
+| Play listing | text, icon, feature graphic and screenshots all ready |
 | App Store listing | copy ready in all three languages — [APP-STORE.md](APP-STORE.md) |
-| ⚠️ Android screenshots | seven captured, but at **320×640** — Play's bare minimum. Recapture now that the emulator asks for a `pixel_6` profile |
-| iOS screenshots | done — run 34613499598, all seven at 1320×2868 |
-| Videos | flows, composer and workflow ready — see [VIDEO.md](VIDEO.md) |
+| Android screenshots | **done** — run 34620373429, seven at **1080×2400** |
+| iOS screenshots | **done** — run 34620373429, seven at **1320×2868** |
+| Support page | live, verified byte for byte |
+| ⚠️ Videos | machinery complete and proven; **no usable footage yet** — see §2 |
 | ⚠️ Version | 0.3.0, **unbumped and untagged on purpose** — see §5 |
 | ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
 
@@ -26,44 +27,67 @@ What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
 
 ---
 
-## 1. Recapture the Android screenshots, then record the videos
+## 1. Screenshots are finished
 
-Run **34613499598** finished: **iOS is done** — all seven at **1320×2868**,
-which is the 6.9-inch slot's native size and accepted alongside 1290×2796.
-Download `store-screenshots-ios` from that run and upload it as is.
+Both sets are captured, measured and ready to upload, from run **34620373429**:
 
-⚠️ **Android is NOT done, and the earlier "done" was wrong.** All seven
-captured, the wordmark reads OmniMorse, and every one of them is **320×640** —
-the CI emulator's default profile, and Play's absolute minimum for the short
-side. They would be accepted and they would look it beside anything else on the
-store. Nobody measured the output, which is the whole lesson.
+| Artifact | Size | For |
+| --- | --- | --- |
+| `store-screenshots-android` | 1080×2400 ×7 | Play |
+| `store-screenshots-ios` | 1320×2868 ×7 | App Store Connect, 6.9-inch slot |
 
-The emulator now asks for a `pixel_6` profile (1080×2400), so a re-run fixes
-it. That also makes the two sets consistent: both tall, both modern.
-
-⚠️ **The new profile is eight times the pixels, software-rendered.** If the
-Android job starts timing out or the flow gets flaky, that is the cause, and
-the fix is a smaller profile rather than a longer timeout.
-
-Both platforms at once:
+⚠️ **An earlier Android set exists at 320×640 — discard it.** That was the CI
+emulator's default profile and Play's bare minimum for the short side: it was
+accepted, and it looked it. Both workflows now ask for a `pixel_6` profile.
+The general lesson is the one worth keeping: **nobody had measured the output.**
 
 ```bash
 gh workflow run screenshots.yml --ref develop
 ```
 
-Then the videos — a separate workflow, and the first run of it:
+---
+
+## 2. ⚠️ The videos: machinery done, footage not
+
+**A run was dispatched as this session ended — check it first.** Actions →
+**Videos**. The flows, the composer, the workflow and 47 tests are in place and
+proven. What has not happened yet is one run whose footage is usable.
+
+### Do not trust the run's conclusion
+
+⚠️ **Three runs reported `success` and produced unusable footage.**
+`continue-on-error` on the emulator step is what preserves partial footage when
+a flow falls over — and it also swallows five flows failing in a row.
+
+**Verification is looking at a frame.** Nothing else caught any of these:
 
 ```bash
-gh workflow run videos.yml --ref develop
+gh run download <id> -n store-videos-raw-clips -D clips
+ffmpeg -sseof -10 -i clips/tab-speak.mp4 -frames:v 1 frame.png
 ```
 
-It produces `promo-youtube.mp4` and `linkedin-fourup.mp4` in the
-`store-videos` artifact, plus the raw portrait recordings separately so the
-framing can be changed without re-recording. ⚠️ **Play takes a YouTube URL for
-the promo video, not an upload**, and there are five ways to paste a URL it
-rejects — all of them in [VIDEO.md](VIDEO.md).
+### What each run taught, in order
 
-It needs no local build, which matters while the EAS credits are out.
+| # | Symptom | Cause |
+| --- | --- | --- |
+| 1 | no clips at all | `android-emulator-runner` splits its `script:` on newlines and runs each through its own `sh -c`; a shell function was torn apart mid-brace |
+| 2 | "Pixel Launcher isn't responding" over every frame | `pixel_6` at 1080p through swiftshader with animations on ANRs the launcher, and the dialog then hid the app from Maestro |
+| 3 | the wrong screen in three of four cells | `waitForAnimationToEnd: timeout: N` **does not wait for N** — N is a maximum, and returns in under a second on a screen that is not animating |
+
+All three are fixed, guarded by tests, and written up in [VIDEO.md](VIDEO.md).
+
+### If the dispatched run is good
+
+Re-framing needs no re-record — re-compose from the raw clips:
+
+```bash
+GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
+```
+
+⚠️ **Play takes a YOUTUBE URL for the promo video, not an upload**, and there
+are five ways to paste one it rejects. All in [VIDEO.md](VIDEO.md).
+
+---
 
 ## 3. Two fixes nobody has felt
 
