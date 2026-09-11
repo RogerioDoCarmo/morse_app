@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View } from 'react-native';
@@ -69,6 +69,15 @@ const UNBUILT: readonly TabName[] = [];
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
   const [tab, setTab] = useState<TabName>('translate');
+  /**
+   * Whether the user has been anywhere yet.
+   *
+   * The Translator focuses its input on OPEN, and only on open. `autoFocus`
+   * fires on every mount and this shell unmounts a screen when the tab
+   * changes, so without this every return to Translate raised the keyboard
+   * over the tab bar that had just been tapped.
+   */
+  const [navigated, setNavigated] = useState(false);
   // Settings is not a tab — it opens over whichever one you were on, and the
   // back arrow returns you there rather than to a fixed home.
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -76,6 +85,15 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
   // returns to the rows that led there.
   const [languageOpen, setLanguageOpen] = useState(false);
 
+  const goToTab = useCallback((next: TabName): void => {
+    setNavigated(true);
+    setTab(next);
+  }, []);
+
+  const openSettings = useCallback((): void => {
+    setNavigated(true);
+    setSettingsOpen(true);
+  }, []);
   // Nothing at all until the stored answer is in: showing the Translator for a
   // frame and then covering it is worse than a beat of empty ground.
   if (!firstRun.ready) {
@@ -116,7 +134,7 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           }}
           onOpenLearn={() => {
             setSettingsOpen(false);
-            setTab('learn');
+            goToTab('learn');
           }}
           onOpenLanguage={() => {
             setLanguageOpen(true);
@@ -146,18 +164,17 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           mid-message. */}
       <TorchHost adapter={torch} />
       {tab === 'speak' ? (
-        <SpeechScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
+        <SpeechScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
       ) : tab === 'tap' ? (
-        <TapScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
+        <TapScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
       ) : tab === 'learn' ? (
-        <LearnScreen onSelectTab={setTab} unavailableTabs={UNBUILT} />
+        <LearnScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
       ) : (
         <TranslatorScreen
-          onSelectTab={setTab}
+          autoFocusInput={!navigated}
+          onSelectTab={goToTab}
           unavailableTabs={UNBUILT}
-          onOpenSettings={() => {
-            setSettingsOpen(true);
-          }}
+          onOpenSettings={openSettings}
         />
       )}
     </View>
