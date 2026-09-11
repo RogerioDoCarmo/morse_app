@@ -120,15 +120,32 @@ will open it.
 
 ## 5. Version and tag
 
-⚠️ **0.3.0 is unbumped and untagged, both deliberately.**
+**0.3.1 is bumped. `v0.3.1` is still untagged, and that is the deliberate half.**
 
-The rename is user-visible and would normally move both version fields. Bumping
-`package.json` fires `firebase-distribution.yml`, and **EAS has no build
-credits until 1 October** — it would land a guaranteed red run beside a release
-nobody can install. Tagging `v0.3.0` fires `eas-build.yml` for the same result.
+⚠️ **The bump fires `firebase-distribution.yml`, and that run will be RED.**
+It builds on EAS, and the credit pool ran out on 9 September and does not reset
+until **1 October**. This was a knowing trade, not an oversight: the version
+needed to move so a local build could be cut, and a red run beside it is the
+price.
 
-So: bump both when there is a build to make, tag after the credits reset, or
-build locally with `pnpm build:apk:local` in the meantime.
+Cut the build locally instead — free, and unaffected by the credits:
+
+```bash
+ANDROID_HOME="$HOME/Library/Android/sdk" \
+ANDROID_SDK_ROOT="$HOME/Library/Android/sdk" \
+GOOGLE_SERVICES_JSON_PATH="$PWD/google-services.json" \
+  pnpm build:apk:local
+```
+
+Then distribute it by hand — see the Firebase block in
+[MACHINE-SETUP.md](MACHINE-SETUP.md).
+
+⚠️ **Tagging `v0.3.1` fires `eas-build.yml` for the same red result.** Tag after
+1 October.
+
+⚠️ **0.3.1 carries no functional change over 0.3.0.** Nothing under `src/` has
+moved since the rename; everything since has been CI, tooling and
+documentation. If it ships to testers, the release notes are 0.3.0's.
 
 ## 6. Deferred, with triggers
 

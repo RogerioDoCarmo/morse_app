@@ -357,3 +357,35 @@ describe('app.config', () => {
     expect(iosOnly.android?.googleServicesFile).toBeUndefined();
   });
 });
+
+/**
+ * ⚠️ The version is declared TWICE, in two files, for two different readers.
+ *
+ * `app.json` is what EAS builds from, what `release.yml` checks a tag against,
+ * and what Settings shows — `src/appVersion.ts` imports it rather than
+ * retyping it, precisely so those cannot disagree.
+ *
+ * `package.json` is what `firebase-distribution.yml` watches: a change there
+ * is what decides a build is worth distributing at all.
+ *
+ * Nothing tied them together. A bump to one alone distributes a build whose
+ * Settings screen names a different version than the one that triggered it —
+ * and the tester reporting a bug would name the wrong one.
+ */
+describe('the version, declared in two places', () => {
+  const packageJson = JSON.parse(
+    fs.readFileSync(`${__dirname}/package.json`, 'utf8'),
+  ) as { version?: string };
+  const appJson = JSON.parse(fs.readFileSync(`${__dirname}/app.json`, 'utf8')) as {
+    expo?: { version?: string };
+  };
+
+  it('says the same thing in package.json and app.json', () => {
+    expect(packageJson.version).toBeDefined();
+    expect(appJson.expo?.version).toBe(packageJson.version);
+  });
+
+  it('is a plain semver triple, which is what both readers expect', () => {
+    expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/u);
+  });
+});
