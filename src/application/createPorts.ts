@@ -12,6 +12,7 @@ import {
 } from '@/adapters/torch/expoTorchAdapter';
 import { createExpoSpeechAdapter } from '@/adapters/tts/expoSpeechAdapter';
 import { createPlatformVibrationAdapter } from '@/adapters/vibration/platformVibrationAdapter';
+import { createNativeVolumeAdapter } from '@/adapters/volume/nativeVolumeAdapter';
 import type { Ports } from '@/core/ports';
 
 /**
@@ -43,6 +44,7 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
       audio: createExpoAudioAdapter(crash),
       keepAwake: createExpoKeepAwakeAdapter(crash),
       vibration: createPlatformVibrationAdapter(crash),
+      volume: createNativeVolumeAdapter(crash),
       preferences: createAsyncStoragePreferencesAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
       speech: createExpoSpeechRecognitionAdapter(crash),

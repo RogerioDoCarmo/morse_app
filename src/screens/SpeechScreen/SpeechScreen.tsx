@@ -10,6 +10,7 @@ import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
+import { Toast } from '@/components/Toast';
 import { SignalSurface } from '@/components/SignalSurface';
 import { SignalButton } from '@/components/SignalButton';
 import { AppFrame } from '@/components/AppFrame';
@@ -217,6 +218,11 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
             </ScrollView>
 
             <View style={styles.outputs}>
+              <Toast
+                visible={playback.lowVolume}
+                message={t('translator.volumeLow')}
+                onDismiss={playback.dismissLowVolume}
+              />
               <OutputChannels cells={cells} />
               <View style={styles.actions}>
                 <SignalButton

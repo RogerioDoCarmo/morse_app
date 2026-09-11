@@ -14,6 +14,7 @@ import {
   totalMs,
 } from '@/core/domain/timeline';
 import { renderWav } from '@/core/domain/tone';
+import { isLowVolume } from '@/core/domain/volume';
 
 /**
  * How often the progress readout refreshes.
@@ -55,6 +56,14 @@ export type MorsePlayback = Readonly<{
   screenLit: boolean;
   /** Switches one output on or off, taking effect immediately. */
   toggleChannel: (channel: OutputChannel) => void;
+  /**
+   * True when a run started on the Sound channel into a device turned down far
+   * enough that nobody will hear it. Cleared by {@link dismissLowVolume}, and
+   * whenever a run starts on a device that is loud enough.
+   */
+  lowVolume: boolean;
+  /** Puts the warning away. It does not come back for the same run. */
+  dismissLowVolume: () => void;
   /** False when there is nothing to play, or nothing to play it on. */
   canPlay: boolean;
   play: () => void;
@@ -82,7 +91,7 @@ export function useMorsePlayback(
   message: MorseMessage,
   unitMs: number = DEFAULT_PLAYBACK_UNIT_MS,
 ): MorsePlayback {
-  const { audio, keepAwake, torch, vibration } = usePorts();
+  const { audio, keepAwake, torch, vibration, volume } = usePorts();
   const unit = clampPlaybackUnitMs(unitMs);
 
   const timeline = useMemo(() => toTimeline(message), [message]);
@@ -117,6 +126,14 @@ export function useMorsePlayback(
     buzz: false,
   });
   const [screenLit, setScreenLit] = useState(false);
+  /**
+   * Whether to tell the user the phone is too quiet to hear this.
+   *
+   * Sound is the only channel whose failure is invisible: a muted phone runs
+   * the progress bar, the clock and the lit letters exactly like a phone that
+   * played the message, so the app looks broken rather than silenced.
+   */
+  const [lowVolume, setLowVolume] = useState(false);
 
   const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
   const driver = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -236,6 +253,12 @@ export function useMorsePlayback(
 
     if (live.current.sound) {
       void audio.play(renderWav(timeline, { unitMs: unit }));
+      // Asked once per run, after the audio is already on its way — the
+      // reading must not delay the message, and a warning that arrives a beat
+      // late is still a warning that explains the silence.
+      void volume.level().then((level) => {
+        setLowVolume(isLowVolume(level));
+      });
     }
     if (live.current.buzz) {
       void vibration.play(marksFrom(0));
@@ -253,6 +276,7 @@ export function useMorsePlayback(
     torch,
     unit,
     vibration,
+    volume,
   ]);
 
   const toggleChannel = useCallback(
@@ -337,8 +361,14 @@ export function useMorsePlayback(
     };
   }, [message, audio, clearTimers, darken, holdCamera, keepScreenOn, vibration]);
 
+  const dismissLowVolume = useCallback((): void => {
+    setLowVolume(false);
+  }, []);
+
   return {
     playing,
+    lowVolume,
+    dismissLowVolume,
     soundingIndex: playing ? soundingIndexAt(spans, elapsedMs / unit) : null,
     progress: durationMs === 0 ? 0 : elapsedMs / durationMs,
     elapsedMs,

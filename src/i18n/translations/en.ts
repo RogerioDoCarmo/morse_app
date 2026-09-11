@@ -13,7 +13,7 @@ export const en: TranslationMap = {
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Tap a letter to hear it',
   // Seed content, so the screen demonstrates itself on first open.
-  'translator.sample': 'Hello world',
+  'translator.sample': 'SOS',
   'translator.speak': 'Speak',
   'translator.tapItIn': 'Tap it in',
   'translator.readAloud': 'Read aloud',
@@ -23,6 +23,8 @@ export const en: TranslationMap = {
   'translator.unsupported': 'No code for: {{chars}}',
   'translator.signal': 'Signal',
   'translator.stop': 'Stop',
+  'translator.volumeLow':
+    'Sound is on, but this phone is turned right down. Turn the volume up to hear the message.',
   'firstRun.skip': 'Skip',
   'firstRun.next': 'Next',
   'firstRun.start': 'Start',

@@ -8,6 +8,7 @@ import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalButton } from '@/components/SignalButton';
 import { SignalSurface } from '@/components/SignalSurface';
+import { Toast } from '@/components/Toast';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
@@ -46,6 +47,16 @@ function clock(ms: number): string {
 
 /** Both optional so the screen can still be rendered on its own in a test. */
 type Props = Readonly<{
+  /**
+   * Puts the caret in the input as the screen appears.
+   *
+   * ⚠️ Off by default, and passed only for the app's FIRST look at this
+   * screen. `autoFocus` fires on every mount, and the shell unmounts a screen
+   * when the tab changes — so left on, every return to Translate raised the
+   * keyboard over the tab bar the user had just used. That is more than "focus
+   * it on open" asked for, and the E2E suite found it before a person did.
+   */
+  autoFocusInput?: boolean | undefined;
   onSelectTab?: ((tab: TabName) => void) | undefined;
   unavailableTabs?: readonly TabName[] | undefined;
   onOpenSettings?: (() => void) | undefined;
@@ -113,6 +124,7 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
  * artboards necessarily do.
  */
 export function TranslatorScreen({
+  autoFocusInput = false,
   onSelectTab,
   unavailableTabs,
   onOpenSettings,
@@ -308,6 +320,13 @@ export function TranslatorScreen({
               <TextInput
                 testID="translator-input"
                 accessibilityLabel="translator-input"
+                // The caret is waiting when the app opens. Typing is the
+                // primary thing this screen is for, and a seeded sample you
+                // have to tap before you can replace it is a step nobody
+                // wants twice.
+                //
+                // ⚠️ On OPEN, not on every mount — see the prop.
+                autoFocus={autoFocusInput}
                 style={toMorse ? styles.input : styles.monoInput}
                 value={toMorse ? text : morseInput}
                 onChangeText={toMorse ? setText : setMorseInput}
@@ -414,6 +433,11 @@ export function TranslatorScreen({
             </View>
           ) : null}
 
+          <Toast
+            visible={playback.lowVolume}
+            message={t('translator.volumeLow')}
+            onDismiss={playback.dismissLowVolume}
+          />
           <OutputChannels cells={channelCells} />
 
           <View style={styles.actions}>

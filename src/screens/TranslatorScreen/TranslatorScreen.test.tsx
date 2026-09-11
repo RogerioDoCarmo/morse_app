@@ -247,25 +247,49 @@ describe('TranslatorScreen — letter selection', () => {
 });
 
 describe('TranslatorScreen — seed content', () => {
-  it('seeds the input in the active locale, not always English', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'Hola mundo');
+  const LOCALES = ['en', 'pt-BR', 'es'] as const;
+
+  /**
+   * SOS, everywhere, and the sameness is the point.
+   *
+   * The seed used to be a greeting translated per locale — "Hello world",
+   * "Boa noite", "Hola mundo" — on the reasoning that an English sample
+   * inside a Spanish screen reads as a bug. SOS answers that better than a
+   * translation can: it is the one message every language writes identically,
+   * it is three letters rather than eleven so the output fits a phone without
+   * scrolling, and it is the thing a person opening a Morse app already knows
+   * how to read.
+   */
+  it.each(LOCALES)('seeds SOS in %s', (locale) => {
+    renderWithProviders(<TranslatorScreen />, { locale });
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'SOS');
   });
 
-  it('seeds Portuguese without accents the encoder would fold', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'pt-BR' });
-    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'Boa noite');
+  /**
+   * The guard the Portuguese seed used to carry on its own. "Boa noite" was
+   * chosen over anything accented because the encoder folds à and ã to their
+   * plain letters, and a seed that warns about itself on first open is a bad
+   * first impression. Asserted through the notice rather than the string, so
+   * it holds for whatever any locale seeds next.
+   */
+  it.each(LOCALES)('seeds nothing the encoder would drop in %s', (locale) => {
+    renderWithProviders(<TranslatorScreen />, { locale });
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 
   it('derives the Morse seed from the same sample, so the directions agree', () => {
     renderWithProviders(<TranslatorScreen />, { locale: 'es' });
     fireEvent.press(screen.getByTestId('segment-toText'));
     // Round-trips back to the very sample the other direction started from.
-    expect(screen.getByTestId('decoded-text')).toHaveTextContent('HOLA MUNDO');
+    expect(screen.getByTestId('decoded-text')).toHaveTextContent('SOS');
   });
 
+  // Typed rather than seeded: SOS is one word, and the slash only appears
+  // between two. `morse.test.ts` owns whether the ENCODER emits it; this owns
+  // whether the footer renders what the encoder produced.
   it('separates words with the ITU slash, which survives a copy', () => {
     renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
     expect(screen.getByTestId('morse-string')).toHaveTextContent(
       '.... . .-.. .-.. --- / .-- --- .-. .-.. -..',
     );
@@ -346,11 +370,12 @@ describe('TranslatorScreen — audio playback', () => {
 
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
     expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
-    // "Hello world" is 111 units; at the 120ms playback default that is 13.3s.
-    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:00 / 0:13');
+    // SOS is 27 units — 5 for each S, 11 for the O, and a 3-unit gap between
+    // each pair. At the 120ms playback default that is 3.24s.
+    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:00 / 0:03');
 
-    await advance(5000);
-    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:05 / 0:13');
+    await advance(1000);
+    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:01 / 0:03');
   });
 
   /**
@@ -401,16 +426,21 @@ describe('TranslatorScreen — audio playback', () => {
     const output = (): ReturnType<typeof within> =>
       within(screen.getByTestId('morse-output'));
 
-    // H starts the message and holds through the gap that follows it.
+    // The first S starts the message and holds through the gap that follows.
+    //
+    // ⚠️ `selected: true` is doing real work in this selector, not decoration:
+    // SOS has TWO letters named S, so the name alone matches a pair. Only one
+    // is ever lit, which is the whole property under test.
     expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
     expect(
-      output().getByRole('button', { selected: true, name: 'morse-letter-H' }),
+      output().getByRole('button', { selected: true, name: 'morse-letter-S' }),
     ).toBeOnTheScreen();
 
-    // E begins 10 units in — 1200ms at the playback default.
-    await advance(1300);
+    // O begins 8 units in — S is 5 units and the letter gap is 3 — so 960ms
+    // at the playback default.
+    await advance(1000);
     expect(
-      output().getByRole('button', { selected: true, name: 'morse-letter-E' }),
+      output().getByRole('button', { selected: true, name: 'morse-letter-O' }),
     ).toBeOnTheScreen();
     expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
   });
@@ -452,7 +482,10 @@ describe('TranslatorScreen — audio playback', () => {
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     fireEvent.press(screen.getByTestId('signal-button'));
 
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    // Anything but the seed — SOS is what the input already holds, and
+    // `changeText` with the value already there changes no message and would
+    // prove nothing.
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
 
     expect(screen.queryByTestId('playback-progress')).toBeNull();
     expect(audio.stops).toBeGreaterThan(0);
@@ -1180,5 +1213,131 @@ describe('the camera permission stands in front of the light channel', () => {
     await enableLight();
     await disableLight();
     expect(screen.queryByTestId('permission-camera')).toBeNull();
+  });
+});
+
+describe('a phone too quiet to hear the message', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** A fake reporting whatever the device is supposedly set to. */
+  const turnedTo = (level: number | null): FakePorts => {
+    const ports = createFakePorts();
+    return { ...ports, volume: { level: async () => level } };
+  };
+
+  const emit = async (): Promise<void> => {
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await act(async () => {
+      await Promise.resolve();
+    });
+  };
+
+  /**
+   * The defect this exists for. Sound is the only channel whose failure is
+   * invisible: a muted phone runs the progress bar, the clock and the lit
+   * letters exactly like a phone that played the message, so the app looks
+   * broken rather than silenced.
+   */
+  it('says so when Sound is on and the device is turned right down', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+
+    await emit();
+
+    expect(screen.getByTestId('toast')).toHaveTextContent(/volume up/iu);
+  });
+
+  it('says nothing on a device that can be heard', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.8) });
+
+    await emit();
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+
+  // Exactly the threshold, from the other side — 30% or lower warns.
+  it('warns at the threshold itself', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.3) });
+
+    await emit();
+
+    expect(screen.getByTestId('toast')).toBeOnTheScreen();
+  });
+
+  // A build without the native module reports nothing. Warning on a guess
+  // would fire on every one of them.
+  it('says nothing when the level cannot be read', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(null) });
+
+    await emit();
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+
+  /**
+   * A message going out on the torch, the screen or the motor is not affected
+   * by a quiet phone, and warning about it would be nagging about something
+   * the user did not ask for.
+   */
+  it('does not warn about the volume when Sound is switched off', async () => {
+    const ports = turnedTo(0);
+    renderWithProviders(<TranslatorScreen />, { ports });
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('channel-sound'));
+
+    await emit();
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+    expect(ports.calls.volumeReads).toBe(0);
+  });
+
+  it('can be put away', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await emit();
+
+    fireEvent.press(screen.getByTestId('toast'));
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+
+  it('takes itself away if it is left alone', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await emit();
+
+    await act(async () => {
+      jest.advanceTimersByTime(6100);
+    });
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+});
+
+describe('where the caret starts', () => {
+  /**
+   * Typing is what this screen is for, and a seeded sample you must tap
+   * before you can replace it is a step nobody wants twice.
+   */
+  it('takes the caret when the app opens', () => {
+    renderWithProviders(<TranslatorScreen autoFocusInput />);
+    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', true);
+  });
+
+  /**
+   * ⚠️ The defect the E2E suite caught before a person did.
+   *
+   * `autoFocus` fires on every MOUNT, and the shell unmounts a screen when the
+   * tab changes — so left on unconditionally, every return to Translate raised
+   * the keyboard over the tab bar that had just been tapped. On Android the
+   * `speech` flow could no longer find `tab-speak` at all.
+   *
+   * Off by default, so only the app's first look at this screen asks for it.
+   */
+  it('leaves it alone on every mount after that', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', false);
   });
 });

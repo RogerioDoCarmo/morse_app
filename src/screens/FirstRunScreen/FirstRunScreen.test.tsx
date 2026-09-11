@@ -198,14 +198,21 @@ describe('FirstRunScreen', () => {
     expect(screen.getByText('Pular')).toBeOnTheScreen();
   });
 
-  // An English sample inside a Spanish screen reads as a bug, not as a
-  // picture of Morse — and the Translator seeds its own input in the
-  // interface language.
-  it('illustrates with the same sample the Translator will seed', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale: 'es' });
-    expect(screen.getByText('Hola mundo')).toBeOnTheScreen();
-
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale: 'en' });
-    expect(screen.getByText('Hello world')).toBeOnTheScreen();
-  });
+  /**
+   * The guide illustrates with the very string the Translator will be holding
+   * when the guide closes. It used to be a greeting translated per locale, on
+   * the reasoning that an English sample inside a Spanish screen reads as a
+   * bug; SOS answers that better, being the one message every language writes
+   * the same way.
+   *
+   * What matters is that the two agree. A guide that shows one thing and
+   * hands over a screen showing another is worse than either.
+   */
+  it.each(['en', 'pt-BR', 'es'] as const)(
+    'illustrates with the same sample the Translator will seed, in %s',
+    (locale) => {
+      renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale });
+      expect(screen.getByText('SOS')).toBeOnTheScreen();
+    },
+  );
 });

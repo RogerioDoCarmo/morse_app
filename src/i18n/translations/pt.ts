@@ -12,8 +12,7 @@ export const ptBR: TranslationMap = {
   'translator.sourceLabel': 'Português',
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Toque numa letra para ouvi-la',
-  // Sem acentos: o encoder dobra os que a ITU não define.
-  'translator.sample': 'Boa noite',
+  'translator.sample': 'SOS',
   'translator.speak': 'Falar',
   'translator.tapItIn': 'Tocar',
   'translator.readAloud': 'Ler em voz alta',
@@ -23,6 +22,8 @@ export const ptBR: TranslationMap = {
   'translator.unsupported': 'Sem código: {{chars}}',
   'translator.signal': 'Emitir',
   'translator.stop': 'Parar',
+  'translator.volumeLow':
+    'O som está ligado, mas o volume deste aparelho está bem baixo. Aumente o volume para ouvir a mensagem.',
   'firstRun.skip': 'Pular',
   'firstRun.next': 'Avançar',
   'firstRun.start': 'Começar',
