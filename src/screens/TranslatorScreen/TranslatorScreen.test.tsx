@@ -1315,3 +1315,29 @@ describe('a phone too quiet to hear the message', () => {
     expect(screen.queryByTestId('toast')).toBeNull();
   });
 });
+
+describe('where the caret starts', () => {
+  /**
+   * Typing is what this screen is for, and a seeded sample you must tap
+   * before you can replace it is a step nobody wants twice.
+   */
+  it('takes the caret when the app opens', () => {
+    renderWithProviders(<TranslatorScreen autoFocusInput />);
+    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', true);
+  });
+
+  /**
+   * ⚠️ The defect the E2E suite caught before a person did.
+   *
+   * `autoFocus` fires on every MOUNT, and the shell unmounts a screen when the
+   * tab changes — so left on unconditionally, every return to Translate raised
+   * the keyboard over the tab bar that had just been tapped. On Android the
+   * `speech` flow could no longer find `tab-speak` at all.
+   *
+   * Off by default, so only the app's first look at this screen asks for it.
+   */
+  it('leaves it alone on every mount after that', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', false);
+  });
+});
