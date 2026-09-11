@@ -1,8 +1,9 @@
 # Play Console — what to paste
 
-The Google Play half of [TESTFLIGHT.md](TESTFLIGHT.md). Kept here so the next
-release does not start from a blank console, and so the answers stay consistent
-with what the app actually does.
+The Google Play half of the release. [APP-STORE.md](APP-STORE.md) is the Apple
+one, and [TESTFLIGHT.md](TESTFLIGHT.md) covers the beta before it. Kept here so
+the next release does not start from a blank console, and so the answers stay
+consistent with what the app actually does.
 
 ---
 
@@ -73,7 +74,9 @@ Per language, and paste-ready, in [`store-listing/`](store-listing/):
 
 App name, short description and full description live per language in
 [`store-listing/`](store-listing/) — one file each, every block exactly what
-goes in the matching Play Console field.
+goes in the matching Play Console field. Those files also carry the App Store's
+fields, which is why they are no longer named for Play alone; the table at the
+top of each says which block goes to which console.
 
 They are not duplicated here on purpose. Copy kept in two places is copy that
 disagrees with itself eventually, and this file has already been wrong twice
@@ -300,6 +303,17 @@ Not written here — they are files, not copy.
 | App icon | 512×512 PNG, **32-bit with no alpha** |
 | Feature graphic | 1024×500 |
 | Phone screenshots | 2–8, min 320px on the short side |
+| Promo video | a **YouTube URL** — Play accepts no upload. See [VIDEO.md](VIDEO.md) |
+
+⚠️ **320px is the minimum, not the target.** The first full set of Android
+screenshots was captured at exactly 320×640, because the CI emulator's default
+profile is that size and nobody measured the output. They were accepted and
+they looked it. The emulator now asks for a `pixel_6` profile; anything
+captured before that change should be recaptured.
+
+⚠️ **A promo video makes the feature graphic mandatory.** Play does not
+autoplay — it shows the feature graphic with a play button over it, so a video
+without one has nothing to sit on.
 
 ⚠️ **The mockups in `OmniMorse_Google_Apple_Store_Mockups` do not match the
 app.** They show "Hello world" where it now seeds SOS, a "Flash it" button

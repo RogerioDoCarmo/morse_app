@@ -6,11 +6,12 @@ name: Screenshots
 # much work to do on every push — and the images are wanted at listing time,
 # not continuously. `workflow_dispatch` from the Actions tab.
 #
-# It is the E2E workflow's Android job almost verbatim, pointed at
-# `.maestro/screenshots.yaml` instead of the flow directory. Everything hard
-# about it — KVM, the Gradle memory that a bare runner does not have, the
-# emulator flags, the Firebase credentials — was solved there, and solving it
-# twice is how the two drift.
+# Everything hard about getting this app onto an emulator — KVM, the Gradle
+# memory that a bare runner does not have, the Firebase credentials, the
+# prebuild — lives in `.github/actions/build-android-app`, shared with
+# `videos.yml`. This header used to say that solving it twice is how the two
+# drift, while containing the second copy; the action is that sentence taken
+# seriously.
 #
 # The alternative was rendering mockups from the design canvas. That is what
 # produced the last set, and they drifted: "Hello world" where the app seeds
@@ -39,120 +40,13 @@ jobs:
     # red checks. ci.yml already skips its SonarCloud step for the same reason.
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+
+      # Everything from the toolchain to an installable release APK. Shared
+      # with `videos.yml`, which needed the same hundred lines — see the
+      # action's own header for why every comment in it is there.
+      - uses: ./.github/actions/build-android-app
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      # NOT setup-java's `cache: gradle`. That builds its key by hashing
-      # gradle files, and there are none at checkout — `android/` is
-      # gitignored and does not exist until `expo prebuild` runs below. The
-      # action fails outright rather than skipping.
-      #
-      # Keyed on the files that DO exist and that actually decide what gets
-      # compiled: the lockfile and the app config. Without a cache every run
-      # recompiles every native module from scratch — Firebase, camera,
-      # audio, speech recognition, SVG, reanimated.
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'app.json', 'app.config.js') }}
-          restore-keys: gradle-${{ runner.os }}-
-
-      # Without KVM the emulator is software-rendered and glacial: boot took
-      # 10.7 minutes on the first run here, and Maestro's driver then timed out
-      # before it could attach. This is the fix, not a longer timeout.
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - run: pnpm install --frozen-lockfile
-
-      # The Firebase config plugins only apply when this file is present, so
-      # without it CI would build a different app from the one that ships —
-      # exactly the divergence that hid three iOS build failures. Injected from
-      # a secret rather than committed, since the repo is public.
-      - name: Write Firebase credentials
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
-            echo "::error::Secret GOOGLE_SERVICES_JSON is not set. Add it with: base64 -i google-services.json | pbcopy"
-            exit 1
-          fi
-          printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > google-services.json
-          jq -e '.project_info.project_id' google-services.json > /dev/null \
-            || { echo "::error::GOOGLE_SERVICES_JSON did not decode to a valid google-services.json."; exit 1; }
-
-      - name: Prebuild Android
-        run: pnpm expo prebuild --platform android --no-install
-
-      # Release, not debug: a debug APK fetches its JS bundle from the Metro dev
-      # server, which is not running in CI, so the app launches to an error
-      # screen and every flow fails on "screen is visible". A release build
-      # embeds the bundle. Expo's generated release buildType signs with the
-      # debug keystore, so this needs no secrets.
-      # `expo-updates`' KSP step dies with OutOfMemoryError: Metaspace on a
-      # shared runner, and Gradle then grinds on for the rest of the job
-      # without ever producing an APK.
-      #
-      # METASPACE only. Raising the heap as well — 4g for Gradle, 2g for the
-      # Kotlin daemon — moved the failure rather than removing it: Expo's
-      # autolinking plugin shells out to node during configuration, and with
-      # that much reserved it exited 1 before the build reached a single task.
-      # The template's heap was never the problem; its 512m metaspace was.
-      #
-      # Written here rather than committed, because `android/` is gitignored
-      # and regenerated by prebuild on every run — and because this is a CI
-      # constraint. EAS builders have the memory already; their Android build
-      # of this same commit succeeded.
-      - name: Give Gradle and Kotlin room to compile
-        run: |
-          # The leading newline is load-bearing. prebuild writes this file
-          # WITHOUT a trailing one, so appending directly ran the first
-          # property onto the end of the last existing line and produced
-          # `expo.inlineModules.watchedDirectories=[]org.gradle.jvmargs=...`.
-          # That silently corrupted an autolinking property, and Expo's
-          # autolinking plugin then exited 1 during configuration.
-          printf '\n%s\n%s\n' \
-            "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m" \
-            "kotlin.daemon.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=1024m" \
-            >> android/gradle.properties
-          echo "--- last four lines, each must start a line of its own ---"
-          tail -4 android/gradle.properties
-
-      # One ABI, not four. React Native compiles its native modules once per
-      # architecture, and with no `reactNativeArchitectures` set the default
-      # is armeabi-v7a, arm64-v8a, x86 AND x86_64 — roughly four times the
-      # work. The emulator below is x86_64 only, so the other three are
-      # compiled and then thrown away.
-      #
-      # This is scoped to CI on purpose: gradle.properties is left alone so a
-      # real device build, and anything EAS produces, still covers every ABI.
-      - name: Build release APK
-        # --stacktrace because the failure this replaced reported only
-        # "Process 'command 'node'' finished with non-zero exit value 1" with
-        # no task name and none of node's own output — Expo's gradle scripts
-        # shell out to node during CONFIGURATION, so there is no task to name
-        # and nothing to go on without it.
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --stacktrace
-        working-directory: android
-
-      - name: Install Maestro
-        run: |
-          curl -fsSL https://get.maestro.mobile.dev | bash
-          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       # ⚠️ `continue-on-error`, so a flow that fails on its last step still
       # hands over what it captured. The first run failed on the seventh
@@ -169,6 +63,13 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          # ⚠️ A REAL phone profile, and the reason this line exists: without
+          # it the emulator is 320x640, and the first full set of Android
+          # store screenshots was captured at exactly that — 320px is Play's
+          # absolute MINIMUM for the short side, so they were accepted and
+          # looked it. Play recommends 1080x1920 or better; pixel_6 is
+          # 1080x2400, which also matches the tall aspect of the iOS set.
+          profile: pixel_6
           emulator-options: >-
             -no-window -no-snapshot -noaudio -no-boot-anim
             -gpu swiftshader_indirect -camera-back none -camera-front none
@@ -177,9 +78,6 @@ jobs:
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             maestro test .maestro/screenshots.yaml
 
-      # ⚠️ `if: always()`, not `if: failure()`. In the E2E workflow the output
-      # is evidence for a failure; here the images ARE the job, and a run that
-      # succeeded and kept nothing would have been pointless.
       # ⚠️ `if: always()`, not `if: failure()`. In the E2E workflow the Maestro
       # output is evidence for a failure; here the images ARE the job, and a
       # run that succeeded and kept nothing would have been pointless.

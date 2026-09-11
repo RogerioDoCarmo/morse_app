@@ -1,0 +1,47 @@
+# The Tap cell of the LinkedIn four-up — three taps, three holds, three
+# taps, which is S O S.
+appId: com.rogeriodocarmo.morse
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
+
+# ⚠️ The shared lead-in. All four tab flows launch, dismiss the guide and tap
+# exactly one tab before their own footage begins, because the four are played
+# side by side and nothing else keeps them in step. See README.md.
+- tapOn:
+    id: 'tab-tap'
+- assertVisible:
+    id: 'tap-screen'
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- waitForAnimationToEnd:
+    timeout: 1800
+- longPressOn:
+    id: 'tap-key'
+- longPressOn:
+    id: 'tap-key'
+- longPressOn:
+    id: 'tap-key'
+- waitForAnimationToEnd:
+    timeout: 1800
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- tapOn:
+    id: 'tap-key'
+- assertVisible:
+    id: 'tap-decoded'
+- waitForAnimationToEnd:
+    timeout: 9000

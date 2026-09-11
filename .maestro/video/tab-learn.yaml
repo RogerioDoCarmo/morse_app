@@ -1,0 +1,33 @@
+# The Learn cell of the LinkedIn four-up — the alphabet, scrolled.
+appId: com.rogeriodocarmo.morse
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
+
+# ⚠️ The shared lead-in. All four tab flows launch, dismiss the guide and tap
+# exactly one tab before their own footage begins, because the four are played
+# side by side and nothing else keeps them in step. See README.md.
+- tapOn:
+    id: 'tab-learn'
+- assertVisible:
+    id: 'learn-screen'
+- waitForAnimationToEnd:
+    timeout: 1500
+
+- assertVisible:
+    id: 'learn-alphabet'
+- waitForAnimationToEnd:
+    timeout: 3000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 4000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 4000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 4000
