@@ -181,52 +181,64 @@ jobs:
       # Pro Max produces. The E2E job grabs whatever comes first because it
       # only cares that the app works; here the pixel dimensions ARE the
       # deliverable, and a screenshot off a plain iPhone is rejected at upload.
-      - name: Boot a Pro Max and capture
+      # ⚠️ TWO sets, because `supportsTablet` is true. App Store Connect
+      # requires a 13-inch iPad set alongside the 6.9-inch iPhone one, and the
+      # iPad set is not optional while the app declares tablet support — which
+      # it means: there is a NavRail instead of a tab bar, and three
+      # `.tablet.test.tsx` files behind it.
+      #
+      # The flow itself needs no changes. `NavRail` carries the same
+      # `tab-<name>` testIDs as `TabBar`, and `open-settings` too, so
+      # screenshots.yaml drives either layout without knowing which it is on.
+      - name: Capture on a 6.9-inch iPhone
         continue-on-error: true
         env:
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
+          APP: ios/build/Build/Products/Release-iphonesimulator/${{ env.IOS_SCHEME }}.app
         run: |
-          xcrun simctl list devices available
-          udid=""
-          for want in "iPhone 17 Pro Max" "iPhone 16 Pro Max" "iPhone 15 Pro Max"; do
-            udid=$(xcrun simctl list devices available \
-                   | awk -F'[()]' -v w="$want" '$0 ~ w " \\(" {print $2; exit}')
-            [ -n "$udid" ] && { echo "Using $want ($udid)"; break; }
-          done
-          if [ -z "$udid" ]; then
-            echo "::warning::No Pro Max simulator on this runner. Falling back to \
-          any iPhone — the images will not be 1290x2796 and App Store Connect \
-          will refuse them for the 6.7-inch slot."
-            udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
-          fi
-          [ -n "$udid" ] || { echo "::error::No iPhone simulator at all."; exit 1; }
+          tools/capture-ios-screenshots.sh screenshots-ios \
+            "iPhone 17 Pro Max" "iPhone 16 Pro Max" "iPhone 15 Pro Max"
 
-          xcrun simctl boot "$udid" || true
-          xcrun simctl bootstatus "$udid" -b
-          xcrun simctl install "$udid" \
-            "ios/build/Build/Products/Release-iphonesimulator/${IOS_SCHEME}.app"
-          maestro --device "$udid" test .maestro/screenshots.yaml
+      # 2064x2752 on the M4, 2048x2732 on the 12.9-inch — App Store Connect
+      # accepts either for the 13-inch slot.
+      - name: Capture on a 13-inch iPad
+        continue-on-error: true
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
+          APP: ios/build/Build/Products/Release-iphonesimulator/${{ env.IOS_SCHEME }}.app
+        run: |
+          tools/capture-ios-screenshots.sh screenshots-ipad \
+            "iPad Pro 13-inch (M4)" "iPad Pro (12.9-inch) (6th generation)" \
+            "iPad Pro 11-inch (M4)"
 
-      - name: Collect the screenshots
+      # ⚠️ `if: always()`, not `if: failure()`. The images ARE the job, and
+      # `continue-on-error` above means a flow that fell over on its last step
+      # still leaves everything before it worth keeping.
+      - name: Check something was captured
         if: always()
         run: |
-          mkdir -p screenshots-ios
-          find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} screenshots-ios/ \;
-          ls -la screenshots-ios/
-          # The size the store actually wants, reported rather than assumed —
-          # a run that quietly produced the wrong dimensions is worse than one
-          # that failed, because it is only found at upload.
-          for f in screenshots-ios/*.png; do
-            echo "$(sips -g pixelWidth -g pixelHeight "$f" | awk -F': ' '/pixel/{printf "%s ", $2}')  $(basename "$f")"
+          for dir in screenshots-ios screenshots-ipad; do
+            if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
+              echo "$dir: $(ls "$dir" | wc -l | tr -d ' ') images"
+            else
+              echo "::warning::$dir is empty."
+            fi
           done
-          test -n "$(ls -A screenshots-ios/)" || {
-            echo "::error::The flow produced no screenshots."; exit 1;
-          }
+          test -n "$(ls -A screenshots-ios 2>/dev/null)" \
+            || { echo "::error::The iPhone capture produced nothing."; exit 1; }
 
-      - name: Upload the screenshots
+      - name: Upload the iPhone screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: store-screenshots-ios
           path: screenshots-ios/
+          retention-days: 30
+
+      - name: Upload the iPad screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots-ipad
+          path: screenshots-ipad/
           retention-days: 30

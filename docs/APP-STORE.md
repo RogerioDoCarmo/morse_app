@@ -162,18 +162,21 @@ somebody answers it in the browser.
 
 Up to 10 per size, per language.
 
-⚠️ **`supportsTablet` is `true`, so iPad screenshots are not optional.**
-`.github/workflows/screenshots.yml` boots a Pro Max and nothing else, so the
-iPad set does not exist yet. Two ways out, and the choice is a product
-decision rather than a tooling one:
+⚠️ **`supportsTablet` is `true`, so iPad screenshots are not optional** — and
+that flag is not an oversight. The app has a `NavRail` instead of a tab bar
+above a threshold width, with three `.tablet.test.tsx` files behind it. Tablet
+support is implemented, so the honest move is to capture the set rather than
+withdraw the claim.
 
-- **Keep iPad support** and add an iPad simulator to the screenshots job. The
-  job already falls back through a list of device names; an iPad row is the
-  same shape.
-- **Drop it** — set `supportsTablet` to `false`. The app is a phone app in
-  every screenshot and every layout decision, and nothing in it wants a
-  10-inch canvas. This also removes an entire device class from the review
-  surface.
+The screenshots workflow captures **both**: `store-screenshots-ios` on a 6.9-inch
+iPhone and `store-screenshots-ipad` on a 13-inch iPad, from the same build and
+the same flow. `screenshots.yaml` needs no branching — `NavRail` carries the
+same `tab-<name>` testIDs as `TabBar`, and `open-settings` too, so the flow
+drives either layout without knowing which it is on.
+
+⚠️ **If tablet support is ever dropped, the iPad capture goes in the same
+change.** `screenshots-capture.test.ts` ties them together: while `app.json`
+says `supportsTablet: true`, the workflow must capture an iPad set.
 
 ⚠️ **Check the dimensions the workflow printed before uploading.** The collect
 step prints each image's real size, and the job warns rather than fails when no
