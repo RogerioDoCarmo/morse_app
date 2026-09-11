@@ -113,6 +113,22 @@ Re-framing costs seconds of ffmpeg, not another run:
 GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
 ```
 
+## ⚠️ Every clip opens on about twenty seconds of rubbish
+
+Recording starts before Maestro does, and Maestro's first act is to relaunch
+the app — so the head of every clip is the previous flow's last screen, then
+the launcher, then the splash.
+
+That is harmless for the four-up, whose 16-second window is nowhere near it.
+It matters for the promo, which is nearly the whole tour: with `TOUR_SECONDS`
+set larger than the clip, the promo opened on the **Learn tab left over from
+the flow before it** and sat there for fifteen seconds.
+
+`TOUR_SECONDS` is therefore tuned to land just after the launch — long enough
+to hold the whole journey from the welcome carousel on, short enough to cut
+the head. It is the one number here that is neither "as much as possible" nor
+"as little as possible", and `video-assets.test.ts` holds it between those.
+
 ## ⚠️ `inputText` costs about a second per character
 
 Not a figure of speech. Twenty-nine characters ate **twenty-five seconds** of
