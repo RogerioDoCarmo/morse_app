@@ -2,7 +2,7 @@ import type { TranslationMap } from '../keys';
 
 /** English — the default, and the reference for the other locales. */
 export const en: TranslationMap = {
-  'app.name': 'Morse',
+  'app.name': 'OmniMorse',
   'nav.translate': 'Translate',
   'nav.speak': 'Speak',
   'nav.tap': 'Tap',
@@ -45,7 +45,7 @@ export const en: TranslationMap = {
   'speech.doneHint': 'Tap the mic to record again.',
   'speech.heard': 'Heard',
   'speech.unavailable': 'This device cannot recognise this language.',
-  'speech.denied': 'Morse needs the microphone to hear you.',
+  'speech.denied': 'OmniMorse needs the microphone to hear you.',
   'speech.failed': 'The recogniser stopped. Tap to try again.',
   'tap.decoded': 'Decoded',
   'tap.hint': 'Hold the key for a dash, tap it for a dot.',
@@ -145,13 +145,13 @@ export const en: TranslationMap = {
   'permission.microphoneRationale':
     'To turn what you say into Morse, the app has to hear you. Typing and tap input work without this, so you can skip it.',
   'permission.microphoneAssurance':
-    'Recognition is handled by the platform, which may send your audio to its servers to transcribe. Morse itself never stores or uploads any of it.',
+    'Recognition is handled by the platform, which may send your audio to its servers to transcribe. OmniMorse itself never stores or uploads any of it.',
   'permission.microphoneGrant': 'Allow microphone access',
   'permission.blockedHint':
     'This stays off until you grant access in the system settings. Everything else in the app keeps working.',
   'permission.openSettings': 'Open Settings',
   'permission.notNow': 'Not now',
-  'permission.cameraHeadline': 'Morse needs the torch',
+  'permission.cameraHeadline': 'OmniMorse needs the torch',
   'permission.microphoneHeadline': 'Speaking needs the microphone',
   'permission.cameraBlocked': 'Camera access is off',
   'permission.microphoneBlocked': 'Microphone access is off',

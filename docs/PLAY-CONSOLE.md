@@ -4,13 +4,6 @@ The Google Play half of [TESTFLIGHT.md](TESTFLIGHT.md). Kept here so the next
 release does not start from a blank console, and so the answers stay consistent
 with what the app actually does.
 
-> ⚠️ **The app still calls itself "Morse" on screen.** `app.json` says `Morse`,
-> and so does the wordmark on the Translator. This listing says **OmniMorse**.
-> Reviewers compare the listing to the running app, so either land the rename
-> before the store listing goes public, or keep the listing name as `Morse`
-> until it does. It is fine for an internal test track, where nobody reviews
-> anything.
-
 ---
 
 ## Testers

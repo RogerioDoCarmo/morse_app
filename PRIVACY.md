@@ -1,8 +1,8 @@
-# Privacy Policy — Morse
+# Privacy Policy — OmniMorse
 
 Last updated: 11 September 2026.
 
-Morse is a Morse code translator. It has no accounts, no advertising, no
+OmniMorse is a Morse code translator. It has no accounts, no advertising, no
 analytics, and no way to identify you.
 
 This policy describes every piece of data the app handles and everywhere it can
@@ -48,13 +48,13 @@ service to turn what you say into text.
 
 **On iOS this may mean your audio is sent to Apple for processing.** Apple
 decides whether recognition happens on the device or on its servers, based on
-your device, the language, and system settings. Morse does not currently require
+your device, the language, and system settings. OmniMorse does not currently require
 on-device recognition, so audio may leave your device during recognition.
 
 **On Android, recognition is handled by the speech service installed on your
 device**, which is usually Google's.
 
-Morse itself never records, stores, or transmits audio. It receives only the
+OmniMorse itself never records, stores, or transmits audio. It receives only the
 resulting text, holds it in memory, and discards it when you leave the screen.
 Apple's and Google's handling of that audio is covered by their own privacy
 policies.
@@ -69,7 +69,7 @@ installation identifier. It carries nothing about you or your messages.
 
 **Camera** — used only to switch the torch on and off, so a message can be
 played as light. The camera preview is never opened and no image is ever
-captured. Morse cannot read your photo library; the photo-library entry required
+captured. OmniMorse cannot read your photo library; the photo-library entry required
 by iOS exists only because the camera component the app uses references it.
 
 **Microphone and speech recognition** — used only while you are on the Speak tab
@@ -81,7 +81,7 @@ granting either.
 
 ## Children
 
-Morse does not knowingly collect any personal information from anyone, including
+OmniMorse does not knowingly collect any personal information from anyone, including
 children. There is no account, no profile, and no way to submit content to us.
 
 ## Changes to this policy

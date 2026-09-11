@@ -24,7 +24,7 @@ describe('asking for a permission', () => {
   it('says what the torch is for, and that no image is captured', () => {
     show('camera');
     expect(screen.getByTestId('permission-headline')).toHaveTextContent(
-      'Morse needs the torch',
+      'OmniMorse needs the torch',
     );
     expect(screen.getByText(/no image is ever captured/u)).toBeOnTheScreen();
   });
