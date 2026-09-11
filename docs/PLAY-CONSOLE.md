@@ -13,6 +13,46 @@ with what the app actually does.
 
 ---
 
+## Testers
+
+Play takes either a list of individual addresses or a **Google Group's**
+address. The group is the better answer the moment testers are recruited
+rather than known: membership changes propagate on their own, so nobody has to
+edit the Play Console every time somebody joins or leaves.
+
+| | |
+| --- | --- |
+| Internal testing | up to 100 testers, no review, available minutes after rollout |
+| List name | `OmniMorse internal` |
+
+⚠️ **Tester addresses must be GOOGLE accounts**, and the tester has to be signed
+in to the Play Store with the same one. This is the single place where the
+gmail address is the right one rather than `contact@rogeriodocarmo.com`: it is
+a login, not something a user ever sees. Everywhere a person reads an address —
+the listing, the policy, the app — it stays `contact@rogeriodocarmo.com`.
+
+⚠️ **A public group exposes its member list.** If testers are recruited from
+somewhere like Reddit, set the group so that only members and managers can see
+who is in it, and decide deliberately whether people may join freely or need
+approving. Strangers who joined to help should not find their address visible
+to every other stranger who did.
+
+### If these testers are meant to count toward production access
+
+They do not, from an internal track — the 12 testers for 14 continuous days
+must be on a **closed** track. Two things about that are worth knowing before
+recruiting anyone:
+
+- The requirement applies to personal developer accounts created after
+  13 November 2023. Organisation accounts are exempt. It was 20 testers until
+  December 2024.
+- ⚠️ **Since April 2026 Google checks ENGAGEMENT, not just opt-ins.** Twelve
+  people who joined and never opened the app does not pass. Recruiting from a
+  public forum is fine; recruiting people who will actually use it is the part
+  that counts.
+
+---
+
 ## Internal testing — the release itself
 
 | Field | Value |
@@ -102,6 +142,7 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 | Section | Answer |
 | --- | --- |
+| **App access** | *All functionality is available without special access.* There is no account, no login, no region lock and no paywall — every screen is reachable on a fresh install. Nothing to write in the credentials box |
 | Privacy policy | <https://rogeriodocarmo.github.io/morse_app/privacy-policy.html> |
 | Ads | **No ads** |
 | Data safety | **Crash logs only** — see below |
