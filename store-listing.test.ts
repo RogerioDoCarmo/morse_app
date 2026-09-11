@@ -1,4 +1,4 @@
-// Play Console rejects listing copy that outgrows a field, at paste time, one
+// Both consoles reject listing copy that outgrows a field, at paste time, one
 // field at a time, in a browser. These limits are cheap to check here and slow
 // to discover there — and the copy exists in three languages, so the one that
 // overflows is rarely the one that was edited.
@@ -10,12 +10,22 @@ const DIRECTORY = path.join(__dirname, 'docs', 'store-listing');
 /** The languages the app ships in, and therefore the listing does. */
 const LOCALES = ['en-US', 'pt-BR', 'es-419'] as const;
 
-/** Play's own limits, per field. */
-const LIMITS: Readonly<Record<string, number>> = {
-  'App name': 30,
-  'Short description': 80,
-  'Full description': 4000,
-  'Release notes': 500,
+/**
+ * Every field's limit, and which console imposes it.
+ *
+ * Three blocks are pasted into BOTH stores, so the tighter of the two limits
+ * is the one that governs. `Release notes` is the one where they differ and
+ * it matters: Play allows 500, Apple 4000. Writing to Apple's would produce
+ * copy that cannot be pasted into Play.
+ */
+const LIMITS: Readonly<Record<string, { limit: number; from: string }>> = {
+  'App name': { limit: 30, from: 'both' },
+  'Short description': { limit: 80, from: 'Play' },
+  Subtitle: { limit: 30, from: 'App Store' },
+  Keywords: { limit: 100, from: 'App Store' },
+  'Promotional text': { limit: 170, from: 'App Store' },
+  'Full description': { limit: 4000, from: 'both' },
+  'Release notes': { limit: 500, from: 'Play — Apple allows 4000' },
 };
 
 /**
@@ -56,12 +66,14 @@ describe('store listing copy', () => {
 
   it.each(
     LOCALES.flatMap((locale) =>
-      Object.entries(LIMITS).map(([section, limit]) => [locale, section, limit] as const),
+      Object.entries(LIMITS).map(
+        ([section, { limit }]) => [locale, section, limit] as const,
+      ),
     ),
   )('keeps %s "%s" inside %i characters', (locale, section, limit) => {
     const text = block(FILES[locale], section);
     expect(text).not.toBeNull();
-    expect((text as string).length).toBeLessThanOrEqual(limit);
+    expect([...(text as string)].length).toBeLessThanOrEqual(limit);
   });
 
   // The app name is an identity, not copy. Three listings calling the app
@@ -69,6 +81,50 @@ describe('store listing copy', () => {
   it('calls the app the same thing in every language', () => {
     const names = LOCALES.map((locale) => block(FILES[locale], 'App name'));
     expect(new Set(names).size).toBe(1);
+  });
+
+  /** Lowercased words, punctuation stripped — how a store indexes a phrase. */
+  function words(text: string): string[] {
+    return text
+      .toLowerCase()
+      .split(/[^\p{Letter}\p{Number}]+/u)
+      .filter((word) => word.length > 0);
+  }
+
+  const keywordsOf = (locale: (typeof LOCALES)[number]): string[] =>
+    (block(FILES[locale], 'Keywords') as string).split(',');
+
+  // ⚠️ Apple counts a space after a comma as a character. On a 100-character
+  // field that is a whole keyword thrown away, and nothing is gained by it.
+  it.each(LOCALES)('separates %s keywords with commas and nothing else', (locale) => {
+    expect(block(FILES[locale], 'Keywords')).not.toMatch(/\s/u);
+  });
+
+  it.each(LOCALES)('spends no character twice in %s keywords', (locale) => {
+    const terms = keywordsOf(locale);
+    expect([...new Set(terms)]).toStrictEqual(terms);
+  });
+
+  // Apple indexes the name, the subtitle AND the keywords as one pool. A word
+  // that appears in two of them is paid for twice and found once.
+  it.each(LOCALES)('does not repeat the %s subtitle in its keywords', (locale) => {
+    const indexedAlready = new Set([
+      ...words(block(FILES[locale], 'App name') as string),
+      ...words(block(FILES[locale], 'Subtitle') as string),
+    ]);
+    // Tokenised rather than compared raw, so this holds even when the
+    // whitespace test above is the one that is failing.
+    const wasted = keywordsOf(locale).filter((term) =>
+      words(term).some((word) => indexedAlready.has(word)),
+    );
+    expect(wasted).toStrictEqual([]);
+  });
+
+  // Every keyword is one term. A multi-word keyword is a phrase Apple would
+  // have assembled by itself out of the single words around it.
+  it.each(LOCALES)('keeps every %s keyword a single term', (locale) => {
+    const terms = keywordsOf(locale);
+    expect(terms.filter((term) => words(term).length !== 1)).toStrictEqual([]);
   });
 
   /**

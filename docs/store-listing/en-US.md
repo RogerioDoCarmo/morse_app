@@ -1,14 +1,31 @@
-# Play Store listing — en-US
+# Store listing — en-US
 
-English (default). Paste-ready: every block below is exactly what goes in the matching
-Play Console field, and nothing else in this file is.
+English (default). Paste-ready: every fenced block below is exactly what goes in the
+matching store field, and nothing else in this file is.
 
-Limits are Play's, and `store-listing.test.ts` fails the build if a block
-outgrows one — copy that is too long is rejected at paste time, which is a slow
-way to find out.
+| Block | Google Play | App Store Connect |
+| --- | --- | --- |
+| App name | App name — 30 | Name — 30 |
+| Short description | Short description — 80 | — |
+| Subtitle | — | Subtitle — 30 |
+| Keywords | — | Keywords — 100 |
+| Promotional text | — | Promotional Text — 170 |
+| Full description | Full description — 4000 | Description — 4000 |
+| Release notes | What's new — 500 | What's New in This Version — 4000 |
 
-See [PLAY-CONSOLE.md](../PLAY-CONSOLE.md) for the App content answers, which
-are not per language.
+Three blocks serve both stores, and that is deliberate: copy kept twice is copy
+that disagrees with itself eventually. Where the two limits differ, Play's is
+the tighter one and fits inside Apple's either way — so the shorter limit is the
+one that governs.
+
+The file is named for Play's locale code. App Store Connect calls this same
+language **English (U.S.)**.
+
+`store-listing.test.ts` fails the build if a block outgrows its field — copy
+that is too long is rejected at paste time, one field at a time, in a browser.
+
+See [PLAY-CONSOLE.md](../PLAY-CONSOLE.md) and [APP-STORE.md](../APP-STORE.md)
+for the answers that are not per language.
 
 ## App name
 
@@ -20,6 +37,39 @@ OmniMorse
 
 ```text
 Encode. Decode. Learn. Morse by sound, light, screen or vibration.
+```
+
+## Subtitle
+
+The punchline, verbatim. It fits in 22 of Apple’s 30 characters, which is
+the only language where it does.
+
+```text
+Encode. Decode. Learn.
+```
+
+## Keywords
+
+App Store only. Comma-separated with no spaces — a space after a comma is a
+character Apple counts and nothing gains by it. Apple pairs keywords into
+phrases by itself, so morse and code already cover the search "morse code".
+
+Under the limit on purpose. Filling the last characters with weaker terms is
+the same mistake as a fourth Play tag: an install that bounces is the worst
+signal a new app can send.
+
+```text
+morse,code,translator,cw,telegraph,sos,signal,beacon,dots,dashes,ham,radio,decoder,alphabet
+```
+
+## Promotional text
+
+App Store only, and the one field that can be changed WITHOUT shipping a build
+or waiting for review. It sits above the description. Use it for whatever is
+worth saying this month; the description is what stays.
+
+```text
+Four ways to send a message: sound, the camera flash, the screen, or vibration. Switch any of them on or off while it plays. Tap a letter to hear just that one.
 ```
 
 ## Full description
