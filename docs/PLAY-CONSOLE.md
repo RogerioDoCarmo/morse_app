@@ -145,7 +145,7 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 | **App access** | *All functionality is available without special access.* There is no account, no login, no region lock and no paywall — every screen is reachable on a fresh install. Nothing to write in the credentials box |
 | Privacy policy | <https://rogeriodocarmo.github.io/morse_app/privacy-policy.html> |
 | Ads | **No ads** |
-| Data safety | **Crash logs only** — see below |
+| Data safety | **Crash logs** and **Device or other IDs** — see below |
 | Content rating | IARC questionnaire; a translator with no user-generated content rates lowest everywhere |
 | Target audience | **13+** — keeps it out of the Families policy |
 | News app | No |
@@ -156,21 +156,66 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ### Data safety, in detail
 
-Declare exactly one thing collected:
+Declare **two** things collected:
 
 - **Crash logs** — collected, **not shared**, **not linked** to identity, **not**
   used for tracking. Purpose: app functionality / diagnostics. Optional, because
   Settings → Privacy switches it off and the collector really is swapped for a
   no-op.
+- **Device or other IDs** — same answers: collected, not shared, not linked, not
+  tracking, app functionality / diagnostics.
 
-Declare **nothing else**. Messages, decoded text and every preference stay on
-the device.
+⚠️ **That second one is easy to miss, and missing it is the expensive kind of
+mistake.** An earlier version of this file said "declare crash logs and nothing
+else", which was wrong. `PRIVACY.md` says an identifier leaves the device in
+TWO places, and it is the authority here because it was written against the
+code:
+
+> …your device model and operating system version, and an app-generated
+> **installation identifier**.
+>
+> That request goes to Expo's update service and carries the app version,
+> platform, and an **installation identifier**.
+
+Play's "Device or other IDs" category names *Firebase installation ID* among
+its own examples, and Crashlytics uses Firebase Installations. Under-declaring
+gets an app removed; over-declaring costs one line on the listing. When the two
+are that lopsided, declare it.
+
+The rule this comes from: **the policy and the Data safety form must say the
+same thing.** If `PRIVACY.md` names something that leaves the device, the form
+has to account for it. Read one against the other before submitting, rather
+than filling the form from memory.
+
+Declare nothing beyond those two. Messages, decoded text and every preference
+stay on the device.
 
 ⚠️ **Advertising ID: no.** The app ships Crashlytics only, not Analytics.
-Play asks per SDK and it is easy to tick the wrong box from memory.
+Play asks per SDK and it is easy to tick the wrong box from memory. An
+installation ID is not an advertising ID — the first is declared above, the
+second does not exist here.
 
 ⚠️ **Say yes to "data encrypted in transit".** Crash reports and the
 `expo-updates` check both go over HTTPS.
+
+### The rest of the Data safety questionnaire
+
+| Question | Answer |
+| --- | --- |
+| Collects or shares required data types | **Yes** |
+| Encrypted in transit | **Yes** |
+| Account creation methods | **App does not allow users to create an account** |
+| Sign in with accounts created elsewhere | **No** |
+| Way to request data deletion (optional) | **No** — there is no account, so there is nothing to look up and delete for a person |
+
+⚠️ **`No`, deliberately, and not the 90-day variant.** "No, but data is deleted
+automatically within 90 days" was available and would have earned a slightly
+better line on the listing, but it would have meant asserting a retention
+period on Firebase's behalf without having checked it. A Data safety answer is
+a declaration, not a description, and the honest answer costs nothing here.
+
+The Settings toggle is a **control**, not a deletion mechanism, and does not
+qualify as one either.
 
 ### Permissions Play will ask about
 
