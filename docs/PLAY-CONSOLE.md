@@ -190,6 +190,40 @@ than filling the form from memory.
 Declare nothing beyond those two. Messages, decoded text and every preference
 stay on the device.
 
+⚠️ **App activity is NOT declared, and that is a decision rather than an
+oversight.** Firebase Analytics is planned — tagging UI interactions as events
+to find out which flows people actually use — and declaring the category early
+would have saved revisiting this form later. It was briefly ticked for exactly
+that reason and then removed, because a Data safety form describes what the app
+does TODAY, and today it collects no app activity at all. A declaration that
+runs ahead of the code is inaccurate in the same way one that lags behind it
+is; only the consequences differ.
+
+### When Firebase Analytics ships
+
+Four things move together, and the second is the one that would otherwise be
+missed:
+
+1. **App activity** joins the declaration — collected, not shared, not linked,
+   not tracking.
+2. ⚠️ **`Advertising ID` flips to YES.** Firebase Analytics collects the
+   Android advertising ID by default. The current NO is correct *only* while
+   the app ships Crashlytics alone, and adding Analytics without revisiting it
+   turns a correct answer into a false one — the direction that gets an app
+   removed. `google_analytics_adid_collection_enabled=false` suppresses it;
+   decide deliberately rather than inheriting the default.
+3. `PRIVACY.md` and `docs/privacy-policy.html` gain a section, and the
+   published page is republished.
+4. Analytics gets **its own opt-out** beside the crash-reports toggle. This app
+   already treats sending anything off-device as something a user may refuse,
+   and analytics without that switch would break a promise it already makes.
+
+⚠️ **Personal info: NOTHING.** Not even *User IDs*. That category means an
+identifier for an identifiable PERSON — an account ID, a username — and the
+crash adapter never calls `setUserId`, `setCustomKey` or `setAttribute`. The
+installation identifier is not a user ID; it belongs under Device or other IDs.
+This was ticked by mistake once, which is why it is written down.
+
 ⚠️ **Advertising ID: no.** The app ships Crashlytics only, not Analytics.
 Play asks per SDK and it is easy to tick the wrong box from memory. An
 installation ID is not an advertising ID — the first is declared above, the
