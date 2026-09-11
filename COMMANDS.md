@@ -86,6 +86,13 @@ pnpm mutation                                       # full run
 pnpm exec stryker run --mutate "src/core/domain/morse.ts"  # one file, far faster while iterating
 ```
 
+⚠️ **CI runs it on the DIFF, not on everything.** The job is PR-only, and a full run
+takes minutes while a PR here is often merged inside one — so the check that exists to
+review a change was finishing after the change had already landed. `ci.yml` now mutates
+only the `src/core/**` files a PR touches, which takes seconds. A changed **test** maps
+back to its source, because gutting assertions while leaving the source alone is the one
+change mutation testing exists to catch.
+
 ### E2E (Maestro)
 
 ```bash

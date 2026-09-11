@@ -78,6 +78,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The diff against the base branch needs both sides of it, and the
+          # default shallow clone has neither.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -86,11 +90,59 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ⚠️ The whole reason this step exists: a full run takes minutes, and a
+      # PR here is usually merged within one. The job that exists to review a
+      # change was routinely finishing AFTER that change was already on
+      # develop — so when it had something to say, nobody was still looking.
+      # Scoped to the diff it finishes in seconds, which is short enough to
+      # wait for.
+      - name: Find the mutated source this PR touches
+        id: scope
+        run: |
+          set -euo pipefail
+          BASE='${{ github.event.pull_request.base.sha }}'
+
+          # HEAD rather than the PR head sha: on a pull_request event the
+          # checkout IS the merge commit, so diffing it against the base gives
+          # exactly what the PR changes and nothing the base moved on by.
+          #
+          # A changed TEST maps back to its source. Without that, gutting the
+          # assertions in `volume.test.ts` while leaving `volume.ts` alone
+          # would mutate nothing at all — which is the one change mutation
+          # testing exists to catch.
+          # The pathspec is the DIRECTORY, with the extension filtered after.
+          # `src/core/**/*.ts` looks equivalent and is not: it requires at
+          # least one directory level, so a file sitting directly in
+          # `src/core/` would be skipped without a word. None exist today,
+          # which is exactly how that stays unnoticed until it matters.
+          CHANGED=$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD -- src/core \
+                    | grep -E '\.ts$' \
+                    | grep -vE '^src/core/ports/' \
+                    | sed 's/\.test\.ts$/.ts/' \
+                    | sort -u || true)
+
+          # Keep only what still exists: a deleted source, or a test whose
+          # source was renamed, would hand Stryker a path it cannot mutate.
+          KEPT=''
+          for file in $CHANGED; do
+            if [ -f "$file" ]; then KEPT="${KEPT:+$KEPT,}$file"; fi
+          done
+
+          if [ -z "$KEPT" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No mutated source in this PR — nothing for Stryker to do."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "mutate=$KEPT" >> "$GITHUB_OUTPUT"
+            echo "Mutating: $KEPT"
+          fi
+
       - name: Stryker
-        run: pnpm mutation
+        if: steps.scope.outputs.run == 'true'
+        run: pnpm mutation -- --mutate "${{ steps.scope.outputs.mutate }}"
 
       - name: Upload mutation report
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mutation-report
