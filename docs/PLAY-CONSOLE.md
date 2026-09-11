@@ -93,6 +93,70 @@ Analytics ships.
 
 ---
 
+## Store settings
+
+Development → Store presence → **Store settings**.
+
+| Field | Value |
+| --- | --- |
+| App or game | **App** |
+| Category | **Tools** |
+| Email | `contact@rogeriodocarmo.com` |
+| Phone | **blank** |
+| Website | <https://rogeriodocarmo.com> |
+| External marketing | **leave enabled** |
+
+### Why Tools, and when it would stop being right
+
+Play asks for the **primary function**, and this app's is conversion — text to
+Morse and back. The closest analogue on the store, Google Translate, sits in
+Tools.
+
+**Education** is the real alternative and not a silly one: the Learn tab has the
+alphabet, the timing rules and the memorisation method. But it is one tab of
+four. Filing there sets the expectation of a course or a drill app, and someone
+who arrives with that expectation meets a translator. Move it only if the
+learning side becomes the main event — a Koch-method trainer with progress
+tracking would justify it.
+
+**Communication** looks tempting because Morse *is* a communication code. Play
+means messaging, calling and browsers by it. This app never contacts anybody.
+
+### Tags
+
+Five at most, and the picker in Play Console shows the list — it is generated
+per category and not worth transcribing here, because it changes.
+
+Google's own bar is the useful part, and it is stricter than "sounds related":
+
+> It should be very clear to a user who is unfamiliar with the app why the tag
+> is relevant based on the store listing or initial in-app experience.
+
+Which rules out most of what is tempting. Against that bar:
+
+- **Language education** — fits. The Learn tab teaches a code, and the listing
+  says so.
+- Anything the picker offers for **utilities**, **converters** or **text** under
+  Tools — that is the app's primary function.
+- ⚠️ **Dictionary** is a stretch. A dictionary maps a word to a meaning; the
+  Learn tab maps a letter to a code. Defensible, but it invites installs from
+  people looking for something else.
+
+⚠️ **Do not fill all five for the sake of it.** Tags drive discovery, and an
+irrelevant one brings in users who bounce — which is the wrong signal to send
+about a new app. Three that fit beat five that nearly do.
+
+### The two that are easy to get wrong
+
+⚠️ **Phone stays blank.** It is optional and Play DISPLAYS it. A personal number
+on a public store page is not something that can be quietly withdrawn.
+
+⚠️ **External marketing takes 60 days to change.** Leaving it enabled costs
+nothing on a free app with no ads and helps discovery, but if it is ever turned
+off, that is not a same-day decision.
+
+---
+
 ## App content — the long form
 
 | Section | Answer |
