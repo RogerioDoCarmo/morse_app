@@ -1401,14 +1401,14 @@ describe('copying the Morse', () => {
     expect(await screen.findByTestId('icon-check')).toBeTruthy();
 
     await act(async () => {
-      jest.advanceTimersByTime(2500);
+      jest.advanceTimersByTime(3000);
     });
     expect(screen.getByTestId('icon-copy')).toBeTruthy();
     expect(screen.getByTestId('toast')).toBeTruthy();
 
     // And it does go, on the Toast's own timer rather than the icon's.
     await act(async () => {
-      jest.advanceTimersByTime(4000);
+      jest.advanceTimersByTime(3500);
     });
     expect(screen.queryByTestId('toast')).toBeNull();
     jest.useRealTimers();
@@ -1424,8 +1424,11 @@ describe('copying the Morse', () => {
     fireEvent.press(screen.getByLabelText('copy-morse'));
     expect(await screen.findByTestId('icon-check')).toBeTruthy();
 
+    // Past COPIED_ICON_MS, and deliberately not a round number near it: a test
+    // that only just clears the boundary starts failing when the boundary moves
+    // by a hundred milliseconds, which is not a regression worth a red build.
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(4000);
     });
     expect(screen.getByTestId('icon-copy')).toBeTruthy();
     jest.useRealTimers();

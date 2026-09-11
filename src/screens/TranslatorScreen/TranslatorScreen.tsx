@@ -110,8 +110,14 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
  *
  * Long enough to be seen if you glanced away, short enough that the button is
  * itself again before you would reach for it a second time.
+ *
+ * ⚠️ 1.8s was the first value and it was too tight to OBSERVE. A single
+ * Maestro assertion on a software-rendered emulator can take longer than that,
+ * so the tick had reverted before the flow could look at it — a state that
+ * exists but cannot be checked is one nobody can defend against a regression.
+ * 2.5s reads the same to a person and leaves the test somewhere to stand.
  */
-const COPIED_ICON_MS = 1800;
+const COPIED_ICON_MS = 2500;
 
 /**
  * The Translator screen — built from `design/screens/Main.dc.html`.
