@@ -232,7 +232,14 @@ matches on that name.
 pnpm build:apk        # preview APK — installable, Firebase App Distribution
 pnpm build:aab        # production AAB — NOT installable, Play upload only
 pnpm build:ipa        # production IPA — TestFlight / App Store
+pnpm build:ipa:adhoc  # ad-hoc IPA — Firebase App Distribution
 ```
+
+⚠️ **The two iOS builds are not interchangeable, and picking the wrong one
+wastes a whole build.** `build:ipa` is App Store signed: TestFlight will take
+it and Firebase App Distribution cannot install it at all. `build:ipa:adhoc`
+is the opposite. There is no build that does both — the signing decides the
+channel, so decide the channel first.
 
 Every one has a `:local` twin that compiles on this machine instead of EAS's
 builders — no queue, no build quota:
@@ -241,6 +248,7 @@ builders — no queue, no build quota:
 pnpm build:apk:local
 pnpm build:aab:local
 pnpm build:ipa:local
+pnpm build:ipa:adhoc:local
 ```
 
 `:local` needs Xcode, CocoaPods and fastlane on the PATH for iOS. Signing still
@@ -297,6 +305,8 @@ at the real file from inside one:
 
 ```bash
 GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:local
+# ...and the same for the ad-hoc one that Firebase can actually install:
+GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:adhoc:local
 GOOGLE_SERVICES_JSON_PATH="$PWD/google-services.json" pnpm build:apk:local
 ```
 
