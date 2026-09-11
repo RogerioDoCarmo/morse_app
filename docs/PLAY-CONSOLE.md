@@ -124,27 +124,39 @@ means messaging, calling and browsers by it. This app never contacts anybody.
 
 ### Tags
 
-Five at most, and the picker in Play Console shows the list — it is generated
-per category and not worth transcribing here, because it changes.
+Three, not five. Play allows up to five and the temptation is to fill them.
 
-Google's own bar is the useful part, and it is stricter than "sounds related":
+| Tag | Reaches | Why a stranger sees it |
+| --- | --- | --- |
+| **Educação** | Educação | the Learn tab — full alphabet, timing rules, method |
+| **Ferramentas** | Ferramentas | the primary function: a converter |
+| **Guia de estudo** | Educação | the Tips screen is literally one — five methods that work, one that does not |
+
+Google's bar is stricter than "sounds related", and it is the whole test:
 
 > It should be very clear to a user who is unfamiliar with the app why the tag
 > is relevant based on the store listing or initial in-app experience.
 
-Which rules out most of what is tempting. Against that bar:
+**Aprendizado de idiomas** and **Pronúncia** were offered and dropped, which was
+the right call: both reach through the language-learning group, and Morse is a
+CODE rather than a language. A stranger has to make an allowance for you before
+either fits, and that allowance is exactly what the bar above refuses.
 
-- **Language education** — fits. The Learn tab teaches a code, and the listing
-  says so.
-- Anything the picker offers for **utilities**, **converters** or **text** under
-  Tools — that is the app's primary function.
-- ⚠️ **Dictionary** is a stretch. A dictionary maps a word to a meaning; the
-  Learn tab maps a letter to a code. Defensible, but it invites installs from
-  people looking for something else.
+⚠️ **An irrelevant tag is worse than an empty slot.** It brings installs that
+bounce, and install-then-uninstall is the worst signal a new app can send. Three
+that fit beat five that nearly do.
 
-⚠️ **Do not fill all five for the sake of it.** Tags drive discovery, and an
-irrelevant one brings in users who bounce — which is the wrong signal to send
-about a new app. Three that fit beat five that nearly do.
+### Tags that look right and are not
+
+- ⚠️ **Lanterna** (Ferramentas) — the app really does drive the torch, and the
+  listing really does say "as the camera flash". Someone searching for a
+  flashlight will install it, find a Morse translator, and uninstall. This is
+  the single most likely way to manufacture a bounce here.
+- ⚠️ **Comunicação** — Morse *is* a communication code, which is what makes this
+  the trap. Play means messaging and calling; this app never contacts anybody.
+- **Dicionário** (Livros e referências) — tempting for the reach into another
+  category. A dictionary maps a word to a meaning; the Learn tab maps a letter
+  to a code.
 
 ### The two that are easy to get wrong
 
