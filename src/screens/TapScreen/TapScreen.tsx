@@ -11,6 +11,7 @@ import { AppFrame } from '@/components/AppFrame';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalSurface } from '@/components/SignalSurface';
 import { SignalButton } from '@/components/SignalButton';
+import { Toast } from '@/components/Toast';
 import type { TabName } from '@/components/TabBar';
 import {
   UNITS,
@@ -298,6 +299,11 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
               decoded text mid-word and leaving too little room for a swipe to
               even register. A screen can only have so many things that must
               always be visible, and on this one they are the key and this. */}
+          <Toast
+            visible={playback.lowVolume}
+            message={t('translator.volumeLow')}
+            onDismiss={playback.dismissLowVolume}
+          />
           <View style={styles.letterRow}>
             <Text style={styles.label}>{t('tap.letter')}</Text>
             <View style={styles.marks} testID="tap-letter">

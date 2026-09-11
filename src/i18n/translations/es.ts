@@ -12,7 +12,7 @@ export const es: TranslationMap = {
   'translator.sourceLabel': 'Español',
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Toca una letra para oírla',
-  'translator.sample': 'Hola mundo',
+  'translator.sample': 'SOS',
   'translator.speak': 'Hablar',
   'translator.tapItIn': 'Pulsar',
   'translator.readAloud': 'Leer en voz alta',
@@ -22,6 +22,8 @@ export const es: TranslationMap = {
   'translator.unsupported': 'Sin código: {{chars}}',
   'translator.signal': 'Emitir',
   'translator.stop': 'Detener',
+  'translator.volumeLow':
+    'El sonido está activado, pero este teléfono está muy bajo. Sube el volumen para oír el mensaje.',
   'firstRun.skip': 'Saltar',
   'firstRun.next': 'Siguiente',
   'firstRun.start': 'Empezar',

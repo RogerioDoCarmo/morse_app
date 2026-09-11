@@ -8,6 +8,7 @@ import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalButton } from '@/components/SignalButton';
 import { SignalSurface } from '@/components/SignalSurface';
+import { Toast } from '@/components/Toast';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
@@ -308,6 +309,15 @@ export function TranslatorScreen({
               <TextInput
                 testID="translator-input"
                 accessibilityLabel="translator-input"
+                // The caret is waiting when the app opens. Typing is the
+                // primary thing this screen is for, and a seeded sample you
+                // have to tap before you can replace it is a step nobody
+                // wants twice.
+                //
+                // ⚠️ It also raises the keyboard on launch, which covers the
+                // tab bar — every Maestro flow that opens the app and reaches
+                // for a tab has to dismiss it first. See dismiss-first-run.
+                autoFocus
                 style={toMorse ? styles.input : styles.monoInput}
                 value={toMorse ? text : morseInput}
                 onChangeText={toMorse ? setText : setMorseInput}
@@ -414,6 +424,11 @@ export function TranslatorScreen({
             </View>
           ) : null}
 
+          <Toast
+            visible={playback.lowVolume}
+            message={t('translator.volumeLow')}
+            onDismiss={playback.dismissLowVolume}
+          />
           <OutputChannels cells={channelCells} />
 
           <View style={styles.actions}>

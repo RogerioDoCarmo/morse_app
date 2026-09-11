@@ -62,7 +62,7 @@ appId: com.rogeriodocarmo.morse
 
 # ⚠️ `eraseText` deletes BACKWARDS from wherever the tap left the caret, so
 # whatever sat to the right of it survives — the recorded run typed its message
-# and kept the "d" from the seeded "Hello world". It is bounded by the length of
+# and kept the tail of the seeded sample. It is bounded by the length of
 # the sample and it only ever ADDS to the playback, never shortens it, so the
 # margin above absorbs it. Worth knowing before reading a duration off this file
 # as exact.
