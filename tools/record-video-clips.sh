@@ -46,8 +46,15 @@ BIT_RATE=${BIT_RATE:-8000000}
 #
 # screenrecord's own ceiling is 180s and it stops dead at the limit, so these
 # must stay under it AND over the longest a flow can take.
-CLIP_SECONDS=${CLIP_SECONDS:-55}
-TOUR_CLIP_SECONDS=${TOUR_CLIP_SECONDS:-130}
+# ⚠️ The rest is measured from when the FLOW ENDS, not from when recording
+# started. A fixed 55-second window assumed the flows were shorter than they
+# are: tab-translate gained a Settings detour to drop the speed, ran past its
+# own window, and the clip stopped while it was still on the opening screen.
+# Nothing failed — the recording simply ended first.
+REST_SECONDS=${REST_SECONDS:-20}
+# A backstop only. screenrecord stops dead at its own 180s ceiling, and a flow
+# that somehow runs longer than this loses its tail rather than the whole job.
+TIME_LIMIT=${TIME_LIMIT:-178}
 
 mkdir -p "$OUT"
 
@@ -86,10 +93,7 @@ record() {
   local name=$1
   echo "--- $name ---"
 
-  local limit=$CLIP_SECONDS
-  [ "$name" = tour ] && limit=$TOUR_CLIP_SECONDS
-
-  adb shell screenrecord --bit-rate "$BIT_RATE" --time-limit "$limit" \
+  adb shell screenrecord --bit-rate "$BIT_RATE" --time-limit "$TIME_LIMIT" \
     "/sdcard/$name.mp4" &
   local recorder=$!
   sleep 2
@@ -97,14 +101,16 @@ record() {
   maestro test "$FLOWS/$name.yaml" \
     || echo "::warning::$name.yaml did not finish; keeping what it recorded."
 
-  # ⚠️ The recorder is NOT stopped here. It runs to its own time limit while the
-  # app rests on whatever screen the flow left it on, and that rest is the
-  # footage. Stopping it the moment the flow returned is what made the first
-  # four-up show a relaunching app instead of the Speak tab.
-  #
-  # screenrecord also only finalises the MP4 container when it ends of its own
+  # ⚠️ The rest happens HERE, after the flow, so every clip gets the same rest
+  # no matter how long its flow took. The app sits on the screen it arrived at
+  # and — on the Translator — carries on playing, which is the only cell with
+  # real motion in it.
+  echo "    flow done; resting ${REST_SECONDS}s on camera"
+  sleep "$REST_SECONDS"
+
+  # screenrecord only finalises the MP4 container when it ends of its own
   # accord or is INTerrupted; a -9 from the host leaves an unplayable file.
-  echo "    flow done; letting the recorder run out its ${limit}s"
+  adb shell pkill -INT screenrecord || true
   wait "$recorder" || true
   # The finalise is not instant and `adb pull` does not wait for it.
   sleep 3
