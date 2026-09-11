@@ -66,75 +66,30 @@ be distributed.
 
 ### Release notes
 
-Play takes these per language. 500 characters each.
+Per language, and paste-ready, in [`store-listing/`](store-listing/):
 
-#### en-US
-
-```text
-• The volume warning: if sound is on and the phone is turned right down, the app now says so instead of playing into silence.
-• Vibration works on Android.
-• The torch no longer flashes a black rectangle across the screen.
-• Speak on the Translator opens the Speak tab instead of doing nothing.
-• The welcome carousel swipes, and Skip closes it.
-• Settings shows which build you are on.
-```
-
-#### pt-BR
-
-```text
-• Aviso de volume: se o som está ligado e o aparelho está no mínimo, o app avisa em vez de tocar no silêncio.
-• A vibração funciona no Android.
-• A lanterna não pisca mais um retângulo preto na tela.
-• O botão Falar no Tradutor abre a aba Falar em vez de não fazer nada.
-• O carrossel de boas-vindas desliza, e Pular fecha ele.
-• Os Ajustes mostram qual versão está instalada.
-```
-
-#### es-419
-
-```text
-• Aviso de volumen: si el sonido está activado y el teléfono está al mínimo, la app lo dice en vez de reproducir en silencio.
-• La vibración funciona en Android.
-• La linterna ya no muestra un rectángulo negro en la pantalla.
-• El botón Hablar del Traductor abre la pestaña Hablar en vez de no hacer nada.
-• El carrusel de bienvenida se desliza, y Saltar lo cierra.
-• Los Ajustes muestran qué versión tienes.
-```
+| | |
+| --- | --- |
+| English | [`en-US.md`](store-listing/en-US.md) |
+| Português do Brasil | [`pt-BR.md`](store-listing/pt-BR.md) |
+| Español | [`es-419.md`](store-listing/es-419.md) |
 
 ---
 
 ## Store listing
 
-| Field | Limit | Value |
-| --- | --- | --- |
-| App name | 30 | `OmniMorse` — 9 |
-| Short description (en-US) | 80 | `Encode. Decode. Learn. Morse by sound, light, screen or vibration.` — 66 |
-| Short description (pt-BR) | 80 | `Codifique. Decodifique. Aprenda. Morse em som, luz, tela ou vibração.` — 69 |
-| Short description (es-419) | 80 | `Codifica. Decodifica. Aprende. Morse en sonido, luz, pantalla o vibración.` — 74 |
+App name, short description and full description live per language in
+[`store-listing/`](store-listing/) — one file each, every block exactly what
+goes in the matching Play Console field.
 
-### Full description (en-US)
+They are not duplicated here on purpose. Copy kept in two places is copy that
+disagrees with itself eventually, and this file has already been wrong twice
+about things it was duplicating.
 
-```text
-OmniMorse turns text into Morse code and Morse code back into text.
-
-Type a message and watch it become dots and dashes letter by letter. Say it out loud and let the phone transcribe it. Or tap it in yourself on a key that measures how long you hold it — press briefly for a dot, hold for a dash — with a cut-off you can set to match your own speed.
-
-FOUR WAYS TO SEND IT
-
-A message can go out as sound, as the camera flash, as a flashing screen, or as vibration. Switch any of them on or off, even while a message is playing. They run together, in step, from one clock.
-
-LEARN IT PROPERLY
-
-Tap any letter to hear just that one — the quickest way to learn the rhythm. The Learn tab has the full alphabet, the timing rules that make the silences matter as much as the marks, and five things that actually work for memorising it.
-
-IN YOUR LANGUAGE
-
-The whole interface is in English, Brazilian Portuguese and Spanish. So is speech input, where your device supports it.
-
-PRIVATE BY DEFAULT
-
-No account. No advertising. No analytics. Nothing you type, say or key ever leaves your phone. The app sends anonymous crash diagnostics so failures can be fixed, and you can switch that off in Settings.
-```
+`store-listing.test.ts` fails the build when a block outgrows Play's limit for
+its field, when a field goes missing, when the three files stop calling the app
+the same thing, or when the "no analytics" promise is left standing after
+Analytics ships.
 
 ---
 
