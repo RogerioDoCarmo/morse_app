@@ -3,37 +3,60 @@
 Written 11 September 2026, at the end of a session, so the next one does not
 begin by rediscovering where this stopped.
 
-Everything below is **outstanding**. What is already done is in
-[PLAY-CONSOLE.md](PLAY-CONSOLE.md), [MACHINE-SETUP.md](MACHINE-SETUP.md) and
-[store-listing/](store-listing/).
+Everything below is **outstanding**.
+
+## Where things stand
+
+| | |
+| --- | --- |
+| `main` and `develop` | in sync, **OmniMorse 0.3.0** |
+| Tests | 883 unit and property, E2E 9/9 both platforms |
+| Privacy policy | live and verified at the URL Play was given |
+| Play listing | text, icon, feature graphic and Android screenshots all ready |
+| Android screenshots | done — run 34612215523, all seven, wordmark correct |
+| iOS screenshots | dispatched — run 34613499598 |
+| ⚠️ Version | 0.3.0, **unbumped and untagged on purpose** — see §5 |
+| ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
+
+What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
+[MACHINE-SETUP.md](MACHINE-SETUP.md) and [store-listing/](store-listing/).
 
 ---
 
-## 1. The screenshots run that was still going
+## 1. The screenshots run that was in flight
 
-⚠️ **Check this first.** Actions → **Screenshots** → the newest run against
-`develop`. It was mid-`Build release APK` when the session ended.
+⚠️ **Check this first.** Actions → **Screenshots** → run **34613499598**,
+dispatched against `develop` on 11 September at the end of the session. It was
+queued when the session ended and produces BOTH artifacts:
 
-- **Green:** download the `store-screenshots-android` artifact. Seven PNGs,
-  named for the store slots. Confirm the wordmark reads **OmniMorse** — that is
-  the whole reason it waited for the rename — then upload them to Play.
-- **Red:** the collect step now keeps whatever was captured, so the artifact is
-  still worth downloading. The previous run failed on its seventh shot and
-  discarded six good images; that is fixed, but a *new* selector failure is
-  possible and the artifact will name it.
+| Artifact | For |
+| --- | --- |
+| `store-screenshots-android` | Play — 2 to 8 phone screenshots |
+| `store-screenshots-ios` | App Store Connect — the 6.7-inch slot |
 
-Re-run any time with `gh workflow run screenshots.yml --ref develop`. It needs
-no local build, which matters while EAS credits are out.
+Download whichever exist, green or red: both jobs keep what they captured even
+when a flow falls over part way. That is not a courtesy — an earlier run took
+six good screenshots and discarded them to report a failure, and the fix is the
+reason a partial run is still worth downloading.
 
-## 2. iOS screenshots do not exist yet
+**Before uploading the iOS set, check the dimensions the log printed.** The job
+prints each image's real size, and App Store Connect wants **1290×2796**. A
+fallback to a non-Pro-Max simulator warns in the log rather than failing, so a
+wrong size is visible there rather than at upload.
 
-The workflow captures **Android only**. Play takes those directly; App Store
-Connect wants 1290×2796 from an iPhone.
+### Android is already done and good
 
-The E2E workflow already has a working iOS job that builds and boots a
-simulator — the Android screenshot job was made by copying its Android
-counterpart almost verbatim, and the same trick works again. Point a second job
-at `.maestro/screenshots.yaml`.
+An earlier run, **34612215523**, produced all seven Android screenshots, the
+wordmark reads **OmniMorse**, and they are ready for Play. The run above
+re-takes them; either set is fine.
+
+Re-run any time, both platforms at once:
+
+```bash
+gh workflow run screenshots.yml --ref develop
+```
+
+It needs no local build, which matters while the EAS credits are out.
 
 ## 3. Two fixes nobody has felt
 
