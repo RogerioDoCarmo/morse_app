@@ -119,6 +119,10 @@ module.exports = () => {
     plugins.push('@react-native-firebase/app', '@react-native-firebase/crashlytics');
   }
 
+  // Writes the Play verification token when one is in the environment, and
+  // removes it otherwise. Before the cleaner, which must stay last.
+  plugins.push('./plugins/withAdiRegistration.js');
+
   plugins.push(cleaner);
 
   return {
