@@ -178,6 +178,40 @@ describe('compose-video.sh', () => {
    * fixed front trim of six seconds was wrong by fifty the first time flows
    * retried, and produced clips that never left the welcome carousel.
    */
+  /**
+   * ⚠️ The tour's window must be LARGER than the tour, so the promo is the
+   * whole journey rather than its last minute — which, on a tour that spends
+   * its middle playing a message, was a minute of one screen and nothing else.
+   *
+   * And the tour itself must fit inside `screenrecord`'s hard ceiling. The
+   * first version ran 175 seconds against a 178-second cap: it was still
+   * playing when the recording ended, and Speak, Tap and Learn were never
+   * captured. Nothing failed; the camera ran out.
+   */
+  it('asks for more of the tour than the recorder can produce', () => {
+    const limit = Number(
+      capture(/^TIME_LIMIT=\$\{TIME_LIMIT:-(\d+)\}/mu, RECORDER, 'TIME_LIMIT'),
+    );
+    expect(defaultOf('TOUR_SECONDS')).toBeGreaterThan(limit * 0.8);
+    expect(defaultOf('TOUR_SECONDS')).toBeLessThan(limit);
+  });
+
+  /**
+   * The dwell `repeat`s are what the tour's length is made of — each iteration
+   * is a real hierarchy fetch, one to two seconds on a software-rendered
+   * emulator. 74 of them was most of 175 seconds.
+   */
+  it('keeps the tour inside its recording budget', () => {
+    const iterations = [...read('tour').matchAll(/times: (\d+)/gu)].reduce(
+      (sum, match) => sum + Number(match[1]),
+      0,
+    );
+    // Two seconds each, plus the tour's own taps, typing and 22s of playback.
+    expect(iterations * 2 + 70).toBeLessThan(
+      Number(capture(/^TIME_LIMIT=\$\{TIME_LIMIT:-(\d+)\}/mu, RECORDER, 'TIME_LIMIT')),
+    );
+  });
+
   it.each(['GRID_SECONDS', 'TOUR_SECONDS'])('trims %s from the end', (name) => {
     expect(COMPOSE).toContain(name);
     expect(defaultOf(name)).toBeGreaterThan(0);
