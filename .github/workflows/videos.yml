@@ -69,10 +69,14 @@ jobs:
           emulator-options: >-
             -no-window -no-snapshot -noaudio -no-boot-anim
             -gpu swiftshader_indirect -camera-back none -camera-front none
-          # ⚠️ NOT disabled, unlike every other job here. Animations are the
-          # subject: a video of an app with its transitions turned off looks
-          # broken rather than fast.
-          disable-animations: false
+            -memory 4096 -cores 2
+          # ⚠️ Disabled HERE and re-enabled by the recorder, which is not the
+          # contradiction it looks like. Animations are the subject of a video,
+          # so the recording needs them — but leaving them on for the whole job
+          # made a 1080p software-rendered launcher ANR during boot, and the
+          # "isn't responding" dialog then covered the app in all five clips.
+          # Boot cheap, record properly.
+          disable-animations: true
           # ⚠️ EVERY LINE HERE MUST BE A COMPLETE COMMAND ON ITS OWN.
           # This action does not run the block as a script — it splits it on
           # newlines and runs each line through its own `sh -c`. A shell

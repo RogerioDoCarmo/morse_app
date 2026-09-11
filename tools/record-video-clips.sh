@@ -35,6 +35,30 @@ TIME_LIMIT=${TIME_LIMIT:-180}
 
 mkdir -p "$OUT"
 
+# ⚠️ HIDE SYSTEM ERROR DIALOGS. The first successful run of this script
+# recorded five clips with "Pixel Launcher isn't responding" sitting on top of
+# every frame: a pixel_6 profile at 1080p through swiftshader, with animations
+# on, is heavy enough to ANR the launcher. The dialog then covered the app, so
+# Maestro could not see `first-run` and every flow failed through its retries.
+#
+# The step still reported success, because `continue-on-error` is what keeps
+# partial footage — so the only evidence was in the footage itself.
+echo "--- suppressing system error dialogs ---"
+adb shell settings put global hide_error_dialogs 1 || true
+# That stops the NEXT one; anything already up needs dismissing.
+adb shell input keyevent KEYCODE_BACK || true
+adb shell input keyevent KEYCODE_HOME || true
+
+# ⚠️ Animations are turned on HERE rather than in the workflow, so the emulator
+# boots and settles the launcher cheaply and only the recording pays for them.
+# They are the subject of a video — an app recorded with its transitions off
+# looks broken rather than fast — but they are also what tipped the launcher
+# into an ANR when they were on for the whole job.
+echo "--- enabling animations for the recording ---"
+for scale in window_animation_scale transition_animation_scale animator_duration_scale; do
+  adb shell settings put global "$scale" 1 || true
+done
+
 # ⚠️ Warm the driver BEFORE any recording starts. Maestro installs and launches
 # its own instrumentation APK on first use, which takes the better part of a
 # minute — and recorded, that minute is the launcher sitting at the front of
