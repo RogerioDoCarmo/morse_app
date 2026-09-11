@@ -57,4 +57,11 @@ reports/
 # developer — app.config.js treats their absence as "Firebase not configured"
 # and builds a working, uninstrumented app.
 google-services.json
+
+# ⚠️ Play service account keys. Nothing above catches these: *.key and *.p8 do
+# not match a .json, and this repository is PUBLIC. A key here has upload
+# rights to the store listing. See docs/PLAY-SERVICE-ACCOUNT.md — the file
+# belongs OUTSIDE the repository; this is the safety net, not the plan.
+*service-account*.json
+play-store-credentials.json
 GoogleService-Info.plist
