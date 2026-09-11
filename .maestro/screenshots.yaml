@@ -1,0 +1,77 @@
+# Store screenshots, captured from the running app.
+#
+# ⚠️ NOT in `flows/`, deliberately. `pnpm test:e2e` runs that whole directory
+# on every PR, and this flow asserts nothing — it would add minutes to every
+# run to produce images nobody looked at. Run it when screenshots are wanted:
+#
+#     pnpm screenshots
+#
+# The names match the store slots, so the output drops straight into Play
+# Console and App Store Connect in order.
+#
+# ⚠️ The point of capturing rather than mocking: a store screenshot has to show
+# the app as it actually is. The previous mockups were rendered from the design
+# canvas and drifted — they showed "Hello world" where the app seeds SOS, a
+# "Flash it" button where it says "Signal", and no output-channel strip at all,
+# which is the app's main control.
+appId: com.rogeriodocarmo.morse
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - assertVisible:
+          id: 'first-run'
+
+# The welcome carousel is worth a shot of its own: it is the first thing a new
+# user sees, and it explains the output channels the store copy talks about.
+- takeScreenshot: 00-welcome
+
+- tapOn:
+    id: 'first-run-skip'
+- assertNotVisible:
+    id: 'first-run'
+# The Translator autofocuses on open, so the keyboard is up and would cover
+# half of the first shot.
+- hideKeyboard
+
+- assertVisible:
+    id: 'translator-screen'
+- takeScreenshot: 01-translator
+
+# The channel strip switched on, which is the feature the listing leads with.
+# Screen and Vibrate only: Light raises the camera permission, and a system
+# dialog in a store screenshot is a rejection waiting to happen.
+- tapOn:
+    id: 'channel-screen'
+- tapOn:
+    id: 'channel-buzz'
+- takeScreenshot: 02-output-channels
+
+- tapOn:
+    id: 'tab-speak'
+- assertVisible:
+    id: 'speech-screen'
+- takeScreenshot: 03-speech
+
+- tapOn:
+    id: 'tab-tap'
+- assertVisible:
+    id: 'tap-screen'
+- takeScreenshot: 04-tap-decode
+
+- tapOn:
+    id: 'tab-learn'
+- assertVisible:
+    id: 'learn-screen'
+- takeScreenshot: 05-learn
+
+- tapOn:
+    id: 'tab-translate'
+- hideKeyboard
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'
+- takeScreenshot: 06-settings
