@@ -66,75 +66,106 @@ be distributed.
 
 ### Release notes
 
-Play takes these per language. 500 characters each.
+Per language, and paste-ready, in [`store-listing/`](store-listing/):
 
-#### en-US
-
-```text
-• The volume warning: if sound is on and the phone is turned right down, the app now says so instead of playing into silence.
-• Vibration works on Android.
-• The torch no longer flashes a black rectangle across the screen.
-• Speak on the Translator opens the Speak tab instead of doing nothing.
-• The welcome carousel swipes, and Skip closes it.
-• Settings shows which build you are on.
-```
-
-#### pt-BR
-
-```text
-• Aviso de volume: se o som está ligado e o aparelho está no mínimo, o app avisa em vez de tocar no silêncio.
-• A vibração funciona no Android.
-• A lanterna não pisca mais um retângulo preto na tela.
-• O botão Falar no Tradutor abre a aba Falar em vez de não fazer nada.
-• O carrossel de boas-vindas desliza, e Pular fecha ele.
-• Os Ajustes mostram qual versão está instalada.
-```
-
-#### es-419
-
-```text
-• Aviso de volumen: si el sonido está activado y el teléfono está al mínimo, la app lo dice en vez de reproducir en silencio.
-• La vibración funciona en Android.
-• La linterna ya no muestra un rectángulo negro en la pantalla.
-• El botón Hablar del Traductor abre la pestaña Hablar en vez de no hacer nada.
-• El carrusel de bienvenida se desliza, y Saltar lo cierra.
-• Los Ajustes muestran qué versión tienes.
-```
+| | |
+| --- | --- |
+| English | [`en-US.md`](store-listing/en-US.md) |
+| Português do Brasil | [`pt-BR.md`](store-listing/pt-BR.md) |
+| Español | [`es-419.md`](store-listing/es-419.md) |
 
 ---
 
 ## Store listing
 
-| Field | Limit | Value |
+App name, short description and full description live per language in
+[`store-listing/`](store-listing/) — one file each, every block exactly what
+goes in the matching Play Console field.
+
+They are not duplicated here on purpose. Copy kept in two places is copy that
+disagrees with itself eventually, and this file has already been wrong twice
+about things it was duplicating.
+
+`store-listing.test.ts` fails the build when a block outgrows Play's limit for
+its field, when a field goes missing, when the three files stop calling the app
+the same thing, or when the "no analytics" promise is left standing after
+Analytics ships.
+
+---
+
+## Store settings
+
+Development → Store presence → **Store settings**.
+
+| Field | Value |
+| --- | --- |
+| App or game | **App** |
+| Category | **Tools** |
+| Email | `contact@rogeriodocarmo.com` |
+| Phone | **blank** |
+| Website | <https://rogeriodocarmo.com> |
+| External marketing | **leave enabled** |
+
+### Why Tools, and when it would stop being right
+
+Play asks for the **primary function**, and this app's is conversion — text to
+Morse and back. The closest analogue on the store, Google Translate, sits in
+Tools.
+
+**Education** is the real alternative and not a silly one: the Learn tab has the
+alphabet, the timing rules and the memorisation method. But it is one tab of
+four. Filing there sets the expectation of a course or a drill app, and someone
+who arrives with that expectation meets a translator. Move it only if the
+learning side becomes the main event — a Koch-method trainer with progress
+tracking would justify it.
+
+**Communication** looks tempting because Morse *is* a communication code. Play
+means messaging, calling and browsers by it. This app never contacts anybody.
+
+### Tags
+
+Three, not five. Play allows up to five and the temptation is to fill them.
+
+| Tag | Reaches | Why a stranger sees it |
 | --- | --- | --- |
-| App name | 30 | `OmniMorse` — 9 |
-| Short description (en-US) | 80 | `Encode. Decode. Learn. Morse by sound, light, screen or vibration.` — 66 |
-| Short description (pt-BR) | 80 | `Codifique. Decodifique. Aprenda. Morse em som, luz, tela ou vibração.` — 69 |
-| Short description (es-419) | 80 | `Codifica. Decodifica. Aprende. Morse en sonido, luz, pantalla o vibración.` — 74 |
+| **Educação** | Educação | the Learn tab — full alphabet, timing rules, method |
+| **Ferramentas** | Ferramentas | the primary function: a converter |
+| **Guia de estudo** | Educação | the Tips screen is literally one — five methods that work, one that does not |
 
-### Full description (en-US)
+Google's bar is stricter than "sounds related", and it is the whole test:
 
-```text
-OmniMorse turns text into Morse code and Morse code back into text.
+> It should be very clear to a user who is unfamiliar with the app why the tag
+> is relevant based on the store listing or initial in-app experience.
 
-Type a message and watch it become dots and dashes letter by letter. Say it out loud and let the phone transcribe it. Or tap it in yourself on a key that measures how long you hold it — press briefly for a dot, hold for a dash — with a cut-off you can set to match your own speed.
+**Aprendizado de idiomas** and **Pronúncia** were offered and dropped, which was
+the right call: both reach through the language-learning group, and Morse is a
+CODE rather than a language. A stranger has to make an allowance for you before
+either fits, and that allowance is exactly what the bar above refuses.
 
-FOUR WAYS TO SEND IT
+⚠️ **An irrelevant tag is worse than an empty slot.** It brings installs that
+bounce, and install-then-uninstall is the worst signal a new app can send. Three
+that fit beat five that nearly do.
 
-A message can go out as sound, as the camera flash, as a flashing screen, or as vibration. Switch any of them on or off, even while a message is playing. They run together, in step, from one clock.
+### Tags that look right and are not
 
-LEARN IT PROPERLY
+- ⚠️ **Lanterna** (Ferramentas) — the app really does drive the torch, and the
+  listing really does say "as the camera flash". Someone searching for a
+  flashlight will install it, find a Morse translator, and uninstall. This is
+  the single most likely way to manufacture a bounce here.
+- ⚠️ **Comunicação** — Morse *is* a communication code, which is what makes this
+  the trap. Play means messaging and calling; this app never contacts anybody.
+- **Dicionário** (Livros e referências) — tempting for the reach into another
+  category. A dictionary maps a word to a meaning; the Learn tab maps a letter
+  to a code.
 
-Tap any letter to hear just that one — the quickest way to learn the rhythm. The Learn tab has the full alphabet, the timing rules that make the silences matter as much as the marks, and five things that actually work for memorising it.
+### The two that are easy to get wrong
 
-IN YOUR LANGUAGE
+⚠️ **Phone stays blank.** It is optional and Play DISPLAYS it. A personal number
+on a public store page is not something that can be quietly withdrawn.
 
-The whole interface is in English, Brazilian Portuguese and Spanish. So is speech input, where your device supports it.
-
-PRIVATE BY DEFAULT
-
-No account. No advertising. No analytics. Nothing you type, say or key ever leaves your phone. The app sends anonymous crash diagnostics so failures can be fixed, and you can switch that off in Settings.
-```
+⚠️ **External marketing takes 60 days to change.** Leaving it enabled costs
+nothing on a free app with no ads and helps discovery, but if it is ever turned
+off, that is not a same-day decision.
 
 ---
 
