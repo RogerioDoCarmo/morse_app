@@ -1,8 +1,9 @@
 # Play Console — what to paste
 
-The Google Play half of [TESTFLIGHT.md](TESTFLIGHT.md). Kept here so the next
-release does not start from a blank console, and so the answers stay consistent
-with what the app actually does.
+The Google Play half of the release. [APP-STORE.md](APP-STORE.md) is the Apple
+one, and [TESTFLIGHT.md](TESTFLIGHT.md) covers the beta before it. Kept here so
+the next release does not start from a blank console, and so the answers stay
+consistent with what the app actually does.
 
 ---
 
@@ -73,7 +74,9 @@ Per language, and paste-ready, in [`store-listing/`](store-listing/):
 
 App name, short description and full description live per language in
 [`store-listing/`](store-listing/) — one file each, every block exactly what
-goes in the matching Play Console field.
+goes in the matching Play Console field. Those files also carry the App Store's
+fields, which is why they are no longer named for Play alone; the table at the
+top of each says which block goes to which console.
 
 They are not duplicated here on purpose. Copy kept in two places is copy that
 disagrees with itself eventually, and this file has already been wrong twice
