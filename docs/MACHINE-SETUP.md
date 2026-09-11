@@ -119,7 +119,14 @@ command, deliberately — see [COMMANDS.md](../COMMANDS.md).
 # the project FROM GIT, so the copy it builds has no credentials. The path must
 # be absolute: the build runs from a temp copy, and only an absolute path still
 # points at the real file from inside one.
+#
+# ⚠️ PICK THE CHANNEL FIRST — the signing decides it and there is no build that
+# does both. `build:ipa:local` is App Store signed, so it can only go to
+# TestFlight; Firebase App Distribution cannot install it. The `:adhoc` twin is
+# the one testers can install, and it needs their device registered with
+# `eas device:create`.
 GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:local
+GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:adhoc:local
 
 # A local Android build. ANDROID_HOME is not exported anywhere, so it is passed
 # here too.
