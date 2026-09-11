@@ -28,7 +28,7 @@ be distributed.
 
 Play takes these per language. 500 characters each.
 
-**en-US**
+#### en-US
 
 ```text
 • The volume warning: if sound is on and the phone is turned right down, the app now says so instead of playing into silence.
@@ -39,7 +39,7 @@ Play takes these per language. 500 characters each.
 • Settings shows which build you are on.
 ```
 
-**pt-BR**
+#### pt-BR
 
 ```text
 • Aviso de volume: se o som está ligado e o aparelho está no mínimo, o app avisa em vez de tocar no silêncio.
@@ -50,7 +50,7 @@ Play takes these per language. 500 characters each.
 • Os Ajustes mostram qual versão está instalada.
 ```
 
-**es-419**
+#### es-419
 
 ```text
 • Aviso de volumen: si el sonido está activado y el teléfono está al mínimo, la app lo dice en vez de reproducir en silencio.
