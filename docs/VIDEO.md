@@ -83,27 +83,52 @@ from the far side of an upload form is miserable.
 ## How the four-up stays in step
 
 The four cells are four separate recordings played simultaneously. Nothing
-synchronises them. Two things keep them lined up:
+synchronises them.
 
-1. Every tab flow does **identical** work before its own footage matters — the
-   same launch, the same guide dismissal, one tab tap. `tab-translate.yaml`
-   taps the tab it is already on, purely to keep its lead-in the same length as
-   the other three.
-2. `compose-video.sh` trims a fixed `LEAD_IN` (default 6s) off all four.
+⚠️ **Both outputs are trimmed from the END of the clip, never the front**, and
+that is the whole trick. Everything variable in a recording happens at the
+front — emulator boot, Maestro's driver install, the app launch, and any
+retries a flow needed. What is worth watching is at the end, where every flow
+holds still on purpose.
 
-`video-assets.test.ts` asserts that lead-in **in full**, per flow, rather than
-comparing the flows to each other — three flows that drifted together would
-pass a comparison.
+The first attempt trimmed a fixed six seconds off the front. A run where the
+flows retried twice pushed all the content fifty seconds later, and the trim
+was wrong by about that much. Trimming from the end makes startup time
+irrelevant, and it degrades kindly: ask for more seconds than a clip has and
+ffmpeg hands back the whole clip.
 
-If the grid opens on the welcome carousel, raise `LEAD_IN`. If a cell has
-finished its business before the others start, lower it. Neither needs a
-re-record:
+Every tab flow's declared holds add up to at least `GRID_SECONDS`, so a cell
+never runs out and falls back onto whatever preceded it. `video-assets.test.ts`
+checks that sum per flow.
+
+Re-framing costs seconds of ffmpeg, not another run:
 
 ```bash
-LEAD_IN=8 GRID_SECONDS=14 tools/compose-video.sh clips video
+GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
 ```
 
----
+## ⚠️ The launcher will ANR if animations are on during boot
+
+The first run that recorded anything produced five clips with **"Pixel Launcher
+isn't responding"** sitting on top of every frame. A `pixel_6` profile at 1080p
+through swiftshader, with animations on for the whole job, is heavy enough to
+ANR the launcher — and the dialog then covered the app, so Maestro could not
+see `first-run` and every flow failed through its retries.
+
+⚠️ **The step still reported success.** `continue-on-error` is what keeps
+partial footage when a flow falls over, and it also swallows this. The only
+evidence was in the footage itself, which is why it is worth looking at a frame
+of any new recording rather than trusting a green tick.
+
+Two things prevent it now, both in
+[`tools/record-video-clips.sh`](../tools/record-video-clips.sh):
+
+- `settings put global hide_error_dialogs 1`, plus a BACK and a HOME to
+  dismiss anything already up.
+- **Animations are switched on by the recorder rather than by the workflow.**
+  The job boots with `disable-animations: true` so the launcher settles
+  cheaply, and the three animation scales go back to 1 just before recording.
+  Boot cheap, record properly.
 
 ## ⚠️ The emulator action runs its script one line at a time
 

@@ -34,18 +34,17 @@ CARD_SECONDS=${CARD_SECONDS:-2}
 # the margin above and below it.
 PHONE_H=${PHONE_H:-1000}
 
-# ⚠️ Seconds trimmed off the front of each tab clip. The four are recorded as
-# four separate runs and played simultaneously, so this is what hides the
-# launch, the guide dismissal and the tab tap they all share. Raise it if the
-# grid opens on the welcome carousel; lower it if a cell has finished its
-# business before the others start.
-LEAD_IN=${LEAD_IN:-6}
+# ⚠️ Both clips are trimmed from the END, not the front, and that is the whole
+# trick. Everything variable happens at the FRONT of a recording — emulator
+# boot, Maestro's driver, the app launch, and any retries a flow needed — while
+# what is worth watching is at the end, where each flow holds still on purpose.
+# The first attempt trimmed a fixed six seconds off the front and was wrong by
+# fifty, because a flow that retried twice pushed all its content later.
+#
+# Trimming from the end makes startup time irrelevant, and it degrades kindly:
+# ask for more seconds than a clip has and ffmpeg gives you the whole clip.
 GRID_SECONDS=${GRID_SECONDS:-16}
-
-# The tour is trimmed too, but far less: its own launch and first screen are
-# worth showing, and only the couple of seconds before Maestro takes hold are
-# not. Set to 0 to keep everything.
-TOUR_LEAD_IN=${TOUR_LEAD_IN:-2}
+TOUR_SECONDS=${TOUR_SECONDS:-60}
 
 # One cell of the four-up. Four of these side by side is 1712 wide, which
 # leaves a margin inside 1920 and 130px of headroom inside 1080.
@@ -109,7 +108,7 @@ echo "--- promo-youtube.mp4 ---"
 # odd would fail the encode rather than the scale, some minutes later.
 ffmpeg -hide_banner -loglevel error -y \
   -loop 1 -t "$CARD_SECONDS" -i "$CARD" \
-  -ss "$TOUR_LEAD_IN" -i "$CLIPS/tour.mp4" \
+  -sseof -"$TOUR_SECONDS" -i "$CLIPS/tour.mp4" \
   "${SILENT_AUDIO[@]}" \
   -filter_complex "
     [0:v]$card_chain[card];
@@ -139,7 +138,7 @@ done
 
 ffmpeg -hide_banner -loglevel error -y \
   -loop 1 -t "$CARD_SECONDS" -i "$CARD" \
-  $(for t in "${TABS[@]}"; do printf -- '-ss %s -t %s -i %s ' "$LEAD_IN" "$GRID_SECONDS" "$CLIPS/$t.mp4"; done) \
+  $(for t in "${TABS[@]}"; do printf -- '-sseof -%s -i %s ' "$GRID_SECONDS" "$CLIPS/$t.mp4"; done) \
   "${SILENT_AUDIO[@]}" \
   -filter_complex "
     [0:v]$card_chain[card];

@@ -44,4 +44,4 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'tap-decoded'
 - waitForAnimationToEnd:
-    timeout: 9000
+    timeout: 12000
