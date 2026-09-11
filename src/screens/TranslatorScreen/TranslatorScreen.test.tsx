@@ -247,25 +247,49 @@ describe('TranslatorScreen — letter selection', () => {
 });
 
 describe('TranslatorScreen — seed content', () => {
-  it('seeds the input in the active locale, not always English', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'Hola mundo');
+  const LOCALES = ['en', 'pt-BR', 'es'] as const;
+
+  /**
+   * SOS, everywhere, and the sameness is the point.
+   *
+   * The seed used to be a greeting translated per locale — "Hello world",
+   * "Boa noite", "Hola mundo" — on the reasoning that an English sample
+   * inside a Spanish screen reads as a bug. SOS answers that better than a
+   * translation can: it is the one message every language writes identically,
+   * it is three letters rather than eleven so the output fits a phone without
+   * scrolling, and it is the thing a person opening a Morse app already knows
+   * how to read.
+   */
+  it.each(LOCALES)('seeds SOS in %s', (locale) => {
+    renderWithProviders(<TranslatorScreen />, { locale });
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'SOS');
   });
 
-  it('seeds Portuguese without accents the encoder would fold', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'pt-BR' });
-    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'Boa noite');
+  /**
+   * The guard the Portuguese seed used to carry on its own. "Boa noite" was
+   * chosen over anything accented because the encoder folds à and ã to their
+   * plain letters, and a seed that warns about itself on first open is a bad
+   * first impression. Asserted through the notice rather than the string, so
+   * it holds for whatever any locale seeds next.
+   */
+  it.each(LOCALES)('seeds nothing the encoder would drop in %s', (locale) => {
+    renderWithProviders(<TranslatorScreen />, { locale });
+    expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 
   it('derives the Morse seed from the same sample, so the directions agree', () => {
     renderWithProviders(<TranslatorScreen />, { locale: 'es' });
     fireEvent.press(screen.getByTestId('segment-toText'));
     // Round-trips back to the very sample the other direction started from.
-    expect(screen.getByTestId('decoded-text')).toHaveTextContent('HOLA MUNDO');
+    expect(screen.getByTestId('decoded-text')).toHaveTextContent('SOS');
   });
 
+  // Typed rather than seeded: SOS is one word, and the slash only appears
+  // between two. `morse.test.ts` owns whether the ENCODER emits it; this owns
+  // whether the footer renders what the encoder produced.
   it('separates words with the ITU slash, which survives a copy', () => {
     renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
     expect(screen.getByTestId('morse-string')).toHaveTextContent(
       '.... . .-.. .-.. --- / .-- --- .-. .-.. -..',
     );
@@ -346,11 +370,12 @@ describe('TranslatorScreen — audio playback', () => {
 
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
     expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
-    // "Hello world" is 111 units; at the 120ms playback default that is 13.3s.
-    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:00 / 0:13');
+    // SOS is 27 units — 5 for each S, 11 for the O, and a 3-unit gap between
+    // each pair. At the 120ms playback default that is 3.24s.
+    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:00 / 0:03');
 
-    await advance(5000);
-    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:05 / 0:13');
+    await advance(1000);
+    expect(screen.getByTestId('playback-clock')).toHaveTextContent('0:01 / 0:03');
   });
 
   /**
@@ -401,16 +426,21 @@ describe('TranslatorScreen — audio playback', () => {
     const output = (): ReturnType<typeof within> =>
       within(screen.getByTestId('morse-output'));
 
-    // H starts the message and holds through the gap that follows it.
+    // The first S starts the message and holds through the gap that follows.
+    //
+    // ⚠️ `selected: true` is doing real work in this selector, not decoration:
+    // SOS has TWO letters named S, so the name alone matches a pair. Only one
+    // is ever lit, which is the whole property under test.
     expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
     expect(
-      output().getByRole('button', { selected: true, name: 'morse-letter-H' }),
+      output().getByRole('button', { selected: true, name: 'morse-letter-S' }),
     ).toBeOnTheScreen();
 
-    // E begins 10 units in — 1200ms at the playback default.
-    await advance(1300);
+    // O begins 8 units in — S is 5 units and the letter gap is 3 — so 960ms
+    // at the playback default.
+    await advance(1000);
     expect(
-      output().getByRole('button', { selected: true, name: 'morse-letter-E' }),
+      output().getByRole('button', { selected: true, name: 'morse-letter-O' }),
     ).toBeOnTheScreen();
     expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
   });
@@ -452,7 +482,10 @@ describe('TranslatorScreen — audio playback', () => {
     renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     fireEvent.press(screen.getByTestId('signal-button'));
 
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    // Anything but the seed — SOS is what the input already holds, and
+    // `changeText` with the value already there changes no message and would
+    // prove nothing.
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
 
     expect(screen.queryByTestId('playback-progress')).toBeNull();
     expect(audio.stops).toBeGreaterThan(0);

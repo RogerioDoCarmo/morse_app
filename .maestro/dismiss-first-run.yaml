@@ -13,3 +13,10 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-skip'
 - assertNotVisible:
     id: 'first-run'
+
+# ⚠️ The Translator autofocuses its input, so the keyboard is up the moment
+# the guide closes — and on a phone it covers the TAB BAR. Every flow that
+# runs this one then reaches for `tab-tap`, `tab-speak` or `tab-learn`, and
+# would be tapping at a keyboard instead. Dismissed here, once, rather than at
+# the top of six flows.
+- hideKeyboard

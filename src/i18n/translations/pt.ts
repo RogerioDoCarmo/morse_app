@@ -12,8 +12,7 @@ export const ptBR: TranslationMap = {
   'translator.sourceLabel': 'Português',
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Toque numa letra para ouvi-la',
-  // Sem acentos: o encoder dobra os que a ITU não define.
-  'translator.sample': 'Boa noite',
+  'translator.sample': 'SOS',
   'translator.speak': 'Falar',
   'translator.tapItIn': 'Tocar',
   'translator.readAloud': 'Ler em voz alta',

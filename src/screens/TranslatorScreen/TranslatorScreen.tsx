@@ -308,6 +308,15 @@ export function TranslatorScreen({
               <TextInput
                 testID="translator-input"
                 accessibilityLabel="translator-input"
+                // The caret is waiting when the app opens. Typing is the
+                // primary thing this screen is for, and a seeded sample you
+                // have to tap before you can replace it is a step nobody
+                // wants twice.
+                //
+                // ⚠️ It also raises the keyboard on launch, which covers the
+                // tab bar — every Maestro flow that opens the app and reaches
+                // for a tab has to dismiss it first. See dismiss-first-run.
+                autoFocus
                 style={toMorse ? styles.input : styles.monoInput}
                 value={toMorse ? text : morseInput}
                 onChangeText={toMorse ? setText : setMorseInput}

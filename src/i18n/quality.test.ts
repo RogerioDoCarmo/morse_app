@@ -64,6 +64,9 @@ const SHARED_WITH_ENGLISH: Partial<Record<TranslationKey, readonly AppLocale[]>>
   'app.name': ['pt-BR', 'es'], // a proper noun; never translated
   'translator.morseLabel': ['pt-BR', 'es'], // likewise
   'language.interface': ['pt-BR'], // "Interface" is the Portuguese word too
+  // SOS is not English. It is the one message every language writes the same
+  // way, which is exactly why it seeds the Translator.
+  'translator.sample': ['pt-BR', 'es'],
 };
 
 /**
