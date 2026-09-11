@@ -105,6 +105,28 @@ LEAD_IN=8 GRID_SECONDS=14 tools/compose-video.sh clips video
 
 ---
 
+## ⚠️ The emulator action runs its script one line at a time
+
+`reactivecircus/android-emulator-runner` does **not** run its `script:` block
+as a script. It splits it on newlines and runs each line through its own
+`sh -c`, so anything spanning more than one line is torn apart:
+
+```text
+/usr/bin/sh: 1: Syntax error: end of file unexpected (expecting "}")
+```
+
+The first run of this workflow recorded **nothing at all** because a shell
+function was written in that block directly — forty minutes of build and
+emulator time to find out, and the error named the line *after* the one that
+opened the brace. The screenshots job never hit it because both of its lines
+stand alone.
+
+So: **every line in that block must be a complete command on its own.**
+Anything with more than one step goes in a file, which is what
+[`tools/record-video-clips.sh`](../tools/record-video-clips.sh) is.
+`video-assets.test.ts` fails the build if a line there ends in `\`, `{`,
+`do`, `then` or a pipe.
+
 ## Why the recordings look the way they do
 
 - ⚠️ **The Light channel is never switched on**, in any recorded flow. It

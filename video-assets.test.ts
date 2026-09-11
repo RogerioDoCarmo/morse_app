@@ -14,6 +14,10 @@ const WORKFLOW = fs.readFileSync(
   path.join(__dirname, '.github', 'workflows', 'videos.yml'),
   'utf8',
 );
+const RECORDER = fs.readFileSync(
+  path.join(__dirname, 'tools', 'record-video-clips.sh'),
+  'utf8',
+);
 
 /** The four tabs, and the screen each one lands on. */
 const TABS: Readonly<Record<string, string>> = {
@@ -173,8 +177,42 @@ describe('videos.yml', () => {
       .filter((name) => name.endsWith('.yaml'))
       .map((name) => name.replace(/\.yaml$/u, ''))
       .sort();
-    const loop = capture(/for flow in ([^;]+); do/u, WORKFLOW, 'record loop');
-    expect(loop.trim().split(/\s+/u).sort()).toStrictEqual(onDisk);
+    const order = capture(/^ORDER=\(([^)]*)\)/mu, RECORDER, 'ORDER array');
+    expect(order.trim().split(/\s+/u).sort()).toStrictEqual(onDisk);
+  });
+
+  // The promo is the clip a stranger sees the opening of, so it must not be
+  // the flow that wears whatever driver warm-up is left over.
+  it('records the tour last', () => {
+    const order = capture(/^ORDER=\(([^)]*)\)/mu, RECORDER, 'ORDER array')
+      .trim()
+      .split(/\s+/u);
+    expect(order[order.length - 1]).toBe('tour');
+  });
+
+  /**
+   * ⚠️ `reactivecircus/android-emulator-runner` does NOT run its `script:` as
+   * a script. It splits the block on newlines and runs each line through its
+   * own `sh -c`, so anything spanning more than one line is torn apart.
+   *
+   * The first run of this workflow recorded nothing at all because a shell
+   * function was written there directly: forty minutes of build and emulator
+   * time to find out, and the error named the line AFTER the one that opened
+   * the brace. This is that mistake, made unrepeatable.
+   */
+  it('keeps every line of the emulator script a standalone command', () => {
+    const block = capture(/\n {10}script: \|\n([\s\S]*?)\n\n/u, WORKFLOW, 'script block');
+    const lines = block
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '' && !line.startsWith('#'));
+
+    expect(lines.length).toBeGreaterThan(0);
+    // A continuation, an opened block, or a compound statement — each of which
+    // needs the NEXT line to make sense, which it will never get.
+    expect(
+      lines.filter((line) => /(\\|\{|\bdo\b|\bthen\b|\|)$/u.test(line)),
+    ).toStrictEqual([]);
   });
 
   /**

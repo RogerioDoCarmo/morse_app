@@ -73,41 +73,15 @@ jobs:
           # subject: a video of an app with its transitions turned off looks
           # broken rather than fast.
           disable-animations: false
+          # ⚠️ EVERY LINE HERE MUST BE A COMPLETE COMMAND ON ITS OWN.
+          # This action does not run the block as a script — it splits it on
+          # newlines and runs each line through its own `sh -c`. A shell
+          # function spanning several lines was torn apart mid-brace, and the
+          # first run of this workflow recorded nothing at all because of it.
+          # Anything with more than one step goes in a file.
           script: |
-            set -x
             adb install -r android/app/build/outputs/apk/release/app-release.apk
-            mkdir -p clips
-
-            # ⚠️ Warm the driver BEFORE any recording starts. Maestro installs
-            # and launches its own instrumentation APK on first use, which
-            # takes the better part of a minute — and recorded, that minute is
-            # the emulator's launcher sitting there at the front of whichever
-            # flow happened to go first.
-            maestro hierarchy > /dev/null 2>&1 || true
-
-            record() {
-              name=$1
-              # screenrecord writes on the DEVICE and only finalises the MP4
-              # container when it is interrupted, so this cannot just be
-              # killed from the host side — an -9 leaves an unplayable file.
-              adb shell screenrecord --bit-rate 8000000 --time-limit 180 \
-                "/sdcard/$name.mp4" &
-              recorder=$!
-              sleep 2
-              maestro test ".maestro/video/$name.yaml" || \
-                echo "::warning::$name.yaml did not finish; keeping what it recorded."
-              adb shell pkill -INT screenrecord || true
-              wait "$recorder" || true
-              # The finalise is not instant and adb pull does not wait for it.
-              sleep 3
-              adb pull "/sdcard/$name.mp4" "clips/$name.mp4" || \
-                echo "::warning::No recording pulled for $name."
-            }
-
-            for flow in tab-translate tab-speak tab-tap tab-learn tour; do
-              record "$flow"
-            done
-            ls -la clips/
+            tools/record-video-clips.sh clips
 
       - name: Compose the two videos
         if: always()
