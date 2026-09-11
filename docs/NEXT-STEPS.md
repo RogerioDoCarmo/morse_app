@@ -5,7 +5,7 @@ begin by rediscovering where this stopped.
 
 Everything below is **outstanding**.
 
-### Where things stand
+## Where things stand
 
 | | |
 | --- | --- |
