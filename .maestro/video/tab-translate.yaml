@@ -46,7 +46,16 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'translator-input'
 - eraseText
-- inputText: 'MORSE CODE'
+# ⚠️ The message must outlast the RECORDING, not merely the assertion.
+# "MORSE CODE" at 5 WPM plays for 21 seconds; the recorder rests 20 and then
+# takes a while to stop, so playback finished about 24 seconds before the clip
+# ended and the grid's 16-second window landed entirely in the static
+# aftermath. The cell was correct and completely still.
+#
+# This one runs 58.8 seconds, so the recording stops while it is still
+# flashing. video-assets.test.ts computes that from the app's OWN encoder and
+# timeline rather than from a number typed here.
+- inputText: 'OMNIMORSE ENCODE DECODE LEARN'
 - hideKeyboard
 
 # Screen and Vibrate, never Light — the camera permission dialog would land in

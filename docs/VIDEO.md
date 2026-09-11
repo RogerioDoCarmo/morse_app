@@ -4,6 +4,12 @@ Two moving-image assets, both recorded from the app as it actually runs and
 composed by [`tools/compose-video.sh`](../tools/compose-video.sh). Produced by
 the **Videos** workflow — Actions → Videos → Run workflow.
 
+⚠️ **All of it runs on GitHub's servers, not on your machine** — including the
+Android emulator being recorded. [VIDEO-PIPELINE.md](VIDEO-PIPELINE.md) covers
+which computer does what, what it costs, and the parts you can run locally
+instead. This file is the reference for the pipeline itself and every trap in
+it.
+
 | Output | Where it goes | Shape |
 | --- | --- | --- |
 | `promo-youtube.mp4` | YouTube, whose URL goes in Play Console | 1920×1080, ~45s |
