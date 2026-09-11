@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniMorse — Support</title>
+    <meta
+      name="description"
+      content="Support for OmniMorse, a Morse code translator. How to reach us, and answers to the questions that come up most: the torch, vibration, volume, speech languages and the tap cut-off."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #5a5a5a;
+        --accent: #12a594;
+        --card: #f6f8fb;
+        --border: #e3e8ef;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e1116;
+          --fg: #e6e6e6;
+          --muted: #9aa4b2;
+          --accent: #12a594;
+          --card: #161b22;
+          --border: #262d36;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.7 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+      header {
+        border-bottom: 4px solid var(--accent);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 2rem;
+      }
+      h2 {
+        margin-top: 36px;
+        font-size: 1.2rem;
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .lede {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 24px 0;
+      }
+      a {
+        color: var(--accent);
+      }
+      ul {
+        padding-left: 22px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      footer {
+        margin-top: 48px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Support</h1>
+        <div class="updated">OmniMorse · Encode. Decode. Learn.</div>
+      </header>
+
+      <p class="lede">
+        <strong>Short version:</strong> email
+        <a href="mailto:contact@rogeriodocarmo.com">contact@rogeriodocarmo.com</a> and you
+        will get a reply. There is no account to recover and no subscription to cancel —
+        OmniMorse is free, works offline, and keeps everything on your device.
+      </p>
+
+      <h2>Reporting a problem</h2>
+      <p>
+        Email <a href="mailto:contact@rogeriodocarmo.com">contact@rogeriodocarmo.com</a>.
+        Four things make a report much quicker to act on:
+      </p>
+      <ul>
+        <li>Your phone model, and its Android or iOS version.</li>
+        <li>
+          The app version, from <strong>Settings</strong> — it is at the bottom of the
+          screen.
+        </li>
+        <li>Which tab you were on: Translate, Speak, Tap or Learn.</li>
+        <li>What you expected to happen, and what happened instead.</li>
+      </ul>
+
+      <h2>The light output does nothing</h2>
+      <p>
+        Playing a message as light means switching the camera flash on and off, and both
+        Android and iOS put the torch behind the <strong>camera permission</strong> —
+        there is no separate one. If you declined it, the Light channel stays off. Grant
+        camera access in your phone's settings for OmniMorse and it will work.
+      </p>
+      <p>
+        The camera preview is never opened and no image is ever captured. Only the torch
+        is switched.
+      </p>
+
+      <h2>It does not vibrate</h2>
+      <p>Three things switch vibration off, and none of them are the app:</p>
+      <ul>
+        <li>
+          <strong>Do Not Disturb</strong>, or a silent or focus mode, on some phones
+          suppresses it.
+        </li>
+        <li>
+          <strong>Vibration intensity</strong> set low or off in the system sound
+          settings.
+        </li>
+        <li>
+          <strong>Battery saver</strong>, which several Android manufacturers use to
+          disable the motor entirely.
+        </li>
+      </ul>
+      <p>
+        If all three are ruled out and it still does not buzz, please report it — the
+        phone model is the useful part, because manufacturers differ here more than they
+        should.
+      </p>
+
+      <h2>The sound plays but I cannot hear it</h2>
+      <p>
+        Check the media volume rather than the ringer — they are separate on both
+        platforms, and the Morse tone plays as media. The app warns you when the volume is
+        very low, but it cannot raise it for you.
+      </p>
+
+      <h2>Speak says it cannot recognise this language</h2>
+      <p>
+        Speech recognition is done by your phone, not by the app, so the languages
+        available are the ones your device has installed. The interface is fully
+        translated into English, Brazilian Portuguese and Spanish either way — and typing
+        and tap input work in all three regardless.
+      </p>
+
+      <h2>Dots keep coming out as dashes</h2>
+      <p>
+        The tap key measures how long you hold it, and "long" depends on your speed. Open
+        <strong>Settings</strong> and move the <strong>dot / dash cut-off</strong>, or use
+        <strong>Calibrate by tapping</strong> to set it from your own rhythm.
+      </p>
+
+      <h2>Turning off crash reports</h2>
+      <p>
+        <strong>Settings → Privacy → Send crash reports.</strong> Your choice is
+        remembered, and it takes effect the next time the app starts — a crash in between
+        may still be reported. What is and is not collected is set out in the
+        <a href="privacy-policy.html">privacy policy</a>.
+      </p>
+
+      <h2>Does it work offline?</h2>
+      <p>
+        Yes, entirely. Translating, playing a message as sound, light, screen or
+        vibration, tap input and the Learn tab all work with no connection. The only
+        things that use the network are the crash reports above and a check for app
+        updates.
+      </p>
+
+      <h2>Deleting your data</h2>
+      <p>
+        Uninstalling the app removes everything it stored, because everything it stored
+        was on your device. There is no account and no server-side copy to request the
+        deletion of.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        <a href="mailto:contact@rogeriodocarmo.com">contact@rogeriodocarmo.com</a>
+      </p>
+
+      <footer>
+        OmniMorse · <a href="privacy-policy.html">Privacy Policy</a> ·
+        <a href="https://github.com/RogerioDoCarmo/morse_app">Source</a>
+      </footer>
+    </main>
+  </body>
+</html>
