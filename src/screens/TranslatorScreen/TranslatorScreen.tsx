@@ -8,6 +8,7 @@ import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalButton } from '@/components/SignalButton';
 import { SignalSurface } from '@/components/SignalSurface';
+import { Toast } from '@/components/Toast';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
@@ -423,6 +424,11 @@ export function TranslatorScreen({
             </View>
           ) : null}
 
+          <Toast
+            visible={playback.lowVolume}
+            message={t('translator.volumeLow')}
+            onDismiss={playback.dismissLowVolume}
+          />
           <OutputChannels cells={channelCells} />
 
           <View style={styles.actions}>

@@ -23,6 +23,8 @@ export const en: TranslationMap = {
   'translator.unsupported': 'No code for: {{chars}}',
   'translator.signal': 'Signal',
   'translator.stop': 'Stop',
+  'translator.volumeLow':
+    'Sound is on, but this phone is turned right down. Turn the volume up to hear the message.',
   'firstRun.skip': 'Skip',
   'firstRun.next': 'Next',
   'firstRun.start': 'Start',

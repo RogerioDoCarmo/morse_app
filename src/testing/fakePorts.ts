@@ -9,6 +9,8 @@ export type FakePorts = Ports &
       torchEnabled: boolean[];
       /** Every hold and release of the camera, in order. */
       torchActive: boolean[];
+      /** How many times the device volume was read. */
+      volumeReads: number;
       spoken: { text: string; locale: AppLocale }[];
       played: Uint8Array[];
       awake: boolean[];
@@ -31,6 +33,7 @@ export function createFakePorts(
   const calls: FakePorts['calls'] = {
     torchEnabled: [],
     torchActive: [],
+    volumeReads: 0,
     spoken: [],
     played: [],
     awake: [],
@@ -56,6 +59,13 @@ export function createFakePorts(
       release: async () => {
         calls.torchEnabled.push(false);
         calls.torchActive.push(false);
+      },
+    },
+    volume: {
+      // Loud, so nothing warns unless a test says otherwise.
+      level: async () => {
+        calls.volumeReads += 1;
+        return 1;
       },
     },
     audio: {

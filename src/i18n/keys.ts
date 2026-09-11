@@ -27,6 +27,7 @@ export type TranslationKey =
   | 'translator.unsupported'
   | 'translator.signal'
   | 'translator.stop'
+  | 'translator.volumeLow'
   | 'firstRun.skip'
   | 'firstRun.next'
   | 'firstRun.start'

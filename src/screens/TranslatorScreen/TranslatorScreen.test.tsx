@@ -1215,3 +1215,103 @@ describe('the camera permission stands in front of the light channel', () => {
     expect(screen.queryByTestId('permission-camera')).toBeNull();
   });
 });
+
+describe('a phone too quiet to hear the message', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** A fake reporting whatever the device is supposedly set to. */
+  const turnedTo = (level: number | null): FakePorts => {
+    const ports = createFakePorts();
+    return { ...ports, volume: { level: async () => level } };
+  };
+
+  const emit = async (): Promise<void> => {
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await act(async () => {
+      await Promise.resolve();
+    });
+  };
+
+  /**
+   * The defect this exists for. Sound is the only channel whose failure is
+   * invisible: a muted phone runs the progress bar, the clock and the lit
+   * letters exactly like a phone that played the message, so the app looks
+   * broken rather than silenced.
+   */
+  it('says so when Sound is on and the device is turned right down', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+
+    await emit();
+
+    expect(screen.getByTestId('toast')).toHaveTextContent(/volume up/iu);
+  });
+
+  it('says nothing on a device that can be heard', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.8) });
+
+    await emit();
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+
+  // Exactly the threshold, from the other side — 30% or lower warns.
+  it('warns at the threshold itself', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.3) });
+
+    await emit();
+
+    expect(screen.getByTestId('toast')).toBeOnTheScreen();
+  });
+
+  // A build without the native module reports nothing. Warning on a guess
+  // would fire on every one of them.
+  it('says nothing when the level cannot be read', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(null) });
+
+    await emit();
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+
+  /**
+   * A message going out on the torch, the screen or the motor is not affected
+   * by a quiet phone, and warning about it would be nagging about something
+   * the user did not ask for.
+   */
+  it('does not warn about the volume when Sound is switched off', async () => {
+    const ports = turnedTo(0);
+    renderWithProviders(<TranslatorScreen />, { ports });
+    fireEvent.press(screen.getByTestId('channel-screen'));
+    fireEvent.press(screen.getByTestId('channel-sound'));
+
+    await emit();
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+    expect(ports.calls.volumeReads).toBe(0);
+  });
+
+  it('can be put away', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await emit();
+
+    fireEvent.press(screen.getByTestId('toast'));
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+
+  it('takes itself away if it is left alone', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await emit();
+
+    await act(async () => {
+      jest.advanceTimersByTime(6100);
+    });
+
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+});

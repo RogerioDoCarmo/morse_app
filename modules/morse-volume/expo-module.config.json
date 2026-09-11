@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "android": {
+    "modules": ["expo.modules.morsevolume.MorseVolumeModule"]
+  },
+  "apple": {
+    "modules": ["MorseVolumeModule"]
+  }
+}
