@@ -17,9 +17,9 @@ Everything below is **outstanding**.
 | iOS screenshots | dispatched — run 34613499598 |
 | ⚠️ Version | 0.3.0, **unbumped and untagged on purpose** — see §5 |
 | ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
- What is already done is in
-[PLAY-CONSOLE.md](PLAY-CONSOLE.md), [MACHINE-SETUP.md](MACHINE-SETUP.md) and
-[store-listing/](store-listing/).
+
+What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
+[MACHINE-SETUP.md](MACHINE-SETUP.md) and [store-listing/](store-listing/).
 
 ---
 
