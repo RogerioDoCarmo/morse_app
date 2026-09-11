@@ -93,10 +93,14 @@ appId: com.rogeriodocarmo.morse
 # check is that pressing it says so — the tick on the button and the toast.
 - tapOn:
     id: 'copy-morse'
-- assertVisible:
-    id: 'icon-check'
+# ⚠️ Toast first, icon second. The toast lingers six seconds and the tick only
+# 1.8, so checking the short-lived one first spends the tick's whole life on
+# the wrong assertion — which is how this flow failed the first time, on a slow
+# emulator, before the two were given separate lifetimes at all.
 - assertVisible:
     id: 'toast'
+- assertVisible:
+    id: 'icon-check'
 
 # ⚠️ And that the tick REVERTS. A button stuck on a tick has stopped saying
 # what it does and started saying what it did once. The wait is longer than

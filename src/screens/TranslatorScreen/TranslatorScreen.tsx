@@ -133,7 +133,21 @@ export function TranslatorScreen({
   // would never be true on open and the dot would never show; and clearing the
   // field later is not a reason to start pointing at it again.
   const [touchedInput, setTouchedInput] = useState(false);
-  const [copied, setCopied] = useState(false);
+  /**
+   * ⚠️ TWO states, not one, and they have different lifetimes on purpose.
+   *
+   * The tick is a fast acknowledgement at the fingertip and reverts itself
+   * after COPIED_ICON_MS. The toast is the explicit message and lives the
+   * Toast component's own LINGER_MS, or until the user taps it away.
+   *
+   * They shared one `copied` flag at first. The icon's 1.8s timer then cleared
+   * the toast as well, so the toast was gone in under two seconds instead of
+   * six — and the E2E flow failed asserting it, on a slow emulator, in the gap
+   * between checking the icon and checking the toast. The comment above the
+   * handler already described two lifetimes; the code had one.
+   */
+  const [copiedIcon, setCopiedIcon] = useState(false);
+  const [copiedToast, setCopiedToast] = useState(false);
   const { tts } = usePorts();
   const insets = useSafeAreaInsets();
 
@@ -176,9 +190,21 @@ export function TranslatorScreen({
       if (morse.length === 0) return;
       const ok = await clipboard.write(morse);
       if (!ok) return;
-      setCopied(true);
+      setCopiedIcon(true);
+      setCopiedToast(true);
     })();
   }, [clipboard, morse]);
+
+  /**
+   * ⚠️ STABLE, via useCallback, and it has to be.
+   *
+   * `Toast` starts its linger timer in an effect keyed on `[visible,
+   * onDismiss]`. An inline arrow is a new function every render, so every
+   * re-render of this screen restarted that timer and the toast never
+   * dismissed itself at all — it just waited for a tap. The volume toast
+   * above is fine only because its handler already comes from a hook.
+   */
+  const dismissCopiedToast = useCallback(() => setCopiedToast(false), []);
 
   /**
    * Put the icon back.
@@ -189,10 +215,10 @@ export function TranslatorScreen({
    * `copy` while the toast still says it worked.
    */
   useEffect(() => {
-    if (!copied) return undefined;
-    const timer = setTimeout(() => setCopied(false), COPIED_ICON_MS);
+    if (!copiedIcon) return undefined;
+    const timer = setTimeout(() => setCopiedIcon(false), COPIED_ICON_MS);
     return () => clearTimeout(timer);
-  }, [copied]);
+  }, [copiedIcon]);
   // What the encoder will throw away. Dropping it is right — there is no code
   // to send — but dropping it without saying so leaves the sender believing a
   // message went out whole.
@@ -501,9 +527,9 @@ export function TranslatorScreen({
             onDismiss={playback.dismissLowVolume}
           />
           <Toast
-            visible={copied}
+            visible={copiedToast}
             message={t('translator.copied')}
-            onDismiss={() => setCopied(false)}
+            onDismiss={dismissCopiedToast}
           />
           <OutputChannels cells={channelCells} />
 
@@ -519,7 +545,7 @@ export function TranslatorScreen({
                 a control drawn on the artboard and never wired, which looks
                 identical to a broken one. */}
             <IconButton
-              name={copied ? 'check' : 'copy'}
+              name={copiedIcon ? 'check' : 'copy'}
               label="copy-morse"
               onPress={onCopy}
             />

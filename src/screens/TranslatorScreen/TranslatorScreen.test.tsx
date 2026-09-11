@@ -1386,6 +1386,35 @@ describe('copying the Morse', () => {
   });
 
   /**
+   * ⚠️ The toast must OUTLIVE the tick, and this is the test that was missing.
+   *
+   * Both read one `copied` flag at first, so the icon's 1.8s timer cleared the
+   * toast too — it lasted under two seconds instead of six, and the E2E flow
+   * failed asserting it in the gap between checking the icon and checking the
+   * toast. The unit tests all passed, because none of them looked at the two
+   * together after the icon reverted.
+   */
+  it('keeps the toast up after the tick has reverted', async () => {
+    jest.useFakeTimers();
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+
+    await act(async () => {
+      jest.advanceTimersByTime(2500);
+    });
+    expect(screen.getByTestId('icon-copy')).toBeTruthy();
+    expect(screen.getByTestId('toast')).toBeTruthy();
+
+    // And it does go, on the Toast's own timer rather than the icon's.
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(screen.queryByTestId('toast')).toBeNull();
+    jest.useRealTimers();
+  });
+
+  /**
    * ⚠️ The tick must revert itself. A button that stays a tick has stopped
    * telling you what it does and started telling you what it did once.
    */
