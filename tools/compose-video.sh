@@ -45,12 +45,18 @@ PHONE_H=${PHONE_H:-1000}
 # ask for more seconds than a clip has and ffmpeg gives you the whole clip.
 GRID_SECONDS=${GRID_SECONDS:-16}
 
-# ⚠️ Deliberately LARGER than the tour, so the promo is the whole journey.
-# At 60 it took only the last minute — which, on a tour that spends its middle
-# playing a message, was a minute of one screen and nothing else. Asking for
-# more seconds than a clip has returns the whole clip, which is exactly the
-# "degrades kindly" property the tail trim was chosen for.
-TOUR_SECONDS=${TOUR_SECONDS:-150}
+# ⚠️ Tuned to land just AFTER the app launches, not to cover the whole file.
+#
+# There are about twenty seconds of rubbish at the head of every tour clip:
+# the previous flow's last screen, the launcher, and the splash. Recording
+# starts before Maestro does, and Maestro's first act is to relaunch the app.
+#
+# At 150 — larger than the whole clip — the promo opened on the Learn tab left
+# over from the flow before it and sat there for fifteen seconds. At 60 it
+# took only the last minute, which on a tour that spends its middle playing a
+# message was one screen and nothing else. This sits between: it clears the
+# head and keeps the entire journey from the welcome carousel onward.
+TOUR_SECONDS=${TOUR_SECONDS:-120}
 
 # ⚠️ Seconds of the final frame CLONED onto the end of every clip.
 #
