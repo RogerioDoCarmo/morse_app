@@ -155,16 +155,36 @@ describe('compose-video.sh', () => {
     expect(defaultOf(name) % 2).toBe(0);
   });
 
-  // The clips have to outlast what the grid trims off the front and then
-  // plays, or hstack ends the grid early and the cells stop together.
-  it('records for longer than it trims and plays', () => {
-    const needed = defaultOf('LEAD_IN') + defaultOf('GRID_SECONDS');
-    const holds = [...read('tab-speak').matchAll(/timeout: (\d+)/gu)].map((m) =>
-      Number(m[1]),
-    );
-    expect(holds.reduce((sum, ms) => sum + ms, 0) / 1000).toBeGreaterThanOrEqual(
-      needed - 6,
-    );
+  /**
+   * ⚠️ Trimmed from the END, never the front.
+   *
+   * Everything variable in a recording is at the front — emulator boot,
+   * Maestro's driver, the app launch, and any retries a flow needed. What is
+   * worth watching is at the end, where each flow holds still on purpose. A
+   * fixed front trim of six seconds was wrong by fifty the first time flows
+   * retried, and produced clips that never left the welcome carousel.
+   */
+  it.each(['GRID_SECONDS', 'TOUR_SECONDS'])('trims %s from the end', (name) => {
+    expect(COMPOSE).toContain(name);
+    expect(defaultOf(name)).toBeGreaterThan(0);
+  });
+
+  it('seeks both outputs relative to the end of the clip', () => {
+    expect([...COMPOSE.matchAll(/-sseof/gu)]).toHaveLength(2);
+  });
+
+  it('never seeks a clip from the front', () => {
+    expect(COMPOSE).not.toContain('-ss "$');
+  });
+
+  // Each flow must hold still for at least as long as the grid shows of it, or
+  // a cell spends part of its time on whatever came before.
+  it.each(Object.keys(TABS))('holds %s still for long enough to fill its cell', (tab) => {
+    const holds = [...read(tab).matchAll(/timeout: (\d+)/gu)].map((m) => Number(m[1]));
+    const held = holds.reduce((sum, ms) => sum + ms, 0) / 1000;
+    // Declared holds ALONE, ignoring the real time taps and long presses take.
+    // A cell that runs out spends the rest of its time on whatever preceded it.
+    expect(held).toBeGreaterThanOrEqual(defaultOf('GRID_SECONDS'));
   });
 });
 
@@ -216,12 +236,31 @@ describe('videos.yml', () => {
   });
 
   /**
-   * ⚠️ Every other device job in this repository disables animations, because
-   * they make flows flaky. Here they ARE the subject: an app recorded with its
-   * transitions off looks broken rather than fast.
+   * ⚠️ The workflow boots with animations OFF and the recorder turns them back
+   * on, which is not the contradiction it looks like.
+   *
+   * Animations are the subject of a video — an app recorded with its
+   * transitions off looks broken rather than fast. But leaving them on for the
+   * whole job made a 1080p software-rendered launcher ANR during boot, and the
+   * "isn't responding" dialog then covered the app in all five clips while the
+   * step still reported success. Boot cheap, record properly.
    */
-  it('leaves animations on, unlike every other device job', () => {
-    expect(WORKFLOW).toContain('disable-animations: false');
+  it('boots with animations off', () => {
+    expect(WORKFLOW).toContain('disable-animations: true');
+  });
+
+  it.each([
+    'window_animation_scale',
+    'transition_animation_scale',
+    'animator_duration_scale',
+  ])('turns %s back on before recording', (scale) => {
+    expect(RECORDER).toContain(scale);
+  });
+
+  // The ANR dialog that wasted a whole run. It covered the app in every frame,
+  // and nothing failed — `continue-on-error` is what keeps partial footage.
+  it('suppresses system error dialogs before recording', () => {
+    expect(RECORDER).toContain('hide_error_dialogs 1');
   });
 
   // The 320x640 default is what the first full set of Android store
