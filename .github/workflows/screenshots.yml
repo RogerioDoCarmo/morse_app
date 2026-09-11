@@ -154,7 +154,12 @@ jobs:
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
+      # ⚠️ `continue-on-error`, so a flow that fails on its last step still
+      # hands over what it captured. The first run failed on the seventh
+      # screenshot and discarded the six before it; the collect step below is
+      # what decides whether the job passed, because images are the point.
       - name: Run flows on an emulator
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         env:
           # The driver install is the slow part even with KVM; the default is
@@ -185,7 +190,12 @@ jobs:
         if: always()
         run: |
           mkdir -p screenshots
-          mv 0*.png screenshots/ 2>/dev/null || true
+          # ⚠️ `~/.maestro/tests/`, not the working directory. `takeScreenshot`
+          # writes into Maestro's own debug directory for the run, which the
+          # first attempt did not know — it looked in the repository root,
+          # found nothing, and threw away six perfectly good screenshots while
+          # reporting that none had been produced.
+          find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} screenshots/ \;
           ls -la screenshots/
           test -n "$(ls -A screenshots/)" || {
             echo "::error::The flow produced no screenshots."; exit 1;
