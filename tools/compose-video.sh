@@ -44,7 +44,13 @@ PHONE_H=${PHONE_H:-1000}
 # Trimming from the end makes startup time irrelevant, and it degrades kindly:
 # ask for more seconds than a clip has and ffmpeg gives you the whole clip.
 GRID_SECONDS=${GRID_SECONDS:-16}
-TOUR_SECONDS=${TOUR_SECONDS:-60}
+
+# ⚠️ Deliberately LARGER than the tour, so the promo is the whole journey.
+# At 60 it took only the last minute — which, on a tour that spends its middle
+# playing a message, was a minute of one screen and nothing else. Asking for
+# more seconds than a clip has returns the whole clip, which is exactly the
+# "degrades kindly" property the tail trim was chosen for.
+TOUR_SECONDS=${TOUR_SECONDS:-150}
 
 # ⚠️ Seconds of the final frame CLONED onto the end of every clip.
 #

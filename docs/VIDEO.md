@@ -113,6 +113,24 @@ Re-framing costs seconds of ffmpeg, not another run:
 GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
 ```
 
+## ⚠️ The tour has to fit inside 180 seconds
+
+`screenrecord` stops dead at its own ceiling. The first tour that ran the full
+route took **175 seconds** against a 178-second cap: it was still playing the
+message when the recording ended, so Speak, Tap and Learn were never captured
+at all. Nothing failed — the camera ran out.
+
+The dwell `repeat`s are what the length is made of. Each iteration is a real
+hierarchy fetch, one to two seconds on a software-rendered emulator, and there
+were 74 of them. If the tour grows again, that is the budget to check, and
+`video-assets.test.ts` fails the build when it goes over.
+
+⚠️ **`TOUR_SECONDS` is deliberately larger than the tour**, so the promo is the
+whole journey. At 60 it took only the last minute — which, on a tour that
+spends its middle playing a message, was a minute of one screen and nothing
+else. Asking for more seconds than a clip has returns the whole clip, which is
+the "degrades kindly" property the tail trim was chosen for.
+
 ## ⚠️ A still screen records nothing at all
 
 `adb shell screenrecord` encodes surface **updates**, not wall-clock time. A
