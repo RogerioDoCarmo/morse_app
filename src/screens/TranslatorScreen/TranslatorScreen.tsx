@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
@@ -47,16 +47,6 @@ function clock(ms: number): string {
 
 /** Both optional so the screen can still be rendered on its own in a test. */
 type Props = Readonly<{
-  /**
-   * Puts the caret in the input as the screen appears.
-   *
-   * ⚠️ Off by default, and passed only for the app's FIRST look at this
-   * screen. `autoFocus` fires on every mount, and the shell unmounts a screen
-   * when the tab changes — so left on, every return to Translate raised the
-   * keyboard over the tab bar the user had just used. That is more than "focus
-   * it on open" asked for, and the E2E suite found it before a person did.
-   */
-  autoFocusInput?: boolean | undefined;
   onSelectTab?: ((tab: TabName) => void) | undefined;
   unavailableTabs?: readonly TabName[] | undefined;
   onOpenSettings?: (() => void) | undefined;
@@ -116,6 +106,14 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
 }
 
 /**
+ * How long the copy button shows a tick before turning back into a copy icon.
+ *
+ * Long enough to be seen if you glanced away, short enough that the button is
+ * itself again before you would reach for it a second time.
+ */
+const COPIED_ICON_MS = 1800;
+
+/**
  * The Translator screen — built from `design/screens/Main.dc.html`.
  *
  * The artboard is HTML and does not compile; every value here was transcribed
@@ -124,12 +122,18 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
  * artboards necessarily do.
  */
 export function TranslatorScreen({
-  autoFocusInput = false,
   onSelectTab,
   unavailableTabs,
   onOpenSettings,
 }: Props = {}): React.JSX.Element {
   const { t, locale } = useLocale();
+  const { clipboard } = usePorts();
+
+  // ⚠️ "Untouched", not "empty". The field is SEEDED with SOS, so emptiness
+  // would never be true on open and the dot would never show; and clearing the
+  // field later is not a reason to start pointing at it again.
+  const [touchedInput, setTouchedInput] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { tts } = usePorts();
   const insets = useSafeAreaInsets();
 
@@ -147,6 +151,48 @@ export function TranslatorScreen({
   const source = toMorse ? text : decoded;
   const message = useMemo(() => encode(source), [source]);
   const morse = useMemo(() => encodeToString(source), [source]);
+
+  /**
+   * The dot beside the language label — shown until the field is touched.
+   *
+   * Not `text.length === 0`: the field is SEEDED with SOS, so it is never
+   * empty on open and the dot would never appear.
+   */
+  const showTypeHint = !touchedInput;
+
+  /**
+   * Copy the Morse, confirm it twice.
+   *
+   * ⚠️ Two confirmations on purpose, and they are not redundant. The icon
+   * changing to a tick answers "did that button do anything?" at the point the
+   * finger is; the toast answers "what did it do?" for anyone who was looking
+   * at the text rather than the button. The icon is the fast one and reverts
+   * itself; the toast is the explicit one and the user dismisses it.
+   */
+  const onCopy = useCallback(() => {
+    void (async (): Promise<void> => {
+      // Nothing to copy is not a failure to report — there is simply no
+      // message yet, and a toast saying so would be noise on an empty screen.
+      if (morse.length === 0) return;
+      const ok = await clipboard.write(morse);
+      if (!ok) return;
+      setCopied(true);
+    })();
+  }, [clipboard, morse]);
+
+  /**
+   * Put the icon back.
+   *
+   * ⚠️ The timer is cleared on unmount AND on re-copy. Without the cleanup a
+   * second copy inside the window leaves the first timer running, and the tick
+   * reverts early — the visible symptom being a button that flickers back to
+   * `copy` while the toast still says it worked.
+   */
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = setTimeout(() => setCopied(false), COPIED_ICON_MS);
+    return () => clearTimeout(timer);
+  }, [copied]);
   // What the encoder will throw away. Dropping it is right — there is no code
   // to send — but dropping it without saying so leaves the sender believing a
   // message went out whole.
@@ -283,9 +329,24 @@ export function TranslatorScreen({
           <ScrollableCards tablet={tablet}>
             <Card>
               <View style={styles.cardHead}>
-                <Text style={styles.label}>
-                  {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
-                </Text>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>
+                    {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
+                  </Text>
+                  {/* ⚠️ Shown only while the field is UNTOUCHED. The input no
+                      longer takes focus on open, so something has to say where
+                      to start — but a dot that never leaves is decoration, and
+                      one that persists after you have typed is a bug report
+                      waiting to happen. */}
+                  {showTypeHint ? (
+                    <View
+                      testID="type-hint-dot"
+                      accessibilityLabel={t('translator.typeHint')}
+                      accessibilityRole="image"
+                      style={styles.hintDot}
+                    />
+                  ) : null}
+                </View>
                 {/* The other two ways of getting text in. Both were drawn on
                     the artboard and neither was ever wired: a tester pressed
                     Speak, watched nothing happen, and reasonably concluded
@@ -320,16 +381,17 @@ export function TranslatorScreen({
               <TextInput
                 testID="translator-input"
                 accessibilityLabel="translator-input"
-                // The caret is waiting when the app opens. Typing is the
-                // primary thing this screen is for, and a seeded sample you
-                // have to tap before you can replace it is a step nobody
-                // wants twice.
-                //
-                // ⚠️ On OPEN, not on every mount — see the prop.
-                autoFocus={autoFocusInput}
+                // ⚠️ NOT auto-focused. It used to be, and the keyboard
+                // covering half the screen on open was worse than the tap it
+                // saved — the seeded sample was hidden behind it. The dot
+                // beside the language label is what points here instead.
                 style={toMorse ? styles.input : styles.monoInput}
                 value={toMorse ? text : morseInput}
-                onChangeText={toMorse ? setText : setMorseInput}
+                onChangeText={(next) => {
+                  setTouchedInput(true);
+                  (toMorse ? setText : setMorseInput)(next);
+                }}
+                onFocus={() => setTouchedInput(true)}
                 multiline
                 // The way OUT of the keyboard. A multiline input defaults to
                 // `submitBehavior: 'newline'`, so Return inserts a line break
@@ -438,6 +500,11 @@ export function TranslatorScreen({
             message={t('translator.volumeLow')}
             onDismiss={playback.dismissLowVolume}
           />
+          <Toast
+            visible={copied}
+            message={t('translator.copied')}
+            onDismiss={() => setCopied(false)}
+          />
           <OutputChannels cells={channelCells} />
 
           <View style={styles.actions}>
@@ -445,9 +512,17 @@ export function TranslatorScreen({
               playing={playback.playing}
               canPlay={playback.canPlay}
               onPress={playback.playing ? playback.stop : playback.play}
-              label={playback.playing ? t('translator.stop') : t('translator.signal')}
+              label={playback.playing ? t('translator.stop') : t('translator.play')}
             />
-            <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
+            {/* ⚠️ This did NOTHING until 0.3.2 — `onPress={() => undefined}`.
+                It is the same defect a tester reported against Speak in 0.2.1:
+                a control drawn on the artboard and never wired, which looks
+                identical to a broken one. */}
+            <IconButton
+              name={copied ? 'check' : 'copy'}
+              label="copy-morse"
+              onPress={onCopy}
+            />
           </View>
         </View>
       </View>
@@ -510,7 +585,16 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     marginBottom: 10,
   },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
   label: { ...theme.type.label, color: theme.color.faint, flexShrink: 0 },
+  // Deliberately small and in the accent, not a red badge. It points at the
+  // field; it is not reporting that anything is wrong.
+  hintDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: theme.color.accent,
+  },
   // The hint must shrink and wrap: it fits beside the label in English at 390pt
   // and collides at 360pt in Portuguese. Same fix as the artboard.
   hint: {

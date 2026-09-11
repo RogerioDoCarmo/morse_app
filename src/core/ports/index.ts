@@ -8,6 +8,7 @@ export type { ITextToSpeechPort } from './ITextToSpeechPort';
 export type { ISpeechRecognitionPort, SpeechResult } from './ISpeechRecognitionPort';
 export type { ILocalePort } from './ILocalePort';
 export type { IPermissionPort } from './IPermissionPort';
+export type { IClipboardPort } from './IClipboardPort';
 
 import type { ILocalePort } from './ILocalePort';
 import type { IPermissionPort } from './IPermissionPort';
@@ -19,6 +20,7 @@ import type { IKeepAwakePort } from './IKeepAwakePort';
 import type { IVibrationPort } from './IVibrationPort';
 import type { IVolumePort } from './IVolumePort';
 import type { IPreferencesPort } from './IPreferencesPort';
+import type { IClipboardPort } from './IClipboardPort';
 import type { ICrashReportingPort } from './ICrashReportingPort';
 
 /**
@@ -36,6 +38,7 @@ export type Ports = Readonly<{
   speech: ISpeechRecognitionPort;
   locale: ILocalePort;
   permission: IPermissionPort;
+  clipboard: IClipboardPort;
   crash: ICrashReportingPort;
 }>;
 export type { ICrashReportingPort } from './ICrashReportingPort';

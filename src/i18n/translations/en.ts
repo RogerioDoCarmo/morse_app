@@ -19,9 +19,10 @@ export const en: TranslationMap = {
   'translator.readAloud': 'Read aloud',
   'translator.copy': 'Copy',
   'translator.play': 'Play',
+  'translator.copied': 'Copied',
+  'translator.typeHint': 'Tap to type',
   'translator.playing': 'Playing',
   'translator.unsupported': 'No code for: {{chars}}',
-  'translator.signal': 'Signal',
   'translator.stop': 'Stop',
   'translator.volumeLow':
     'Sound is on, but this phone is turned right down. Turn the volume up to hear the message.',

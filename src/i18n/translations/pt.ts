@@ -17,10 +17,11 @@ export const ptBR: TranslationMap = {
   'translator.tapItIn': 'Tocar',
   'translator.readAloud': 'Ler em voz alta',
   'translator.copy': 'Copiar',
-  'translator.play': 'Tocar som',
+  'translator.play': 'Reproduzir',
+  'translator.copied': 'Copiado',
+  'translator.typeHint': 'Toque para escrever',
   'translator.playing': 'Tocando',
   'translator.unsupported': 'Sem código: {{chars}}',
-  'translator.signal': 'Emitir',
   'translator.stop': 'Parar',
   'translator.volumeLow':
     'O som está ligado, mas o volume deste aparelho está bem baixo. Aumente o volume para ouvir a mensagem.',

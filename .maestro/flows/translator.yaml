@@ -83,3 +83,30 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-screen'
 - assertVisible:
     id: 'signal-button'
+
+# ⚠️ The copy button did NOTHING until 0.3.2 — `onPress={() => undefined}`,
+# drawn on the artboard and never wired. That is the same defect a tester
+# reported against Speak in 0.2.1, and it is invisible from the outside: a
+# control that does nothing looks exactly like one that is broken.
+#
+# There is no way to read the system clipboard from a flow, so what this can
+# check is that pressing it says so — the tick on the button and the toast.
+- tapOn:
+    id: 'copy-morse'
+- assertVisible:
+    id: 'icon-check'
+- assertVisible:
+    id: 'toast'
+
+# ⚠️ And that the tick REVERTS. A button stuck on a tick has stopped saying
+# what it does and started saying what it did once. The wait is longer than
+# the revert delay on purpose.
+- extendedWaitUntil:
+    visible:
+      id: 'icon-copy'
+    timeout: 5000
+
+# The dot that replaced the auto-focus. It points at the input until the field
+# is touched, and this flow has already typed into it.
+- assertNotVisible:
+    id: 'type-hint-dot'

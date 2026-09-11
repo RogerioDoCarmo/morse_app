@@ -65,7 +65,8 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-skip'
 - assertNotVisible:
     id: 'first-run'
-- hideKeyboard
+# ⚠️ No `hideKeyboard`: the input no longer takes focus on open, and a dismiss
+# with nothing to dismiss taps somewhere it should not.
 - assertVisible:
     id: 'translator-screen'
 
