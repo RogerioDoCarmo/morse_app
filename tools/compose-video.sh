@@ -42,6 +42,11 @@ PHONE_H=${PHONE_H:-1000}
 LEAD_IN=${LEAD_IN:-6}
 GRID_SECONDS=${GRID_SECONDS:-16}
 
+# The tour is trimmed too, but far less: its own launch and first screen are
+# worth showing, and only the couple of seconds before Maestro takes hold are
+# not. Set to 0 to keep everything.
+TOUR_LEAD_IN=${TOUR_LEAD_IN:-2}
+
 # One cell of the four-up. Four of these side by side is 1712 wide, which
 # leaves a margin inside 1920 and 130px of headroom inside 1080.
 CELL_W=${CELL_W:-428}
@@ -104,7 +109,7 @@ echo "--- promo-youtube.mp4 ---"
 # odd would fail the encode rather than the scale, some minutes later.
 ffmpeg -hide_banner -loglevel error -y \
   -loop 1 -t "$CARD_SECONDS" -i "$CARD" \
-  -i "$CLIPS/tour.mp4" \
+  -ss "$TOUR_LEAD_IN" -i "$CLIPS/tour.mp4" \
   "${SILENT_AUDIO[@]}" \
   -filter_complex "
     [0:v]$card_chain[card];

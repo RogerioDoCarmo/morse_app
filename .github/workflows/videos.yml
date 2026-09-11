@@ -78,6 +78,13 @@ jobs:
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             mkdir -p clips
 
+            # ⚠️ Warm the driver BEFORE any recording starts. Maestro installs
+            # and launches its own instrumentation APK on first use, which
+            # takes the better part of a minute — and recorded, that minute is
+            # the emulator's launcher sitting there at the front of whichever
+            # flow happened to go first.
+            maestro hierarchy > /dev/null 2>&1 || true
+
             record() {
               name=$1
               # screenrecord writes on the DEVICE and only finalises the MP4
@@ -97,7 +104,7 @@ jobs:
                 echo "::warning::No recording pulled for $name."
             }
 
-            for flow in tour tab-translate tab-speak tab-tap tab-learn; do
+            for flow in tab-translate tab-speak tab-tap tab-learn tour; do
               record "$flow"
             done
             ls -la clips/
