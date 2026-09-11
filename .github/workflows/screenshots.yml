@@ -208,8 +208,7 @@ jobs:
           APP: ios/build/Build/Products/Release-iphonesimulator/${{ env.IOS_SCHEME }}.app
         run: |
           tools/capture-ios-screenshots.sh screenshots-ipad \
-            "iPad Pro 13-inch (M4)" "iPad Pro (12.9-inch) (6th generation)" \
-            "iPad Pro 11-inch (M4)"
+            "iPad Pro 13-inch" "iPad Air 13-inch" "iPad Pro (12.9-inch)"
 
       # ⚠️ `if: always()`, not `if: failure()`. The images ARE the job, and
       # `continue-on-error` above means a flow that fell over on its last step
@@ -226,6 +225,21 @@ jobs:
           done
           test -n "$(ls -A screenshots-ios 2>/dev/null)" \
             || { echo "::error::The iPhone capture produced nothing."; exit 1; }
+
+          # ⚠️ While `supportsTablet` is true, App Store Connect REQUIRES the
+          # iPad set — so an empty one has to fail the job, not warn.
+          #
+          # The first run of this captured no iPad at all (it asked for an M4
+          # on a runner that had an M5) and reported SUCCESS, because the check
+          # above only looked at the iPhone. That is the same shape as the
+          # Android screenshots sitting at 320x640 for a week: a green tick
+          # over a missing or wrong asset, found at upload.
+          if node -e "process.exit(require('./app.json').expo.ios.supportsTablet ? 0 : 1)"; then
+            test -n "$(ls -A screenshots-ipad 2>/dev/null)" || {
+              echo "::error::app.json declares supportsTablet, so Apple requires an iPad set — and none was captured."
+              exit 1
+            }
+          fi
 
       - name: Upload the iPhone screenshots
         if: always()

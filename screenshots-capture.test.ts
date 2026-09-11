@@ -67,7 +67,42 @@ describe('iOS screenshot capture', () => {
    * regex group. It would have matched nothing and fallen through.
    */
   it('matches simulator names literally', () => {
-    expect(CAPTURE).toContain('grep -F "$want ("');
+    expect(CAPTURE).toContain('grep -F "$want"');
+  });
+
+  /**
+   * ⚠️ And on a PREFIX, so a chip revision cannot break it.
+   *
+   * The first run asked for "iPad Pro 13-inch (M4)" on a runner that had
+   * "iPad Pro 13-inch (M5)" and found nothing. The chip is not the part that
+   * decides the screen size, so it is not the part to match on.
+   */
+  it.each(['iPad Pro 13-inch', 'iPad Air 13-inch'])(
+    'asks for %s without pinning a chip revision',
+    (name) => {
+      expect(WORKFLOW).toContain(`"${name}"`);
+      expect(WORKFLOW).not.toContain(`"${name} (M`);
+    },
+  );
+
+  /**
+   * ⚠️ A GREEN RUN WITH AN EMPTY REQUIRED ARTIFACT is the failure mode this
+   * whole file exists to prevent.
+   *
+   * The first run captured no iPad at all and reported SUCCESS, because the
+   * check only looked at the iPhone directory. That is the same shape as the
+   * Android screenshots sitting at 320x640 for a week — a green tick over a
+   * missing or wrong asset, discovered at upload.
+   */
+  it('fails the job when tablet support is declared but no iPad set exists', () => {
+    if (APP_JSON.expo.ios?.supportsTablet !== true) return;
+    // The guard itself, not a mention of it — an earlier version of this test
+    // passed on the word `supportsTablet` appearing in a COMMENT, which is a
+    // tidy demonstration of the thing it is meant to catch.
+    expect(WORKFLOW).toContain(
+      'node -e "process.exit(require(\'./app.json\').expo.ios.supportsTablet ? 0 : 1)"',
+    );
+    expect(WORKFLOW).toContain('Apple requires an iPad set');
   });
 
   // The dimensions are reported, not assumed. A full set of Android
