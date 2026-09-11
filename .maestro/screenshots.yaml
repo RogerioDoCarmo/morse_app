@@ -69,7 +69,11 @@ appId: com.rogeriodocarmo.morse
 
 - tapOn:
     id: 'tab-translate'
-- hideKeyboard
+# ⚠️ No `hideKeyboard` here, and its absence is load-bearing. The Translator
+# autofocuses on OPEN only — coming back to the tab does not raise a keyboard —
+# so a dismiss with nothing to dismiss went looking for somewhere to tap and
+# took the app with it: `open-settings` was gone by the time the next step
+# looked for it, having found the gear on a screen that was no longer there.
 - tapOn:
     id: 'open-settings'
 - assertVisible:
