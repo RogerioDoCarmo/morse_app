@@ -3,7 +3,7 @@
     "name": "OmniMorse",
     "slug": "morse-app",
     "owner": "rogeriodocarmo",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "morseapp",
