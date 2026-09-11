@@ -76,7 +76,16 @@
     },
     "plugins": [
       "expo-localization",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F6F8",
+          "dark": { "backgroundColor": "#F5F6F8" }
+        }
+      ],
       [
         "expo-camera",
         {
