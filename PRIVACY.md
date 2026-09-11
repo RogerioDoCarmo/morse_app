@@ -1,6 +1,6 @@
 # Privacy Policy — Morse
 
-Last updated: 6 September 2026.
+Last updated: 11 September 2026.
 
 Morse is a Morse code translator. It has no accounts, no advertising, no
 analytics, and no way to identify you.
@@ -33,7 +33,10 @@ and operating system version, and an app-generated installation identifier.
 **It does not contain anything you typed, tapped, or said.**
 
 You can turn this off at any time in **Settings → Privacy → Send crash
-reports**. The switch takes effect immediately and is remembered.
+reports**. Your choice is remembered, and no further reports are recorded once
+it takes effect — which, for the underlying Firebase SDK, is the next time the
+app starts. A crash that happens between switching it off and reopening the app
+may still be reported.
 
 Google's handling of that data is covered by the
 [Firebase privacy documentation](https://firebase.google.com/support/privacy).
