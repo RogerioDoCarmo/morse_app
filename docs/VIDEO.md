@@ -107,6 +107,40 @@ Re-framing costs seconds of ffmpeg, not another run:
 GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
 ```
 
+## ⚠️ A still screen records nothing at all
+
+`adb shell screenrecord` encodes surface **updates**, not wall-clock time. A
+screen that is not changing produces **no frames**, and the container's
+duration is only the timestamp of the last frame anything emitted.
+
+That is a problem here specifically, because every flow ends by resting on its
+destination and that rest is the footage. The four-up came out **four seconds
+long** — its two end cards and nothing between them: two of the four cells
+decoded zero frames after the tail seek, so `hstack` had nothing to stack.
+tab-learn's 55-second recording produced a file ending at **38s**.
+
+Two things in `compose-video.sh` fix it, and they are belt and braces on
+purpose:
+
+- **`fps=$FPS` normalises every clip to a constant frame rate** before any
+  trimming, duplicating frames across the gaps so a resting screen exists on
+  the timeline and can be seeked into.
+- **`tpad=stop_mode=clone` clones the final frame onto the end**, so the tail
+  exists even when there was no motion for the device to record at all.
+
+The real rest still happens on the device, because that is what captures a
+message *still playing* — the only cell with genuine motion in it.
+
+## ⚠️ The rest comes after the flow, not inside a fixed window
+
+A fixed 55-second recording assumed the flows were shorter than they are. Once
+tab-translate gained a Settings detour to drop the playback speed, it ran past
+its own window and the clip ended while the app was still on the opening
+screen. Nothing failed; the recording simply stopped first.
+
+`REST_SECONDS` is now measured from when the flow returns, so every clip gets
+the same rest however long its flow took.
+
 ## ⚠️ `waitForAnimationToEnd` does not hold, and the recorder is what dwells
 
 This one cost two runs. `waitForAnimationToEnd: timeout: N` **does not wait for

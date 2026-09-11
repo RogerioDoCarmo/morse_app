@@ -44,6 +44,19 @@ function capture(pattern: RegExp, source: string, what: string): string {
   return group;
 }
 
+/**
+ * A shell script with its commentary removed — the code alone.
+ *
+ * These scripts explain their own traps at length, and a comment naming
+ * `-sseof` must not read as a third use of it.
+ */
+function code(source: string): string {
+  return source
+    .split('\n')
+    .filter((line) => !/^\s*#/u.test(line))
+    .join('\n');
+}
+
 /** A flow with its commentary and blank lines removed — the commands alone. */
 function commands(source: string): string {
   return source
@@ -168,11 +181,34 @@ describe('compose-video.sh', () => {
   });
 
   it('seeks both outputs relative to the end of the clip', () => {
-    expect([...COMPOSE.matchAll(/-sseof/gu)]).toHaveLength(2);
+    expect([...code(COMPOSE).matchAll(/-sseof/gu)]).toHaveLength(2);
+  });
+
+  /**
+   * ⚠️ `screenrecord` encodes surface UPDATES, not wall-clock time. A screen
+   * that is not changing produces no frames at all — and every flow here ends
+   * by resting on its destination, which is the footage the grid uses.
+   *
+   * Two of four cells decoded ZERO frames after `-sseof`, `hstack` had nothing
+   * to stack, and the four-up collapsed to its two end cards. tab-learn's
+   * 55-second recording produced a file ending at 38s, because a container's
+   * duration is only the timestamp of the last frame anything emitted.
+   */
+  it('normalises to a constant frame rate before trimming', () => {
+    const script = code(COMPOSE);
+    expect(script).toContain('fps=$FPS');
+    expect(script.indexOf('fps=$FPS')).toBeLessThan(script.indexOf('-sseof'));
+  });
+
+  // And clones the final frame onto the end, so the tail exists even when
+  // there was no motion for the device to record.
+  it('clones a tail at least as long as the trim', () => {
+    expect(code(COMPOSE)).toContain('tpad=stop_mode=clone');
+    expect(code(COMPOSE)).toContain('TAIL_PAD=${TAIL_PAD:-$GRID_SECONDS}');
   });
 
   it('never seeks a clip from the front', () => {
-    expect(COMPOSE).not.toContain('-ss "$');
+    expect(code(COMPOSE)).not.toContain('-ss "$');
   });
 
   // Each flow must hold still for at least as long as the grid shows of it, or
@@ -297,26 +333,33 @@ describe('videos.yml', () => {
   });
 
   /**
-   * ⚠️ The recorder must NOT stop when the flow returns. It runs to its own
-   * time limit while the app rests on the screen the flow left it on, and that
-   * rest is the footage the four-up uses. Stopping early is what made a cell
-   * show a relaunching app instead of the Speak tab.
+   * ⚠️ The rest must come AFTER the flow, not inside a fixed window.
+   *
+   * A fixed 55-second recording assumed the flows were shorter than they are.
+   * tab-translate gained a Settings detour to drop the playback speed, ran past
+   * its own window, and the clip ended while it was still on the opening
+   * screen — nothing failed, the recording simply stopped first.
    */
-  it('never stops the recording early', () => {
-    expect(RECORDER).not.toContain('pkill -INT screenrecord');
+  it('rests after the flow returns, then stops the recorder', () => {
+    const rest = RECORDER.indexOf('sleep "$REST_SECONDS"');
+    const stop = RECORDER.indexOf('pkill -INT screenrecord');
+    expect(rest).toBeGreaterThan(-1);
+    expect(stop).toBeGreaterThan(rest);
   });
 
   // The tail trim has to land inside the rest, not inside the flow.
-  it('records for longer than the grid shows', () => {
-    const clip = Number(
-      capture(/^CLIP_SECONDS=\$\{CLIP_SECONDS:-(\d+)\}/mu, RECORDER, 'CLIP_SECONDS'),
+  it('rests for at least as long as the grid shows', () => {
+    const rest = Number(
+      capture(/^REST_SECONDS=\$\{REST_SECONDS:-(\d+)\}/mu, RECORDER, 'REST_SECONDS'),
     );
     const shown = Number(
       capture(/^GRID_SECONDS=\$\{GRID_SECONDS:-(\d+)\}/mu, COMPOSE, 'GRID_SECONDS'),
     );
-    expect(clip).toBeGreaterThan(shown * 2);
+    expect(rest).toBeGreaterThanOrEqual(shown);
     // screenrecord stops dead at its own 180s ceiling.
-    expect(clip).toBeLessThan(180);
+    expect(
+      Number(capture(/^TIME_LIMIT=\$\{TIME_LIMIT:-(\d+)\}/mu, RECORDER, 'TIME_LIMIT')),
+    ).toBeLessThan(180);
   });
 
   // The 320x640 default is what the first full set of Android store

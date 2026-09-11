@@ -46,6 +46,20 @@ PHONE_H=${PHONE_H:-1000}
 GRID_SECONDS=${GRID_SECONDS:-16}
 TOUR_SECONDS=${TOUR_SECONDS:-60}
 
+# ⚠️ Seconds of the final frame CLONED onto the end of every clip.
+#
+# The device's own rest cannot be relied on to reach the file: screenrecord
+# emits frames only when the screen changes, so a still screen may contribute
+# no frames AND no duration — tab-learn's 55-second recording produced a file
+# ending at 38s. Cloning the last frame here guarantees the tail exists, so the
+# trim below always lands on the screen the flow arrived at rather than on
+# whatever happened to be on screen earlier.
+#
+# It is belt and braces with REST_SECONDS in the recorder, deliberately: the
+# real rest is what captures a message still playing, and this is what
+# guarantees a tail when there was no motion to record.
+TAIL_PAD=${TAIL_PAD:-$GRID_SECONDS}
+
 # One cell of the four-up. Four of these side by side is 1712 wide, which
 # leaves a margin inside 1920 and 130px of headroom inside 1080.
 CELL_W=${CELL_W:-428}
@@ -95,6 +109,35 @@ card_chain="scale=1920:1080:force_original_aspect_ratio=decrease,\
 pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=$GROUND,setsar=1,fps=$FPS,format=yuv420p"
 
 SILENT_INDEX=2
+# ⚠️ NORMALISE TO A CONSTANT FRAME RATE FIRST. This is not tidiness; without
+# it the four-up comes out EMPTY.
+#
+# `adb shell screenrecord` encodes surface updates, not wall-clock time: a
+# screen that is not changing produces NO FRAMES AT ALL. Every flow here ends
+# by resting on its destination — which is the entire point, it is the footage
+# the grid uses — so the tail of a static clip contains nothing to show. Two of
+# the four cells decoded zero frames after `-sseof`, `hstack` had nothing to
+# stack, and the grid collapsed to its two end cards.
+#
+# It is visible in the durations too: tab-learn's file ended at 38s despite a
+# 55-second recording, because the container's duration is just the timestamp
+# of the last frame anything bothered to emit.
+#
+# `fps=$FPS` duplicates frames across the gaps, so a resting screen becomes a
+# still image that actually exists on the timeline and can be seeked into.
+echo "--- normalising to $FPS fps ---"
+NORMALISED=$(mktemp -d)
+trap 'rm -rf "$NORMALISED"' EXIT
+for name in tour "${TABS[@]}"; do
+  ffmpeg -hide_banner -loglevel error -y -i "$CLIPS/$name.mp4" \
+    -vf "fps=$FPS,tpad=stop_mode=clone:stop_duration=$TAIL_PAD" \
+    -c:v libx264 -preset ultrafast -crf 18 -pix_fmt yuv420p \
+    "$NORMALISED/$name.mp4"
+  printf '  %-16s %ss\n' "$name" \
+    "$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$NORMALISED/$name.mp4")"
+done
+CLIPS=$NORMALISED
+
 echo "--- promo-youtube.mp4 ---"
 # ⚠️ The sides are the flat ink ground, NOT a blurred copy of the footage.
 # The blur was tried first and is the obvious thing to reach for, but this app
