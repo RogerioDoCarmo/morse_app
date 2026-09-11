@@ -188,12 +188,19 @@ describe('compose-video.sh', () => {
    * playing when the recording ended, and Speak, Tap and Learn were never
    * captured. Nothing failed; the camera ran out.
    */
-  it('asks for more of the tour than the recorder can produce', () => {
+  it('windows the tour past its head but inside what is recorded', () => {
     const limit = Number(
       capture(/^TIME_LIMIT=\$\{TIME_LIMIT:-(\d+)\}/mu, RECORDER, 'TIME_LIMIT'),
     );
-    expect(defaultOf('TOUR_SECONDS')).toBeGreaterThan(limit * 0.8);
-    expect(defaultOf('TOUR_SECONDS')).toBeLessThan(limit);
+    const window = defaultOf('TOUR_SECONDS');
+    // Long enough to hold the whole journey from the welcome carousel on.
+    expect(window).toBeGreaterThan(100);
+    // ⚠️ And short enough to CUT the head. Every tour clip opens on about
+    // twenty seconds of rubbish — the previous flow's last screen, the
+    // launcher, the splash — because recording starts before Maestro does and
+    // Maestro's first act is to relaunch the app. A window larger than the
+    // clip put the Learn tab at the front of the promo for fifteen seconds.
+    expect(window).toBeLessThan(limit - 40);
   });
 
   /**
