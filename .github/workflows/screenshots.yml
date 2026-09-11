@@ -208,3 +208,127 @@ jobs:
           name: store-screenshots-android
           path: screenshots/
           retention-days: 30
+
+  ios:
+    name: Capture screenshots — iOS
+    runs-on: macos-latest
+    # Prebuild, CocoaPods, xcodebuild, then nine flows. The run that passed
+    # eight of nine took about 25 minutes end to end.
+    timeout-minutes: 50
+    # Skipped for Dependabot and for forks, whose PRs GitHub deliberately
+    # denies secrets. Without this the job cannot write the Firebase
+    # credentials, fails on the secret guard within seconds, and leaves a red
+    # check on every dependency bump — which is how a team learns to ignore
+    # red checks. ci.yml already skips its SonarCloud step for the same reason.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Not optional on iOS: @react-native-firebase/crashlytics autolinks a
+      # build phase that reads GOOGLE_APP_ID out of this file, so the app fails
+      # to build without it whether or not the Expo config plugins run.
+      - name: Write Firebase credentials
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "::error::Secret GOOGLE_SERVICE_INFO_PLIST is not set. Add it with: base64 -i GoogleService-Info.plist | pbcopy"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > GoogleService-Info.plist
+          plutil -lint GoogleService-Info.plist > /dev/null \
+            || { echo "::error::GOOGLE_SERVICE_INFO_PLIST did not decode to a valid plist."; exit 1; }
+
+      # No --no-install here: the .xcworkspace only exists once CocoaPods has
+      # run, and xcodebuild needs the workspace rather than the bare project.
+      - name: Prebuild iOS
+        run: |
+          pnpm expo prebuild --platform ios
+          # `expo prebuild` reports "Command `pod install` failed" and still
+          # exits 0. Without this check the job carried on to xcodebuild, which
+          # failed with "'' is not a workspace file" — an opaque error 500 lines
+          # below the one that mattered. Fail where the fault actually is.
+          if ! ls -d ios/*.xcworkspace >/dev/null 2>&1; then
+            echo "::error::pod install produced no ios/*.xcworkspace. The real failure is in the prebuild output above."
+            exit 1
+          fi
+
+      - name: Build for the simulator
+        run: |
+          workspace=$(ls -d ios/*.xcworkspace | head -1)
+          scheme=$(basename "$workspace" .xcworkspace)
+          echo "Building scheme $scheme from $workspace"
+          echo "IOS_SCHEME=$scheme" >> "$GITHUB_ENV"
+          xcodebuild -workspace "$workspace" \
+            -scheme "$scheme" -configuration Release \
+            -sdk iphonesimulator -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # Pick whatever iPhone this runner image actually ships. Hardcoding a
+      # model name breaks silently every time GitHub rolls the image forward —
+      # "iPhone 16" was not present and simctl failed with "Invalid device".
+      # ⚠️ A SPECIFIC device, not the first iPhone the runner offers.
+      # App Store Connect takes 1290x2796 for the 6.7" slot, which is what a
+      # Pro Max produces. The E2E job grabs whatever comes first because it
+      # only cares that the app works; here the pixel dimensions ARE the
+      # deliverable, and a screenshot off a plain iPhone is rejected at upload.
+      - name: Boot a Pro Max and capture
+        continue-on-error: true
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
+        run: |
+          xcrun simctl list devices available
+          udid=""
+          for want in "iPhone 17 Pro Max" "iPhone 16 Pro Max" "iPhone 15 Pro Max"; do
+            udid=$(xcrun simctl list devices available \
+                   | awk -F'[()]' -v w="$want" '$0 ~ w " \\(" {print $2; exit}')
+            [ -n "$udid" ] && { echo "Using $want ($udid)"; break; }
+          done
+          if [ -z "$udid" ]; then
+            echo "::warning::No Pro Max simulator on this runner. Falling back to \
+          any iPhone — the images will not be 1290x2796 and App Store Connect \
+          will refuse them for the 6.7-inch slot."
+            udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
+          fi
+          [ -n "$udid" ] || { echo "::error::No iPhone simulator at all."; exit 1; }
+
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" \
+            "ios/build/Build/Products/Release-iphonesimulator/${IOS_SCHEME}.app"
+          maestro --device "$udid" test .maestro/screenshots.yaml
+
+      - name: Collect the screenshots
+        if: always()
+        run: |
+          mkdir -p screenshots-ios
+          find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} screenshots-ios/ \;
+          ls -la screenshots-ios/
+          # The size the store actually wants, reported rather than assumed —
+          # a run that quietly produced the wrong dimensions is worse than one
+          # that failed, because it is only found at upload.
+          for f in screenshots-ios/*.png; do
+            echo "$(sips -g pixelWidth -g pixelHeight "$f" | awk -F': ' '/pixel/{printf "%s ", $2}')  $(basename "$f")"
+          done
+          test -n "$(ls -A screenshots-ios/)" || {
+            echo "::error::The flow produced no screenshots."; exit 1;
+          }
+
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots-ios
+          path: screenshots-ios/
+          retention-days: 30

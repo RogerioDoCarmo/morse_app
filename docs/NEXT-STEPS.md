@@ -14,9 +14,9 @@ Everything below is **outstanding**. What is already done is in
 ⚠️ **Check this first.** Actions → **Screenshots** → the newest run against
 `develop`. It was mid-`Build release APK` when the session ended.
 
-- **Green:** download the `store-screenshots-android` artifact. Seven PNGs,
-  named for the store slots. Confirm the wordmark reads **OmniMorse** — that is
-  the whole reason it waited for the rename — then upload them to Play.
+- **Done, and it worked.** Run 34612215523 produced all seven, the wordmark
+  reads **OmniMorse**, and `store-screenshots-android` is ready to upload to
+  Play. Re-run whenever the UI changes.
 - **Red:** the collect step now keeps whatever was captured, so the artifact is
   still worth downloading. The previous run failed on its seventh shot and
   discarded six good images; that is fixed, but a *new* selector failure is
@@ -25,15 +25,17 @@ Everything below is **outstanding**. What is already done is in
 Re-run any time with `gh workflow run screenshots.yml --ref develop`. It needs
 no local build, which matters while EAS credits are out.
 
-## 2. iOS screenshots do not exist yet
+## 2. iOS screenshots — the job exists, run it
 
-The workflow captures **Android only**. Play takes those directly; App Store
-Connect wants 1290×2796 from an iPhone.
+The Screenshots workflow now has an **iOS job** beside the Android one. One
+dispatch produces both artifacts: `store-screenshots-android` and
+`store-screenshots-ios`.
 
-The E2E workflow already has a working iOS job that builds and boots a
-simulator — the Android screenshot job was made by copying its Android
-counterpart almost verbatim, and the same trick works again. Point a second job
-at `.maestro/screenshots.yaml`.
+⚠️ **It picks a Pro Max deliberately** — App Store Connect takes 1290×2796 for
+the 6.7-inch slot, and a plain iPhone simulator produces something it refuses
+at upload. If no Pro Max is on the runner it warns loudly and falls back rather
+than failing silently, and the collect step prints each image's real dimensions
+so a wrong size is caught in the log rather than at the store.
 
 ## 3. Two fixes nobody has felt
 
