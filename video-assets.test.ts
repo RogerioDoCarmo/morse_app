@@ -81,9 +81,7 @@ describe('video flows', () => {
 - tapOn:
     id: '${tab}'
 - assertVisible:
-    id: '${screen}'
-- waitForAnimationToEnd:
-    timeout: 1500`;
+    id: '${screen}'`;
     expect(commands(read(tab)).startsWith(preamble)).toBe(true);
   });
 
@@ -179,12 +177,47 @@ describe('compose-video.sh', () => {
 
   // Each flow must hold still for at least as long as the grid shows of it, or
   // a cell spends part of its time on whatever came before.
-  it.each(Object.keys(TABS))('holds %s still for long enough to fill its cell', (tab) => {
-    const holds = [...read(tab).matchAll(/timeout: (\d+)/gu)].map((m) => Number(m[1]));
-    const held = holds.reduce((sum, ms) => sum + ms, 0) / 1000;
-    // Declared holds ALONE, ignoring the real time taps and long presses take.
-    // A cell that runs out spends the rest of its time on whatever preceded it.
-    expect(held).toBeGreaterThanOrEqual(defaultOf('GRID_SECONDS'));
+  /**
+   * ⚠️ `waitForAnimationToEnd: timeout: N` DOES NOT HOLD FOR N.
+   *
+   * N is a maximum. On a screen that is not animating it returns in under a
+   * second. Flows written with eighteen-second "holds" raced through and
+   * stopped, and the tail of each clip was whatever came next rather than the
+   * screen it had reached — one four-up cell showed the app relaunching.
+   *
+   * The dwell comes from the recorder instead, which runs for a fixed length
+   * and never stops early. So a tab flow ends the moment it has arrived, and
+   * must not pretend to wait.
+   */
+  it.each(Object.keys(TABS))('does not ask %s to hold still', (tab) => {
+    // The COMMANDS, not the file: every one of these flows explains the trap
+    // in a comment, and a comment naming it must not read as committing it.
+    expect(commands(read(tab))).not.toContain('waitForAnimationToEnd');
+  });
+
+  // The one place a long timeout really does hold: the screen is flashing
+  // during playback, so animations never end.
+  it('waits on animation only where the tour is actually animating', () => {
+    const tour = commands(read('tour'));
+    expect([...tour.matchAll(/waitForAnimationToEnd:/gu)]).toHaveLength(1);
+    // And it comes AFTER the play button, which is what makes it hold.
+    expect(tour.indexOf('waitForAnimationToEnd')).toBeGreaterThan(
+      tour.indexOf("id: 'playing-badge'"),
+    );
+  });
+
+  /**
+   * ⚠️ A message at the DEFAULT speed finishes in about three seconds, so the
+   * first recorded run asserted `playing-badge` and failed — playback had
+   * already stopped. `audio-playback.yaml` encodes the same lesson, and buys
+   * its duration with SPEED rather than with characters.
+   */
+  it.each(['tour', 'tab-translate'])('slows playback before signalling in %s', (flow) => {
+    const source = read(flow);
+    expect(source).toContain("id: 'segment-5'");
+    expect(source.indexOf("id: 'segment-5'")).toBeLessThan(
+      source.indexOf("id: 'signal-button'"),
+    );
   });
 });
 
@@ -261,6 +294,29 @@ describe('videos.yml', () => {
   // and nothing failed — `continue-on-error` is what keeps partial footage.
   it('suppresses system error dialogs before recording', () => {
     expect(RECORDER).toContain('hide_error_dialogs 1');
+  });
+
+  /**
+   * ⚠️ The recorder must NOT stop when the flow returns. It runs to its own
+   * time limit while the app rests on the screen the flow left it on, and that
+   * rest is the footage the four-up uses. Stopping early is what made a cell
+   * show a relaunching app instead of the Speak tab.
+   */
+  it('never stops the recording early', () => {
+    expect(RECORDER).not.toContain('pkill -INT screenrecord');
+  });
+
+  // The tail trim has to land inside the rest, not inside the flow.
+  it('records for longer than the grid shows', () => {
+    const clip = Number(
+      capture(/^CLIP_SECONDS=\$\{CLIP_SECONDS:-(\d+)\}/mu, RECORDER, 'CLIP_SECONDS'),
+    );
+    const shown = Number(
+      capture(/^GRID_SECONDS=\$\{GRID_SECONDS:-(\d+)\}/mu, COMPOSE, 'GRID_SECONDS'),
+    );
+    expect(clip).toBeGreaterThan(shown * 2);
+    // screenrecord stops dead at its own 180s ceiling.
+    expect(clip).toBeLessThan(180);
   });
 
   // The 320x640 default is what the first full set of Android store

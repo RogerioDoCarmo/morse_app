@@ -107,6 +107,44 @@ Re-framing costs seconds of ffmpeg, not another run:
 GRID_SECONDS=20 TOUR_SECONDS=75 tools/compose-video.sh clips video
 ```
 
+## ⚠️ `waitForAnimationToEnd` does not hold, and the recorder is what dwells
+
+This one cost two runs. `waitForAnimationToEnd: timeout: N` **does not wait for
+N.** N is a *maximum*: on a screen that is not animating it returns in under a
+second. Flows written with eighteen-second "holds" raced through and stopped,
+and the tail of each clip was whatever came next rather than the screen it had
+reached — one four-up cell showed the app relaunching instead of the Speak tab.
+
+So the **recorder** provides the dwell:
+
+- `screenrecord` runs for a fixed length (`CLIP_SECONDS`, 55s; the tour gets
+  130s) and is **never stopped early**.
+- A flow ends the moment it has arrived somewhere worth looking at. The app
+  then rests there on camera, and that rest is what the tail trim uses.
+
+The one place a long timeout genuinely holds is during playback, when the
+screen is flashing and animations never end. The tour uses it there and nowhere
+else; `video-assets.test.ts` checks both halves of that.
+
+## ⚠️ A message at the default speed is over in three seconds
+
+The Translate cell and the tour both drop to **5 WPM** and type `MORSE CODE`
+before signalling. At the default speed the message finishes in about three
+seconds — the first recorded run asserted `playing-badge` and failed, because
+playback had already stopped — and a cell that plays for three seconds of
+sixteen is a still image for the rest of them.
+
+`audio-playback.yaml` already encodes this lesson, including the part worth
+copying: duration is bought with **speed** rather than with characters, so the
+screen shows a real phrase instead of a wall of filler.
+
+## ⚠️ The Tap cell does not spell anything in particular
+
+Maestro's taps on a software-rendered emulator land far enough apart that each
+one commits as its own letter, so three taps and three holds decoded as
+`EEETTT` rather than `SOS`. That is the app behaving correctly on the input it
+actually received. The flow no longer claims a word it cannot reliably produce.
+
 ## ⚠️ The launcher will ANR if animations are on during boot
 
 The first run that recorded anything produced five clips with **"Pixel Launcher

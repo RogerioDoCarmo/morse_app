@@ -1,9 +1,14 @@
 # The Speak cell of the LinkedIn four-up.
 #
+# ⚠️ This flow ENDS as soon as it has arrived. It does not try to hold still —
+# `waitForAnimationToEnd` cannot do that, because its timeout is a MAXIMUM and
+# it returns in under a second on a screen that is not animating. The dwell
+# comes from tools/record-video-clips.sh, which records for a fixed length and
+# never stops early, so the app rests here on camera after the flow returns.
+#
 # ⚠️ It shows the idle screen and does not start listening. There is no
 # microphone on a CI emulator, so a tap on the mic would produce a
-# permission dialog and then a recogniser that hears nothing — which is
-# worse footage than the screen sitting still, and dishonest besides.
+# permission dialog and then a recogniser that hears nothing.
 appId: com.rogeriodocarmo.morse
 ---
 - retry:
@@ -14,16 +19,10 @@ appId: com.rogeriodocarmo.morse
       - runFlow: ../dismiss-first-run.yaml
 
 # ⚠️ The shared lead-in. All four tab flows launch, dismiss the guide and tap
-# exactly one tab before their own footage begins, because the four are played
-# side by side and nothing else keeps them in step. See README.md.
+# exactly one tab, because the four are played side by side. See README.md.
 - tapOn:
     id: 'tab-speak'
 - assertVisible:
     id: 'speech-screen'
-- waitForAnimationToEnd:
-    timeout: 1500
-
 - assertVisible:
     id: 'mic-button'
-- waitForAnimationToEnd:
-    timeout: 18000
