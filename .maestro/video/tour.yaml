@@ -93,16 +93,15 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'translator-input'
 - eraseText
-# ⚠️ The message must outlast the RECORDING, not merely the assertion.
-# "MORSE CODE" at 5 WPM plays for 21 seconds; the recorder rests 20 and then
-# takes a while to stop, so playback finished about 24 seconds before the clip
-# ended and the grid's 16-second window landed entirely in the static
-# aftermath. The cell was correct and completely still.
+# ⚠️ SHORT, and the opposite of what tab-translate needs.
 #
-# This one runs 58.8 seconds, so the recording stops while it is still
-# flashing. video-assets.test.ts computes that from the app's OWN encoder and
-# timeline rather than from a number typed here.
-- inputText: 'OMNIMORSE ENCODE DECODE LEARN'
+# `inputText` costs about a SECOND PER CHARACTER on this emulator — twenty-nine
+# characters ate twenty-five seconds of a tour that has a 178-second ceiling,
+# and at the fifty-second mark the screen still read "O".
+#
+# Ten characters at 5 WPM plays for 21 seconds, which comfortably outlasts the
+# wait below while costing a fifth of the typing.
+- inputText: 'MORSE CODE'
 - hideKeyboard
 - repeat:
     times: 3
@@ -126,13 +125,20 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'playing-badge'
 # ⚠️ The one place a long timeout really does hold: the screen is flashing, so
-# animations never end and this waits the full amount.
+# animations never end and this waits the full amount. It must be SHORTER than
+# the message takes to play, or it returns when playback ends naturally rather
+# than while it is still running.
 - waitForAnimationToEnd:
-    timeout: 22000
-- tapOn:
-    id: 'signal-button'
-- assertNotVisible:
-    id: 'playing-badge'
+    timeout: 16000
+
+# ⚠️ No "stop" tap, deliberately. There was one, and it fired AFTER a
+# fifty-nine-second message had already finished — so it did not stop
+# playback, it RESTARTED it, and the tour spent its last forty seconds
+# replaying the same message while Speak, Tap and Learn went unfilmed.
+#
+# Walking away is enough. Whatever the button does next is not this tour's
+# problem, and a tap whose meaning depends on timing does not belong in a
+# recording.
 
 - tapOn:
     id: 'tab-speak'
