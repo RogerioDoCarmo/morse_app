@@ -23,7 +23,8 @@ Everything below is **outstanding**.
 | ⚠️ Version | 0.3.4 on `develop`, **untagged on purpose** — see §5 |
 | ⚠️ Store assets | every screenshot and video still shows the **"Signal"** button, renamed to "Reproduce" in 0.3.2. Re-run both workflows before uploading anything |
 | ⚠️ Vibration | with Light on, run 2 onwards does not buzz. A fix shipped in 0.3.4 on a **hypothesis** — see §5b. Unconfirmed on a device |
-| ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
+| ⚠️ EAS builds | **blocked until 1 October**. `--local` still works — ⚠️ until Monday |
+| ⚠️ This machine | goes back **Monday 14 September 2026**. See [BEFORE-THE-DROP-OFF.md](BEFORE-THE-DROP-OFF.md) — between Monday and 1 October there is neither a machine nor a credit |
 
 What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
 [APP-STORE.md](APP-STORE.md), [MACHINE-SETUP.md](MACHINE-SETUP.md) and
