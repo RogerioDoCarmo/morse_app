@@ -129,6 +129,21 @@ jobs:
           disable-animations: true
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
+            # ⚠️ NOT the app's dialogs — the LAUNCHER'S. Three slots across two
+            # runs failed on `assertVisible: first-run`, and the debug capture
+            # kept by the previous fix showed why: a "Pixel Launcher isn't
+            # responding" ANR sitting on top, with the first-run carousel
+            # rendered perfectly behind it. The app was fine every time;
+            # Maestro simply could not see through the dialog.
+            #
+            # The flow's own `retry` cannot help, because the dialog outlives
+            # the relaunch. `record-video-clips.sh` has suppressed these since
+            # a promo recording lost its footage the same way — the screenshots
+            # workflow never learned it.
+            adb shell settings put global hide_error_dialogs 1 || true
+            # That stops the NEXT one; anything already up needs dismissing.
+            adb shell input keyevent KEYCODE_BACK || true
+            adb shell input keyevent KEYCODE_HOME || true
             maestro test .maestro/screenshots.yaml
 
       # ⚠️ `if: always()`, not `if: failure()`. In the E2E workflow the Maestro
