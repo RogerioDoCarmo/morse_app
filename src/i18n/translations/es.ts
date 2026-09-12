@@ -25,8 +25,7 @@ export const es: TranslationMap = {
   'translator.playing': 'Reproduciendo',
   'translator.unsupported': 'Sin código: {{chars}}',
   'translator.stop': 'Detener',
-  'translator.volumeLow':
-    'El sonido está activado, pero este teléfono está muy bajo. Sube el volumen para oír el mensaje.',
+  'translator.volumeLow': 'Sube el volumen',
   'firstRun.skip': 'Saltar',
   'firstRun.next': 'Siguiente',
   'firstRun.start': 'Empezar',

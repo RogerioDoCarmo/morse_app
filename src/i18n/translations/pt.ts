@@ -25,8 +25,7 @@ export const ptBR: TranslationMap = {
   'translator.playing': 'Tocando',
   'translator.unsupported': 'Sem código: {{chars}}',
   'translator.stop': 'Parar',
-  'translator.volumeLow':
-    'O som está ligado, mas o volume deste aparelho está bem baixo. Aumente o volume para ouvir a mensagem.',
+  'translator.volumeLow': 'Aumente o volume',
   'firstRun.skip': 'Pular',
   'firstRun.next': 'Avançar',
   'firstRun.start': 'Começar',

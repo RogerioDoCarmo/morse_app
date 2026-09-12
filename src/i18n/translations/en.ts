@@ -26,8 +26,7 @@ export const en: TranslationMap = {
   'translator.playing': 'Playing',
   'translator.unsupported': 'No code for: {{chars}}',
   'translator.stop': 'Stop',
-  'translator.volumeLow':
-    'Sound is on, but this phone is turned right down. Turn the volume up to hear the message.',
+  'translator.volumeLow': 'Turn the volume up',
   'firstRun.skip': 'Skip',
   'firstRun.next': 'Next',
   'firstRun.start': 'Start',
