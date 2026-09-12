@@ -118,3 +118,33 @@ describe('SignalSurface', () => {
     expect(screen.getByTestId('signal-surface')).toHaveStyle({ width: 90, height: 90 });
   });
 });
+
+/**
+ * ⚠️ Reported from a Poco and a Moto G22: the flashing disc was half covered
+ * by the progress bar and clock.
+ *
+ * The stage carried `minHeight: cap` — the diameter the disc WANTS — so it
+ * would not shrink when that row appeared during playback, and the disc
+ * spilled underneath it. "Sometimes" was the tell: the row only exists while
+ * something is playing.
+ */
+describe('the stage yields to what appears below it', () => {
+  const flatten = (style: unknown): Record<string, unknown> =>
+    Object.assign({}, ...[style].flat(Infinity).filter(Boolean)) as Record<
+      string,
+      unknown
+    >;
+
+  it('asks for a floor, not for the diameter it would like', () => {
+    render(<SignalSurface lit={false} />);
+    const floor = flatten(
+      screen.getByTestId('signal-surface-stage').props.style,
+    ).minHeight;
+
+    // Small enough that a progress row can take the room it needs, and far
+    // below the cap the disc would choose for itself on any real phone.
+    expect(typeof floor).toBe('number');
+    expect(floor as number).toBeLessThanOrEqual(96);
+    expect(floor as number).toBeGreaterThan(0);
+  });
+});

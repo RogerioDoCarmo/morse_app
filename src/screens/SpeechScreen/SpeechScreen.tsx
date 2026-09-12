@@ -63,12 +63,19 @@ type Props = Readonly<{
  * at the end. That is the whole reason the port reports partials.
  */
 export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.Element {
-  const { t, locale } = useLocale();
-  const { speech } = usePorts();
+  const { t } = useLocale();
+  const { speech, locale: localePort } = usePorts();
+  const deviceLocale = useMemo(() => localePort.getDeviceLocale(), [localePort]);
   // The recogniser follows the interface unless Language has pointed it
   // somewhere else — a device may not have every voice pack installed.
   const { settings } = useSettings();
-  const speechLocale = settings.speechLocale ?? locale;
+  // ⚠️ The DEVICE locale, not the interface one. Recognition used to fall
+  // back to whatever the UI was set to, so changing the app's language
+  // silently changed what the microphone listened for. They are separate
+  // settings now: an unset recogniser means "whatever this phone speaks",
+  // which is what it meant on first launch anyway and no longer moves when the
+  // interface does.
+  const speechLocale = settings.speechLocale ?? deviceLocale;
   const { ensure } = usePermissionGate();
   const insets = useSafeAreaInsets();
 

@@ -117,3 +117,48 @@ appId: com.rogeriodocarmo.morse
 # is touched, and this flow has already typed into it.
 - assertNotVisible:
     id: 'type-hint-dot'
+
+# ── Clear and Paste ─────────────────────────────────────────────────────────
+# Neither control existed before 0.3.3. Emptying a long message meant holding
+# backspace until it gave up, and there was no way to bring text in from
+# another app at all.
+#
+# Clear is proved by the notice it takes AWAY. '#' has no Morse, so the
+# unsupported notice appears — and an empty field cannot be unsupported.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'HI #'
+# Return, not hideKeyboard: the Clear/Paste row sits directly under the field,
+# which is exactly where the soft keyboard is. This flow already learned that
+# `hideKeyboard` stopped working the day that row was added.
+- pressKey: Enter
+- assertVisible:
+    id: 'unsupported-notice'
+- tapOn:
+    id: 'clear-input'
+- assertNotVisible:
+    id: 'unsupported-notice'
+
+# ⚠️ Pasting into the same field it was copied from proves NOTHING — the text
+# was already there, and a Paste button that does nothing would pass. Crossing
+# the direction toggle is what makes it an assertion: the Morse copied a few
+# steps up goes into the DECODE field, and the card has to spell the original
+# word back out. Only a real clipboard read puts 'HI' on the other side.
+#
+# This is also the only clipboard READ the suite can see at all. Maestro cannot
+# look at the system clipboard; it can only watch the app react to it.
+- tapOn:
+    id: 'direction-toggle'
+- assertVisible:
+    id: 'tap-input'
+- tapOn:
+    id: 'clear-input'
+- tapOn:
+    id: 'paste-input'
+# Extended: the read is async, so the field fills a frame or two after the tap.
+- extendedWaitUntil:
+    visible:
+      id: 'decoded-text'
+      text: 'HI'
+    timeout: 5000

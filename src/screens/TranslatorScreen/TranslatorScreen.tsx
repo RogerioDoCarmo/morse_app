@@ -18,7 +18,7 @@ import {
   encodeToString,
   unsupportedCharacters,
 } from '@/core/domain/morse';
-import type { AppLocale } from '@/core/domain/locale';
+import { SUPPORTED_LOCALES, type AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
@@ -151,7 +151,7 @@ export function TranslatorScreen({
   unavailableTabs,
   onOpenSettings,
 }: Props = {}): React.JSX.Element {
-  const { t, locale } = useLocale();
+  const { t, locale, setLocale } = useLocale();
   const { clipboard } = usePorts();
 
   // ⚠️ "Untouched", not "empty". The field is SEEDED with SOS, so emptiness
@@ -322,6 +322,19 @@ export function TranslatorScreen({
   const { tablet } = useLayout();
 
   /**
+   * Steps to the next interface language.
+   *
+   * ⚠️ The INTERFACE only. Speech recognition is its own setting and is not
+   * touched here — changing what the buttons say should not silently change
+   * what the microphone listens for.
+   */
+  const cycleLocale = useCallback(() => {
+    const order = SUPPORTED_LOCALES;
+    const next = order[(order.indexOf(locale) + 1) % order.length];
+    if (next) setLocale(next);
+  }, [locale, setLocale]);
+
+  /**
    * Keeps the sounding letter on screen.
    *
    * ⚠️ `measureLayout` against the scroll view, not the chip's own `onLayout`.
@@ -399,6 +412,15 @@ export function TranslatorScreen({
               accessibilityRole="button"
               accessibilityLabel="locale-picker"
               testID="locale-picker"
+              // ⚠️ This had NO `onPress` at all — drawn on the artboard and
+              // never wired, exactly like Speak in 0.2.1 and Copy in 0.3.1.
+              // Nothing fails when a handler is missing, which is how three of
+              // them reached a tester.
+              //
+              // It cycles rather than opening a menu: three languages is a
+              // shorter list than the sheet that would present them, and the
+              // badge changing under the thumb is its own confirmation.
+              onPress={cycleLocale}
               style={styles.localeButton}
             >
               <Text style={styles.localeText}>{localeBadge(locale)}</Text>

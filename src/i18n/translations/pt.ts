@@ -101,6 +101,8 @@ export const ptBR: TranslationMap = {
   'translator.channelScreen': 'Tela',
   'translator.channelBuzz': 'Vibrar',
   'settings.title': 'Ajustes',
+  'settings.turnedOn': '{{setting}}: ligado',
+  'settings.turnedOff': '{{setting}}: desligado',
   'settings.cutoff': 'Limite de ponto / traço',
   'settings.cutoffHint':
     'Segurar a tecla por mais tempo que isto conta como traço. “Longo” depende da sua velocidade, então ajuste como preferir.',
