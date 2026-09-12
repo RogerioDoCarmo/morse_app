@@ -68,7 +68,7 @@ jobs:
           github.actor != 'dependabot[bot]' &&
           github.event.pull_request.head.repo.fork != true &&
           env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
 
   mutation:
     name: Mutation testing
