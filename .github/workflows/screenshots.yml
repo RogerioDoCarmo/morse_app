@@ -47,16 +47,19 @@ jobs:
             profile: pixel_6
             skin: ''
             pad_to_16_9: 'no'
+            strip_taskbar: 'no'
             artifact: store-screenshots-android
           - label: 7-inch tablet
             profile: Nexus 7 2013
             skin: ''
             pad_to_16_9: 'no'
+            strip_taskbar: 'yes'
             artifact: store-screenshots-android-tablet7
           - label: 10-inch tablet
             profile: pixel_tablet
             skin: ''
             pad_to_16_9: 'no'
+            strip_taskbar: 'yes'
             artifact: store-screenshots-android-tablet10
           # ⚠️ The Chromebook slot wants 16:9 LANDSCAPE, and no device in
           # `avdmanager list device` is 16:9 — the tablets are 1:1.6.
@@ -75,6 +78,7 @@ jobs:
             profile: pixel_tablet
             skin: ''
             pad_to_16_9: 'yes'
+            strip_taskbar: 'yes'
             artifact: store-screenshots-android-chromebook
     # A hung build otherwise runs to GitHub's six-hour default before anyone
     # finds out. `./gradlew assembleRelease` sat here for over three hours on
@@ -151,6 +155,18 @@ jobs:
           # falls back to a default rather than failing, and a 320x640 set is
           # what that looks like — accepted by Play, and unusable. This is the
           # line that makes the difference visible without opening a file.
+          # ⚠️ BEFORE the pad, because padding a shot that still carries the
+          # taskbar would compute the 16:9 width from the wrong height and
+          # frame Google's own app icons in a store asset.
+          #
+          # Phones are excluded on purpose — see the script's header. A phone
+          # has no taskbar and its white tab bar is the colour the scan
+          # follows, so it reports 226px of "bar" on a 1080x2400 shot.
+          if [ "${{ matrix.strip_taskbar }}" = "yes" ]; then
+            sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
+            for f in screenshots/*.png; do tools/strip-system-bar.sh "$f"; done
+          fi
+
           # ⚠️ Padded, not cropped. Cropping 2560x1600 to 16:9 would cut 160px
           # off a screen whose content reaches the edges; padding keeps every
           # pixel of the app and adds ground colour at the sides. The colour is
