@@ -26,8 +26,43 @@ permissions:
 
 jobs:
   android:
-    name: Capture screenshots
+    name: Capture screenshots — ${{ matrix.label }}
     runs-on: ubuntu-latest
+    # ⚠️ Play has THREE screenshot slots, not one. A listing with only phone
+    # images shows "not available for your device" language on tablets, and
+    # the 7-inch and 10-inch slots are what turn that off. The app already
+    # draws a different layout there — two full-height halves side by side —
+    # so these are not the phone set scaled up, they are a different picture.
+    #
+    # ⚠️ The profiles are chosen for Play's rules, not for familiarity. Each
+    # side must be 320-3840px and the long side no more than twice the short
+    # one: 1200x1920 and 1600x2560 are both 1:1.6 and sit comfortably inside
+    # that. `avdmanager list device` is the list these names come from —
+    # inventing one fails the emulator step after the whole app has built.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: phone
+            profile: pixel_6
+            skin: ''
+            artifact: store-screenshots-android
+          - label: 7-inch tablet
+            profile: Nexus 7 2013
+            skin: ''
+            artifact: store-screenshots-android-tablet7
+          - label: 10-inch tablet
+            profile: pixel_tablet
+            skin: ''
+            artifact: store-screenshots-android-tablet10
+          # ⚠️ The Chromebook slot wants 16:9 LANDSCAPE, and NO device profile
+          # in `avdmanager list device` is 16:9 — the tablets are 1:1.6 and the
+          # desktop profiles 16:10. The size is pinned with `-skin` instead of
+          # inherited, which is the only way to hit the ratio Play asks for.
+          - label: chromebook
+            profile: ''
+            skin: '-skin 1920x1080'
+            artifact: store-screenshots-android-chromebook
     # A hung build otherwise runs to GitHub's six-hour default before anyone
     # finds out. `./gradlew assembleRelease` sat here for over three hours on
     # 6 September and had reached neither Maestro nor a flow; a cold build of
@@ -63,16 +98,17 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
-          # ⚠️ A REAL phone profile, and the reason this line exists: without
+          # ⚠️ A REAL device profile, and the reason this line exists: without
           # it the emulator is 320x640, and the first full set of Android
           # store screenshots was captured at exactly that — 320px is Play's
           # absolute MINIMUM for the short side, so they were accepted and
           # looked it. Play recommends 1080x1920 or better; pixel_6 is
           # 1080x2400, which also matches the tall aspect of the iOS set.
-          profile: pixel_6
+          profile: ${{ matrix.profile }}
           emulator-options: >-
             -no-window -no-snapshot -noaudio -no-boot-anim
             -gpu swiftshader_indirect -camera-back none -camera-front none
+            ${{ matrix.skin }}
           disable-animations: true
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
@@ -98,12 +134,45 @@ jobs:
           test -n "$(ls -A screenshots/)" || {
             echo "::error::The flow produced no screenshots."; exit 1;
           }
+          # ⚠️ Print the SIZE. A profile name the emulator does not recognise
+          # falls back to a default rather than failing, and a 320x640 set is
+          # what that looks like — accepted by Play, and unusable. This is the
+          # line that makes the difference visible without opening a file.
+          SLOT='${{ matrix.label }}' python3 - <<'PY'
+          import glob, os, struct, sys
+
+          slot = os.environ['SLOT']
+          shots = sorted(glob.glob('screenshots/*.png'))
+          if not shots:
+              sys.exit('::error::no screenshots to measure')
+
+          d = open(shots[0], 'rb').read(24)
+          w, h = struct.unpack('>II', d[16:24])
+          ratio = max(w, h) / min(w, h)
+          print(f'::notice::{slot} captured at {w}x{h} (ratio {ratio:.3f})')
+
+          if min(w, h) < 320 or max(w, h) > 3840:
+              sys.exit(f'::error::{w}x{h} is outside Play 320-3840px')
+
+          # ⚠️ NO "long side at most twice the short side" rule here, though an
+          # earlier draft had one. Running that draft against the phone set
+          # already accepted by Play failed it: 1080x2400 is 2.222, because a
+          # modern 20:9 phone simply is that shape. A check that rejects the
+          # one configuration known to work is worse than no check.
+          if slot == 'chromebook':
+              # Play asks for 16:9 and landscape here. A portrait capture means
+              # the emulator ignored the skin and the app booted upright.
+              if w < h:
+                  sys.exit(f'::error::chromebook shots must be landscape, got {w}x{h}')
+              if abs(ratio - 16 / 9) > 0.02:
+                  sys.exit(f'::error::chromebook wants 16:9, got {ratio:.3f}')
+          PY
 
       - name: Upload the screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: store-screenshots-android
+          name: ${{ matrix.artifact }}
           path: screenshots/
           retention-days: 30
 
