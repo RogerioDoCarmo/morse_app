@@ -10,8 +10,8 @@ Everything below is **outstanding**.
 | | |
 | --- | --- |
 | `main` | **OmniMorse 0.3.0** |
-| `develop` | **OmniMorse 0.3.3** — ⚠️ no longer in sync with `main`; 0.3.1 → 0.3.3 are device-test builds that have not been promoted |
-| Tests | **1023** unit and property. E2E 9 flows, and see the warning below |
+| `develop` | **OmniMorse 0.3.4** — ⚠️ no longer in sync with `main`; 0.3.1 → 0.3.4 are device-test builds that have not been promoted |
+| Tests | **1042** unit and property. E2E **9/9 green on CI, both platforms** — first time |
 | Privacy policy | live and verified at the URL Play was given |
 | Play listing | text, icon, feature graphic and screenshots all ready |
 | App Store listing | copy ready in all three languages — [APP-STORE.md](APP-STORE.md) |
@@ -20,9 +20,9 @@ Everything below is **outstanding**.
 | iOS screenshots | **done** — run 34620373429, seven at **1320×2868** |
 | Support page | live, verified byte for byte |
 | ⚠️ Videos | machinery complete and proven; **no usable footage yet** — see §2 |
-| ⚠️ Version | 0.3.3 on `develop`, **untagged on purpose** — see §5 |
+| ⚠️ Version | 0.3.4 on `develop`, **untagged on purpose** — see §5 |
 | ⚠️ Store assets | every screenshot and video still shows the **"Signal"** button, renamed to "Reproduce" in 0.3.2. Re-run both workflows before uploading anything |
-| ⚠️ E2E | the Clear/Paste and language-badge blocks added in 0.3.3 have **never executed**. Both Maestro jobs still stop at the Firebase secret guard, so CI has not run them and neither has anyone else |
+| ⚠️ Vibration | with Light on, run 2 onwards does not buzz. A fix shipped in 0.3.4 on a **hypothesis** — see §5b. Unconfirmed on a device |
 | ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
 
 What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
@@ -124,7 +124,7 @@ will open it.
 
 ## 5. Version and tag
 
-**0.3.3 is bumped. `v0.3.3` is still untagged, and that is the deliberate half.**
+**0.3.4 is bumped. `v0.3.4` is still untagged, and that is the deliberate half.**
 
 ⚠️ **The bump fires `firebase-distribution.yml`, and that run will be RED.**
 It builds on EAS, and the credit pool ran out on 9 September and does not reset
@@ -144,7 +144,7 @@ GOOGLE_SERVICES_JSON_PATH="$PWD/google-services.json" \
 Then distribute it by hand — see the Firebase block in
 [MACHINE-SETUP.md](MACHINE-SETUP.md).
 
-⚠️ **Tagging `v0.3.3` fires `eas-build.yml` for the same red result.** Tag after
+⚠️ **Tagging `v0.3.4` fires `eas-build.yml` for the same red result.** Tag after
 1 October.
 
 ⚠️ **0.3.3 is NOT a paperwork bump the way 0.3.1 was.** Every version since
@@ -155,19 +155,43 @@ G22 and an iPhone, and each one is a genuinely different app from the last:
 | --- | --- |
 | 0.3.2 | copy button wired, input no longer auto-focuses, play button renamed |
 | 0.3.3 | language badge wired · interface and recognition locales separated · flashing disc no longer clipped by the progress row · iOS stop actually stops · Clear and Paste under the input · the chip strip follows the sounding letter · Settings switches confirm themselves |
+| 0.3.4 | the language badge opens a LIST instead of cycling · the type hint pulses, sits higher and opens the keyboard · a hypothesis about the vibration (§5b) |
 
 Shipping any two of these under one version number would leave a tester unable
 to say which build the thing they are looking at came from — which is the whole
 reason the version has to move even while EAS is out of credits.
 
-⚠️ **Still unfixed in 0.3.3: vibration dies after the first run when Light is
-also on.** Reproduced ten times on the Poco and confirmed on the Moto G22. The
-correlation is known — `TorchHost` keeps the camera mounted between runs, so
-run 2 starts with it already open — but the mechanism is not, and the two
-candidates need opposite fixes. It needs one test on a device: with Light on,
-play until the buzz stops, then turn Light **off** and play twice. If the buzz
-comes back the open camera is the cause; if it does not, the vibrator is
-wedged.
+## 5b. The vibration, and what is actually known
+
+⚠️ **Still not confirmed fixed. 0.3.4 ships a hypothesis.**
+
+With Light AND Vibration on, the first run buzzes and no run after it ever
+does. Vibration alone is fine however many times in a row. Reproduced ten times
+on a Poco X5 5G and confirmed on a Moto G22.
+
+⚠️ **The earlier explanation in this document was WRONG.** It said `TorchHost`
+keeps the camera mounted between runs. It does not — `holdCamera(playing &&
+channels.light)` releases it when the run ends, and that line had not been read
+closely enough before the claim was written down. Anyone picking this up should
+start from the code, not from the last theory.
+
+What fits every detail, including the part that looks strangest:
+
+- Android's vibrator plays **one effect at a time**; a new request replaces the
+  one in progress.
+- Opening the camera is the only thing these runs do that a vibration-only run
+  does not, and several OEM camera stacks fire a haptic of their own on open.
+- Ours is a whole message long, so it is maximally exposed.
+- **Why run one survives:** the camera is cold the first time and takes longer
+  to open than the buzz needs to get going. From run two the HAL is warm.
+
+0.3.4 therefore starts the buzz **after** the camera (`CAMERA_SETTLE_MS`),
+joining the message already in progress via `marksFrom` so the rhythm stays
+tied to the clock.
+
+**If run 2 still does not buzz, the theory is wrong.** Do not guess a third
+time — get evidence off the device instead. `adb logcat` while reproducing, or
+a build that records which branch ran, turns a symptom into a fact.
 
 ## 5a. Build numbers, and the one command only you can run
 
