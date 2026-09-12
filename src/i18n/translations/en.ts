@@ -18,6 +18,8 @@ export const en: TranslationMap = {
   'translator.tapItIn': 'Tap it in',
   'translator.readAloud': 'Read aloud',
   'translator.copy': 'Copy',
+  'translator.clearAll': 'Clear all',
+  'translator.paste': 'Paste',
   'translator.play': 'Play',
   'translator.copied': 'Copied',
   'translator.typeHint': 'Tap to type',

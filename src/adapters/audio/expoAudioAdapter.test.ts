@@ -6,6 +6,7 @@ type StatusListener = (status: Status) => void;
 
 const mockPlay = jest.fn<void, []>();
 const mockPlayerRemove = jest.fn<void, []>();
+const mockPause = jest.fn<void, []>();
 const mockSubscriptionRemove = jest.fn<void, []>();
 const mockCreateAudioPlayer = jest.fn<unknown, [string]>();
 const mockSetAudioModeAsync = jest.fn<Promise<void>, [unknown]>();
@@ -46,6 +47,7 @@ jest.mock('expo-file-system', () => ({
 /** A player that hands its status listener back to the test. */
 const fakePlayer = (): unknown => ({
   play: () => mockPlay(),
+  pause: () => mockPause(),
   remove: () => mockPlayerRemove(),
   addListener: (_event: string, listener: StatusListener) => {
     notify = listener;
@@ -255,5 +257,41 @@ describe('expoAudioAdapter failures', () => {
     expect(crash.reports).toEqual([
       { message: 'just a string', context: 'audio: preparing the clip failed' },
     ]);
+  });
+
+  /**
+   * ⚠️ A tester pressed Stop on a twenty-one second message and listened to the
+   * remaining nineteen.
+   *
+   * `remove()` releases the JS handle; it does not promise the sound has
+   * stopped. On iOS the AVAudioPlayer behind it carried on to the end of the
+   * clip. Android tore its player down promptly and hid the bug completely,
+   * which is why this is a unit test rather than something the E2E suite could
+   * have caught — both platforms run the same JS, and only one of them was
+   * wrong.
+   */
+  describe('stopping actually stops', () => {
+    it('pauses the player before releasing it', async () => {
+      const audio = adapter();
+      void audio.play(WAV);
+      await Promise.resolve();
+
+      await audio.stop();
+
+      expect(mockPause).toHaveBeenCalled();
+    });
+
+    it('pauses BEFORE remove, not after', async () => {
+      const order: string[] = [];
+      mockPause.mockImplementation(() => order.push('pause'));
+      mockPlayerRemove.mockImplementation(() => order.push('remove'));
+
+      const audio = adapter();
+      void audio.play(WAV);
+      await Promise.resolve();
+      await audio.stop();
+
+      expect(order).toStrictEqual(['pause', 'remove']);
+    });
   });
 });

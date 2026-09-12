@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Icon } from '@/components/Icon';
+import { Icon, type IconName } from '@/components/Icon';
 import { theme } from '@/theme';
 
 /** How long it stays before taking itself away. */
@@ -9,6 +9,16 @@ const LINGER_MS = 6000;
 type Props = Readonly<{
   visible: boolean;
   message: string;
+  /**
+   * The glyph beside the message.
+   *
+   * ⚠️ No default, deliberately. This was hardcoded to `volume`, which was
+   * right for the one toast that existed and then appeared beside "Copiado" on
+   * the next one — a speaker icon on a message about the clipboard. A toast
+   * that cannot say what it is about should show nothing rather than inherit
+   * whatever the first one needed.
+   */
+  icon?: IconName;
   /** Called when it is dismissed, by tap or by timeout. */
   onDismiss: () => void;
 }>;
@@ -24,7 +34,12 @@ type Props = Readonly<{
  * should not need a tap to go away, and one that outlives the message it was
  * about is just clutter over the next thing they do.
  */
-export function Toast({ visible, message, onDismiss }: Props): React.JSX.Element | null {
+export function Toast({
+  visible,
+  message,
+  icon,
+  onDismiss,
+}: Props): React.JSX.Element | null {
   useEffect(() => {
     if (!visible) return;
     const timer = setTimeout(onDismiss, LINGER_MS);
@@ -47,7 +62,9 @@ export function Toast({ visible, message, onDismiss }: Props): React.JSX.Element
         onPress={onDismiss}
         style={({ pressed }) => [styles.toast, pressed && styles.pressed]}
       >
-        <Icon name="volume" size={17} color={theme.color.onInk} strokeWidth={2} />
+        {icon ? (
+          <Icon name={icon} size={17} color={theme.color.onInk} strokeWidth={2} />
+        ) : null}
         <Text style={styles.message}>{message}</Text>
       </Pressable>
     </View>

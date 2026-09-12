@@ -33,6 +33,12 @@ export function createExpoAudioAdapter(crash: ICrashReportingPort): IAudioPlayba
   function release(session: Session): void {
     try {
       session.subscription.remove();
+      // ⚠️ PAUSE BEFORE REMOVE. `remove()` releases the JS handle; it does not
+      // promise that the sound has stopped. On iOS the AVAudioPlayer behind it
+      // carried on to the end of the clip — a tester pressed Stop on a
+      // twenty-one second message and listened to the remaining nineteen.
+      // Android tore its player down promptly and hid the bug entirely.
+      session.player.pause();
       session.player.remove();
     } catch (error) {
       void crash.recordError(asError(error), 'audio: releasing the player failed');

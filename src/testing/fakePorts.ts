@@ -63,7 +63,10 @@ export function createFakePorts(
     },
     // Resolves true so the copy path's success branch is the default;
     // a test that wants the refusal overrides it.
-    clipboard: { write: async (): Promise<boolean> => true },
+    clipboard: {
+      read: async (): Promise<string | null> => null,
+      write: async (): Promise<boolean> => true,
+    },
     volume: {
       // Loud, so nothing warns unless a test says otherwise.
       level: async () => {
