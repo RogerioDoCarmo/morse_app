@@ -95,7 +95,8 @@ appId: com.rogeriodocarmo.morse
 # two places the interface language can be set agree with each other.
 #
 # The interface was forced to English above, so the badge must read EN.
-- assertVisible: '^EN$'
+- assertVisible:
+    id: 'locale-badge-en'
 
 # Set it from the HEADER, then read it back on the Language screen. These are
 # two different controls writing one setting, and a menu that changed only the
@@ -104,7 +105,8 @@ appId: com.rogeriodocarmo.morse
     id: 'locale-picker'
 - tapOn:
     id: 'locale-option-pt-BR'
-- assertVisible: '^PT$'
+- assertVisible:
+    id: 'locale-badge-pt-BR'
 - tapOn:
     id: 'open-settings'
 - scrollUntilVisible:
@@ -114,19 +116,32 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'settings-language'
 
-# ⚠️ The TRANSLATED heading, not the row's testID. All three rows exist in
-# every language, so `assertVisible: interface-pt-BR` would pass on a screen
-# that never changed — the same shape of test that shipped a dead button
-# earlier in this project. "RECONHECIMENTO DE FALA" only renders when the
-# interface really is Portuguese.
-- assertVisible: 'RECONHECIMENTO DE FALA'
+# ⚠️ The row's TICK, not the row itself and not a translated heading.
+#
+# All three rows exist in every language, so `assertVisible: interface-pt-BR`
+# would pass on a screen that never changed — the shape of assertion that let a
+# dead button through earlier in this project. Reading a translated heading
+# fixed that and broke iOS, where an accessible container folds its children's
+# text into its own label. `interface-pt-BR-tick` renders only on the SELECTED
+# row and is an id on both platforms.
+- scrollUntilVisible:
+    element:
+      id: 'interface-pt-BR-tick'
+    direction: DOWN
 
 # ⚠️ And the RECOGNISER did not move with it. Spanish was chosen above, and
 # setting the interface from the HEADER must not repoint the microphone any
 # more than setting it from this screen does — that is the coupling 0.3.3
-# removed, and the header is a second door into the same setting. The
-# recogniser names are not translated, so this string is the same either way.
-- assertVisible: 'Español (España)'
+# removed, and the header is a second door into the same setting.
+#
+# ⚠️ `scrollUntilVisible`, because this sits below the fold on an iPhone when
+# the screen is re-entered. The first version asserted it outright and failed
+# on iOS for that reason alone — the setting was correct, the row was simply
+# off screen.
+- scrollUntilVisible:
+    element:
+      id: 'recogniser-es-tick'
+    direction: DOWN
 - tapOn:
     id: 'language-back'
 - tapOn:

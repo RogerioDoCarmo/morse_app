@@ -1574,6 +1574,23 @@ describe('the language button', () => {
   });
 
   /**
+   * ⚠️ The badge carries its locale in a testID, and a FLOW reads that rather
+   * than the two letters. `assertVisible: '^ES$'` passed on Android and failed
+   * on iOS, where an accessible button folds its children's text into its own
+   * label and the inner "ES" stops existing as an element to find.
+   */
+  it('names the current locale in the badge id, for the flows to read', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    expect(screen.getByTestId('locale-badge-en')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
+
+    expect(screen.getByTestId('locale-badge-pt-BR')).toBeTruthy();
+    expect(screen.queryByTestId('locale-badge-en')).toBeNull();
+  });
+
+  /**
    * ⚠️ ONE tap from anywhere, which the cycle could not do. Reaching Spanish
    * from English used to cost two presses, and there was no way to go back a
    * step at all.

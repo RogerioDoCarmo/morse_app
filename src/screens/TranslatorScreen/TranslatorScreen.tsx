@@ -451,7 +451,15 @@ export function TranslatorScreen({
               }}
               style={styles.localeButton}
             >
-              <Text style={styles.localeText}>{localeBadge(locale)}</Text>
+              {/* ⚠️ The testID carries the VALUE. `assertVisible: '^ES$'` was
+                  how a flow read this back, and it passed on Android and
+                  failed on iOS — an accessible button folds its children's
+                  text into its own label there, so the inner "ES" stops
+                  existing as an element to find. An id that names the locale
+                  means the same thing on both platforms. */}
+              <Text testID={`locale-badge-${locale}`} style={styles.localeText}>
+                {localeBadge(locale)}
+              </Text>
               <Icon
                 name="chevronDown"
                 size={13}
