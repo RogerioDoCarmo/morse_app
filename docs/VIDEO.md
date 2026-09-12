@@ -68,23 +68,54 @@ doing four visible things does, and what a narrated walkthrough does not.
 
 ---
 
-## ⚠️ There is no sound, and there cannot be
+## The sound is re-rendered, not recorded
 
-`adb shell screenrecord` captures video only. There is no flag for audio, so
-footage of an app whose headline feature is playing Morse as **sound** arrives
-mute. This is a real weakness in the promo and it is worth deciding about
-rather than discovering:
+⚠️ **`adb shell screenrecord` captures no audio.** There is no flag for it. For
+a long time that was reported here as "there is no sound and there cannot be",
+which was wrong: the recorder cannot capture it, but the app *generates* it.
 
-- **Add a soundtrack on YouTube.** Play takes a URL, so the audio is a property
-  of the upload rather than of this repository. This is the cheap fix.
-- **Leave it silent.** Defensible for LinkedIn, which autoplays muted anyway.
+`tools/render-morse-audio.ts` calls the app's **own** encoder, timeline and
+tone renderer — `encode`, `toTimeline`, `renderWav` — for the same message and
+speed the flow typed. It is not a soundalike. Change the encoder and the
+soundtrack follows, because it is the same code that drives the speaker.
 
-The composer does add a **silent** AAC track to both files. That is not an
-attempt to fix the above — it is because a file with no audio stream at all is
-rejected or quietly re-encoded by several upload pipelines, and diagnosing that
-from the far side of an upload form is miserable.
+```bash
+npx -y tsx tools/render-morse-audio.ts "MORSE CODE" 5 out.wav
+```
 
----
+### Where it goes is measured, not predicted
+
+`tools/detect-playback-start.sh` finds the first flash in the footage.
+
+⚠️ **It looks for OSCILLATION, not darkness.** The splash screen is far darker
+than any flash — a spread of 142 against 24 on a real clip — so a brightness
+threshold picks the splash every time. What only playback does is *alternate*.
+The window start is then refined to the first sample that actually goes dark,
+because oscillation becomes measurable up to three seconds late.
+
+On a real clip this landed at **72.067s**, against the app's own on-screen
+`0:02 / 0:21` at the 75s mark — agreement to within the cross-check's own
+precision. In the finished video the tone begins at 50.7s and the flash begins
+at 50.7s.
+
+### Three ways this went wrong
+
+| | |
+| --- | --- |
+| ⚠️ `apad` unbounded | It pads FOREVER, and `-shortest` does not reliably terminate a `filter_complex` output. ffmpeg ran at 98% CPU for **forty-four minutes** on a two-minute encode. `apad=whole_dur=` bounds it. |
+| ⚠️ Negative offset clamped to zero | The four-up takes the last sixteen seconds of a clip whose playback began ninety seconds earlier, so the tone must start **part-way through**. Clamping put the sound thirty-three seconds out of step. `-ss` into the WAV is the fix. |
+| ⚠️ A brightness threshold | Picked the splash, every time. |
+
+`video-assets.test.ts` holds the couplings that would otherwise drift silently:
+the rendered text must equal what the flow types, the speed must equal the
+`segment-5` the flow taps, the padding must be bounded, and the onset must be
+detected rather than computed.
+
+### It still adds a silent track when there is no playback
+
+A file with no audio *stream* is rejected or quietly re-encoded by several
+upload pipelines, and diagnosing that from the far side of an upload form is
+miserable. A flow with nothing to play gets silence rather than no track.
 
 ## How the four-up stays in step
 

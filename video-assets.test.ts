@@ -17,6 +17,14 @@ const WORKFLOW = fs.readFileSync(
   path.join(__dirname, '.github', 'workflows', 'videos.yml'),
   'utf8',
 );
+const DETECTOR = fs.readFileSync(
+  path.join(__dirname, 'tools', 'detect-playback-start.sh'),
+  'utf8',
+);
+const RENDERER = fs.readFileSync(
+  path.join(__dirname, 'tools', 'render-morse-audio.ts'),
+  'utf8',
+);
 const RECORDER = fs.readFileSync(
   path.join(__dirname, 'tools', 'record-video-clips.sh'),
   'utf8',
@@ -264,8 +272,15 @@ describe('compose-video.sh', () => {
     expect(pad).toBeLessThan(defaultOf('GRID_SECONDS'));
   });
 
-  it('never seeks a clip from the front', () => {
-    expect(code(COMPOSE)).not.toContain('-ss "$');
+  /**
+   * ⚠️ CLIPS specifically. The audio input is seeked from the front on
+   * purpose — when the window opens part-way through the message, the tone has
+   * to start part-way through too — so a blanket "no -ss" rule catches the one
+   * legitimate use and hides the illegitimate ones behind it.
+   */
+  it('never seeks a video clip from the front', () => {
+    expect(code(COMPOSE)).not.toMatch(/-ss [^|]*-i "\$CLIPS/u);
+    expect(code(COMPOSE)).not.toMatch(/-ss [^|]*-i "\$NORMALISED/u);
   });
 
   // Each flow must hold still for at least as long as the grid shows of it, or
@@ -495,4 +510,93 @@ describe('videos.yml', () => {
   ])('asks %s for a real phone profile', (_file, source) => {
     expect(source).toContain('profile: pixel_6');
   });
+});
+
+/**
+ * ⚠️ The soundtrack is RE-RENDERED, because `screenrecord` captures no audio.
+ *
+ * That makes it the one part of the video that is not evidence of anything —
+ * it is generated, so it can be generated wrongly and still sound plausible.
+ * These are the couplings that would let it drift from what is on screen.
+ */
+describe('video audio', () => {
+  /** The `inputText` a recorded flow types. */
+  function typedBy(flow: string): string {
+    return capture(/- inputText: '([^']+)'/u, read(flow), `${flow} message`);
+  }
+
+  /** A `NAME=${NAME:-value}` default from the composer. */
+  function composeDefault(name: string): string {
+    return capture(new RegExp(`^${name}=\\$\\{${name}:-(.*)\\}`, 'mu'), COMPOSE, name);
+  }
+
+  /**
+   * ⚠️ Audio of a DIFFERENT message than the one on screen is worse than
+   * silence — it looks like the app is lying about what it is sending.
+   */
+  it.each([
+    ['TOUR_TEXT', 'tour'],
+    ['TRANSLATE_TEXT', 'tab-translate'],
+  ])('renders %s from exactly what %s types', (constant, flow) => {
+    expect(composeDefault(constant)).toBe(typedBy(flow));
+  });
+
+  /**
+   * ⚠️ And at the speed the flow actually selects. The flows tap `segment-5`,
+   * which is 5 WPM; rendering at the default 10 would produce a tone half the
+   * length of the flashing it accompanies.
+   */
+  it('renders at the speed the flows select', () => {
+    expect(composeDefault('PLAYBACK_WPM')).toBe('5');
+    for (const flow of ['tour', 'tab-translate']) {
+      expect(read(flow)).toContain("id: 'segment-5'");
+    }
+  });
+
+  /**
+   * ⚠️ `apad` without a bound pads FOREVER, and `-shortest` does not reliably
+   * terminate a filter_complex output. The first version ran ffmpeg at 98% CPU
+   * for forty-four minutes on a two-minute encode, generating silence it was
+   * never going to stop generating.
+   */
+  it('bounds the audio padding', () => {
+    expect(code(COMPOSE)).toContain('apad=whole_dur=');
+    expect(code(COMPOSE)).not.toMatch(/apad\[/u);
+  });
+
+  /**
+   * ⚠️ A window that opens PART-WAY through the message needs the tone to
+   * start part-way through too. The four-up takes the last sixteen seconds of
+   * a clip whose playback began ninety seconds earlier; clamping that offset
+   * to zero put the sound thirty-three seconds out of step with the picture.
+   */
+  it('seeks into the tone when the window opens mid-message', () => {
+    expect(code(COMPOSE)).toContain('AUDIO_IN=(-ss "$seek" -i "$wav")');
+  });
+
+  /**
+   * ⚠️ The onset is MEASURED, not predicted. When a flow reaches the play
+   * button depends on emulator speed, driver warm-up and retries.
+   */
+  it('detects the flash rather than computing it', () => {
+    expect(code(COMPOSE)).toContain('tools/detect-playback-start.sh');
+  });
+
+  /**
+   * ⚠️ And it detects OSCILLATION, not darkness. The splash screen is far
+   * darker than any flash — spread 142 against 24 on a real clip — so a
+   * brightness threshold picks the splash every time.
+   */
+  it('looks for oscillation, not a dark screen', () => {
+    expect(DETECTOR).toContain('MIN_CROSSINGS');
+    expect(DETECTOR).toContain('signalstats');
+  });
+
+  // The tone comes from the app's own renderer, not a reimplementation.
+  it.each(['core/domain/tone', 'core/domain/timeline', 'core/domain/morse'])(
+    "renders through the app's own %s",
+    (module) => {
+      expect(RENDERER).toContain(module);
+    },
+  );
 });
