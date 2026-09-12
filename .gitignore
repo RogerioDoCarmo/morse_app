@@ -68,3 +68,6 @@ GoogleService-Info.plist
 
 # Generated store assets — re-downloadable from the screenshots/videos workflows.
 store-assets/
+
+# Gradle state from building the local Expo modules.
+modules/*/android/.gradle/
