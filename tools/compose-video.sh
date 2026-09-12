@@ -109,6 +109,39 @@ TOUR_TEXT=${TOUR_TEXT:-MORSE CODE}
 TRANSLATE_TEXT=${TRANSLATE_TEXT:-OMNIMORSE ENCODE DECODE LEARN}
 PLAYBACK_WPM=${PLAYBACK_WPM:-5}
 
+# ⚠️ WHETHER A SILENT RESULT IS ALLOWED TO PASS. It is not, by default.
+#
+# `plan_audio` fails softly — if the flash cannot be located in the footage it
+# returns nothing and the composition falls back to `SILENT_AUDIO`, which is a
+# real, valid, completely silent stream. Every check downstream passes: the
+# file has an audio stream, ffprobe is happy, the workflow is green, and the
+# artifact is a mute demo of an app whose headline feature is sound.
+#
+# That is not hypothetical. Two promo videos were delivered exactly that way
+# and had to be redone, which is why "does this need audio?" is now the first
+# question asked about any video here. A pipeline that can quietly answer "no"
+# on its own makes the question pointless.
+#
+# Set REQUIRE_AUDIO=0 only to deliberately produce a silent cut.
+REQUIRE_AUDIO=${REQUIRE_AUDIO:-1}
+
+# Stops the run when a soundtrack was expected and could not be produced.
+#
+# Loud and early: by the time the artifact is downloaded, the person looking at
+# it has no way to tell a deliberate silent cut from a failed onset detection.
+require_audio() {
+  local name=$1 plan=$2
+  [ -n "$plan" ] && return 0
+  if [ "$REQUIRE_AUDIO" = "1" ]; then
+    echo "::error::$name would be SILENT — playback could not be located in the footage." >&2
+    echo "  The flash onset is measured from the clip, so this usually means the flow" >&2
+    echo "  never reached the play button, or the recording stopped before it did." >&2
+    echo "  Re-run with REQUIRE_AUDIO=0 only if a silent cut is what you actually want." >&2
+    exit 1
+  fi
+  echo "    $name: no audio, and REQUIRE_AUDIO=0 — continuing with a silent track." >&2
+}
+
 AUDIO_DIR=$(mktemp -d)
 trap 'rm -rf "$AUDIO_DIR" "${NORMALISED:-}"' EXIT
 
@@ -204,10 +237,12 @@ echo "--- audio, re-rendered from the app's own tone ---"
 tour_norm_s=$(duration_of "$CLIPS/tour.mp4")
 tour_trim=$(python3 -c "print(max(0.0, $tour_norm_s - $TOUR_SECONDS))")
 tour_audio=$(plan_audio "$CLIPS/tour.mp4" "$TOUR_TEXT" "$tour_trim") || tour_audio=""
+require_audio promo-youtube "$tour_audio"
 
 grid_norm_s=$(duration_of "$CLIPS/tab-translate.mp4")
 grid_trim=$(python3 -c "print(max(0.0, $grid_norm_s - $GRID_SECONDS))")
 grid_audio=$(plan_audio "$CLIPS/tab-translate.mp4" "$TRANSLATE_TEXT" "$grid_trim") || grid_audio=""
+require_audio linkedin-fourup "$grid_audio"
 
 # ⚠️ `adelay` then `apad`: the delay puts the tone where the flash is, and the
 # pad keeps the stream alive to the end of the video. Without the pad the audio
@@ -305,8 +340,22 @@ ffmpeg -hide_banner -loglevel error -y \
 
 echo "--- what came out ---"
 for f in promo-youtube linkedin-fourup; do
-  printf '%-22s %s\n' "$f.mp4" \
+  printf '%-22s %s' "$f.mp4" \
     "$(ffprobe -v error -select_streams v:0 \
         -show_entries stream=width,height -show_entries format=duration \
         -of csv=p=0:s=x "$OUT/$f.mp4" | tr '\n' ' ')"
+
+  # ⚠️ MEAN VOLUME, not "has an audio stream". The silent fallback IS a valid
+  # stream — ffprobe reports it as aac, stereo, 44.1kHz, exactly like a real
+  # one. Only the level tells them apart: true silence reads as -91dB or the
+  # literal string `-inf`.
+  level=$(ffmpeg -hide_banner -nostats -i "$OUT/$f.mp4" -map 0:a:0 -af volumedetect \
+    -f null - 2>&1 | sed -n 's/.*mean_volume: \(.*\) dB/\1/p' | tail -1)
+  if [ -z "$level" ]; then
+    printf '  ⚠️ NO AUDIO STREAM\n'
+  elif [ "$level" = "-inf" ] || [ "${level%.*}" -le -90 ] 2>/dev/null; then
+    printf '  ⚠️ AUDIO IS SILENT (mean %s dB)\n' "$level"
+  else
+    printf '  audio mean %s dB\n' "$level"
+  fi
 done

@@ -25,6 +25,24 @@ describe('TypeHintDot', () => {
   });
 
   /**
+   * ⚠️ FINITE, and the number is asserted LITERALLY rather than read back from
+   * the module. An endless loop cost the Play promo tour 23 seconds — 148s to
+   * 171s for the identical flow — because Maestro waits for the UI to settle
+   * after every command and a perpetual animation never settles. `screenrecord`
+   * stops at 180s, and the tour had already been truncated that way once.
+   *
+   * A test that imported BEATS and compared it to itself would pass on
+   * `iterations: -1`, which is precisely the value that caused this.
+   */
+  it('breathes six times and then rests', () => {
+    const loop = jest.spyOn(Animated, 'loop');
+    render(<TypeHintDot label="Type here" />);
+
+    expect(loop.mock.calls[0]?.[1]).toStrictEqual({ iterations: 6 });
+    loop.mockRestore();
+  });
+
+  /**
    * ⚠️ And STOPS it. The hint unmounts the moment the field is touched, which
    * on a first launch is within seconds — a loop left running on a detached
    * node keeps a native animation alive for the rest of the session.
