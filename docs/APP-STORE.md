@@ -65,7 +65,7 @@ standing after Analytics ships.
 | Age rating | **4+** |
 | Price | Free |
 | Copyright | `2026 Rogério do Carmo` |
-| Support URL | see the warning below |
+| Support URL | <https://rogeriodocarmo.github.io/morse_app/support.html> — ✅ live, verified 200 |
 | Marketing URL | <https://rogeriodocarmo.com> — optional |
 | Privacy policy URL | <https://rogeriodocarmo.github.io/morse_app/privacy-policy.html> |
 
@@ -85,12 +85,13 @@ Apple's Kids Category — that is a separate opt-in, and it must stay un-opted:
 the Kids Category forbids third-party analytics, which this app ships
 (Crashlytics) and plans more of.
 
-⚠️ **The Support URL must actually offer support.** <https://rogeriodocarmo.com>
-is a portfolio page and a reviewer may reject it under Guideline 1.5 as not
-providing support. The cheap fix, before the first submission: a support page
-in this repository beside the privacy policy, published by the same GitHub
-Pages setup, listing the contact address and the known issues. It costs one
-file and avoids a rejection round-trip.
+✅ **The Support URL is settled.** <https://rogeriodocarmo.com> is a portfolio
+page and a reviewer may reject it under Guideline 1.5 as not providing support,
+so a support page was published beside the privacy policy on the same GitHub
+Pages setup. Both were re-checked on 12 September 2026 and return 200.
+
+⚠️ Do not swap it back to the portfolio domain for tidiness. The whole point is
+that the URL leads somewhere that answers a user's problem.
 
 ---
 
