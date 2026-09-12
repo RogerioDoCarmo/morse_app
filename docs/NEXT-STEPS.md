@@ -169,6 +169,33 @@ play until the buzz stops, then turn Light **off** and play twice. If the buzz
 comes back the open camera is the cause; if it does not, the vibrator is
 wedged.
 
+## 5a. Build numbers, and the one command only you can run
+
+`preview` now carries `autoIncrement`, so tester builds stop reusing a version
+code. ⚠️ **That fixes the future, not the present.** The two platforms are out
+of step on EAS and `autoIncrement` moves each one from wherever it already is:
+
+| | On EAS | Next preview build |
+| --- | --- | --- |
+| Android `versionCode` | 6 | 7 |
+| iOS `buildNumber` | 9 | 10 |
+
+To make the next build hand both platforms **10**, Android has to be set to 9
+first. `eas build:version:set` takes no value flag — it prompts — so it cannot
+be scripted:
+
+```bash
+npx eas build:version:set --platform android --profile preview   # enter 9
+```
+
+Skipping 7 and 8 is safe: version codes must increase, not be contiguous.
+
+⚠️ **This keeps them equal only while both platforms are built together.** The
+counters are per-platform on EAS, so building one alone puts them out of step
+again. If they must never drift, the number has to come from the repository
+instead — `appVersionSource: local` with the value in `app.json` — which is a
+larger change and trades automatic increment for a line in the release commit.
+
 ## 6. Deferred, with triggers
 
 | | When |
