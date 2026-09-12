@@ -16,7 +16,10 @@ type Profile = Readonly<{ distribution?: string; autoIncrement?: boolean }>;
 
 const easJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'eas.json'), 'utf8'),
-) as Readonly<{ cli: Readonly<{ appVersionSource: string }>; build: Record<string, Profile> }>;
+) as Readonly<{
+  cli: Readonly<{ appVersionSource: string }>;
+  build: Record<string, Profile>;
+}>;
 
 describe('eas build profiles', () => {
   /**
