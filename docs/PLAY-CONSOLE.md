@@ -60,20 +60,20 @@ be distributed.
 
 ### Release notes
 
-Per language, and paste-ready, in [`store-listing/`](store-listing/):
+Per language, and paste-ready, in [`store-assets/listing/`](../store-assets/listing/):
 
 | | |
 | --- | --- |
-| English | [`en-US.md`](store-listing/en-US.md) |
-| Português do Brasil | [`pt-BR.md`](store-listing/pt-BR.md) |
-| Español | [`es-419.md`](store-listing/es-419.md) |
+| English | [`en-US.md`](../store-assets/listing/en-US.md) |
+| Português do Brasil | [`pt-BR.md`](../store-assets/listing/pt-BR.md) |
+| Español | [`es-419.md`](../store-assets/listing/es-419.md) |
 
 ---
 
 ## Store listing
 
 App name, short description and full description live per language in
-[`store-listing/`](store-listing/) — one file each, every block exactly what
+[`store-assets/listing/`](../store-assets/listing/) — one file each, every block exactly what
 goes in the matching Play Console field. Those files also carry the App Store's
 fields, which is why they are no longer named for Play alone; the table at the
 top of each says which block goes to which console.

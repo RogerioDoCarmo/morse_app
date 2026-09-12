@@ -10,7 +10,7 @@ console, and so the answers stay consistent with what the app actually does.
 ## The copy
 
 Name, subtitle, keywords, promotional text, description and What's New live per
-language in [`store-listing/`](store-listing/) — one file each, every fenced
+language in [`store-assets/listing/`](../store-assets/listing/) — one file each, every fenced
 block exactly what goes in the matching field.
 
 Not duplicated here on purpose. Copy kept in two places is copy that disagrees

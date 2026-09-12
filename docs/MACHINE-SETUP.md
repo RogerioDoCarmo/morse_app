@@ -4,6 +4,29 @@ Everything a different Mac needs to build, sign and ship this app the way the
 current one does. Written 11 September 2026, because the machine it describes
 may not be around for the next release.
 
+⚠️ **THE DATE IS NOW KNOWN: this Mac goes back on Monday 14 September 2026.**
+"May not be around" was written while that was still vague; it is not vague any
+more. Everything below stops being reachable on that date, and anything that
+only exists here is lost with it.
+
+What that means in practice:
+
+- **Local builds end.** `--local` is what has cut every build since the EAS
+  credits ran out on 9 September, and those do not reset until **1 October**.
+  Between the drop-off and that reset there is no machine and no credit — plan
+  any build that must happen in that window for before Monday.
+- **Xcode goes with it.** No `pnpm submit:ios`, no archive, no Privacy Report,
+  no simulator. An iOS build in that window cannot be made at all.
+- **`store-assets/` is gitignored and lives only here.** Screenshots and videos
+  are re-downloadable from the workflows; the archived cuts under
+  `store-assets/archive/` are not, and neither are the `build-*.{apk,aab,ipa}`
+  artifacts in the repository root.
+- ⚠️ **Two credential files exist only on this disk** and are in no backup this
+  document controls: `google-services.json` and `GoogleService-Info.plist`. The
+  Firebase service-account JSON at `~/Downloads/service-account.json` is a
+  third. They are the reason a fresh machine cannot simply clone and build —
+  see "Secrets and where they live" below.
+
 ⚠️ **No secrets are in this file, and none should be added.** It records
 *where* credentials come from and *what shape* they are, never their contents.
 

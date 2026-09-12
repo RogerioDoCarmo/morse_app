@@ -27,7 +27,7 @@ Everything below is **outstanding**.
 
 What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
 [APP-STORE.md](APP-STORE.md), [MACHINE-SETUP.md](MACHINE-SETUP.md) and
-[store-listing/](store-listing/).
+[store-assets/listing/](../store-assets/listing/).
 
 ---
 
@@ -112,7 +112,7 @@ Both are testable the moment a build reaches a phone.
 
 The listing was saved as a draft with text only. Still needed:
 
-- **App icon 512×512** — `docs/store-listing/graphics/play-icon-512.png`.
+- **App icon 512×512** — `store-assets/listing/graphics/play-icon-512.png`.
 - **Feature graphic 1024×500** — `play-feature-graphic.png`, in the same place.
 - **Phone screenshots** — from step 1.
 

@@ -48,7 +48,7 @@ Five things reject it or make it disappear, none of which Play explains well:
 - ⚠️ **The feature graphic becomes the thumbnail.** Play does not autoplay; it
   shows the feature graphic with a play button over it. A video without a
   feature graphic has nothing to sit on, which is why
-  `docs/store-listing/graphics/play-feature-graphic.png` is not optional once
+  `store-assets/listing/graphics/play-feature-graphic.png` is not optional once
   a video is set.
 
 Google suggests 30 seconds to 2 minutes. This one lands around 45.
