@@ -131,7 +131,7 @@ describe('TranslatorScreen', () => {
 
   it('renders in the selected locale', () => {
     renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    expect(screen.getByText('Emitir')).toBeOnTheScreen();
+    expect(screen.getByText('Reproducir')).toBeOnTheScreen();
     expect(screen.getByText('Sonido')).toBeOnTheScreen();
   });
 });
@@ -947,6 +947,69 @@ describe('TranslatorScreen — the screen channel', () => {
     expect(ports.calls.torchEnabled).toEqual([]);
   });
 
+  /**
+   * ⚠️ Reported on a Poco X5 5G and reproduced on a Moto G22: with Light AND
+   * Vibration on, the first run buzzes and no run after it ever does. Android's
+   * vibrator plays one effect at a time and a new request replaces the one in
+   * progress, and opening the camera is the only thing these runs do that a
+   * vibration-only run does not.
+   *
+   * So the buzz waits for the camera. These two tests pin the difference the
+   * fix makes; whether it CURES the device is a question only the device can
+   * answer.
+   */
+  it('waits for the camera before buzzing when the torch is also on', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    // ⚠️ `enableLight`, not a bare press: Light is gated on the camera
+    // permission and the channel does not change until that promise resolves.
+    // A bare press leaves the torch OFF, and this test would then pass by
+    // taking the no-camera path it exists to distinguish from.
+    await enableLight();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    // Nothing yet — the camera is still opening.
+    expect(ports.calls.vibrated).toEqual([]);
+
+    await advance(500);
+    expect(ports.calls.vibrated.length).toBe(1);
+  });
+
+  /**
+   * ⚠️ And a run stopped inside that window must not start buzzing a message
+   * that is already over. `stop()` has nothing to cancel yet at that point, so
+   * nothing else would catch it.
+   */
+  it('drops a waiting buzz when the run is stopped first', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    await enableLight();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(500);
+
+    expect(ports.calls.vibrated).toEqual([]);
+  });
+
+  /**
+   * Vibration WITHOUT the torch keeps its head start. There is no camera to
+   * wait for, and delaying it would move the first buzz away from the first
+   * beat of the audio for nothing.
+   */
+  it('buzzes immediately when the torch is off', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.vibrated.length).toBe(1);
+  });
+
   it('counts as something to signal with on its own', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
@@ -1318,26 +1381,375 @@ describe('a phone too quiet to hear the message', () => {
 
 describe('where the caret starts', () => {
   /**
-   * Typing is what this screen is for, and a seeded sample you must tap
-   * before you can replace it is a step nobody wants twice.
+   * ⚠️ NOT auto-focused, and this replaces a test that asserted the opposite.
+   *
+   * It was focused on open so the seeded sample could be typed over without a
+   * tap. On a phone the keyboard then covered half the screen INCLUDING the
+   * sample it was meant to help you replace, which is a worse trade than the
+   * tap it saved. The dot beside the language label points at the field
+   * instead, and costs no screen space.
    */
-  it('takes the caret when the app opens', () => {
-    renderWithProviders(<TranslatorScreen autoFocusInput />);
-    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', true);
+  it('does not take the caret', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('translator-input')).not.toHaveProp('autoFocus', true);
+  });
+
+  it('points at the input with a dot until the field is touched', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('type-hint-dot')).toBeTruthy();
   });
 
   /**
-   * ⚠️ The defect the E2E suite caught before a person did.
-   *
-   * `autoFocus` fires on every MOUNT, and the shell unmounts a screen when the
-   * tab changes — so left on unconditionally, every return to Translate raised
-   * the keyboard over the tab bar that had just been tapped. On Android the
-   * `speech` flow could no longer find `tab-speak` at all.
-   *
-   * Off by default, so only the app's first look at this screen asks for it.
+   * ⚠️ On TOUCH, not on "the field is non-empty". The field is seeded with
+   * SOS, so an emptiness test would never show the dot at all — and clearing
+   * the field later is not a reason to start pointing at it again.
    */
-  it('leaves it alone on every mount after that', () => {
+  it('drops the dot once the field is typed in', () => {
     renderWithProviders(<TranslatorScreen />);
-    expect(screen.getByTestId('translator-input')).toHaveProp('autoFocus', false);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+
+  it('drops the dot on focus alone, before anything is typed', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent(screen.getByTestId('translator-input'), 'focus');
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ Until 0.3.2 this button's handler was `() => undefined`.
+ *
+ * It was drawn on the artboard and never wired — the same defect a tester
+ * reported against Speak in 0.2.1, and indistinguishable from a broken one.
+ * These are the tests that would have caught it.
+ */
+describe('copying the Morse', () => {
+  it('puts the encoded Morse on the clipboard', async () => {
+    const ports = createFakePorts();
+    const written: string[] = [];
+    ports.clipboard.write = async (text: string) => {
+      written.push(text);
+      return true;
+    };
+    renderWithProviders(<TranslatorScreen />, { ports });
+
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await waitFor(() => expect(written).toHaveLength(1));
+    // SOS is what the field is seeded with.
+    expect(written[0]).toBe('... --- ...');
+  });
+
+  it('shows a tick on the button, then a toast saying so', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
+    ).toBeTruthy();
+    expect(screen.getByTestId('toast')).toBeTruthy();
+  });
+
+  /**
+   * ⚠️ The toast must OUTLIVE the tick, and this is the test that was missing.
+   *
+   * Both read one `copied` flag at first, so the icon's 1.8s timer cleared the
+   * toast too — it lasted under two seconds instead of six, and the E2E flow
+   * failed asserting it in the gap between checking the icon and checking the
+   * toast. The unit tests all passed, because none of them looked at the two
+   * together after the icon reverted.
+   */
+  it('keeps the toast up after the tick has reverted', async () => {
+    jest.useFakeTimers();
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
+    ).toBeTruthy();
+
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(
+      within(screen.getByLabelText('copy-morse')).getByTestId('icon-copy'),
+    ).toBeTruthy();
+    expect(screen.getByTestId('toast')).toBeTruthy();
+
+    // And it does go, on the Toast's own timer rather than the icon's.
+    await act(async () => {
+      jest.advanceTimersByTime(3500);
+    });
+    expect(screen.queryByTestId('toast')).toBeNull();
+    jest.useRealTimers();
+  });
+
+  /**
+   * ⚠️ The tick must revert itself. A button that stays a tick has stopped
+   * telling you what it does and started telling you what it did once.
+   */
+  it('turns back into a copy icon', async () => {
+    jest.useFakeTimers();
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
+    ).toBeTruthy();
+
+    // Past COPIED_ICON_MS, and deliberately not a round number near it: a test
+    // that only just clears the boundary starts failing when the boundary moves
+    // by a hundred milliseconds, which is not a regression worth a red build.
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(
+      within(screen.getByLabelText('copy-morse')).getByTestId('icon-copy'),
+    ).toBeTruthy();
+    jest.useRealTimers();
+  });
+
+  /**
+   * ⚠️ A refused clipboard must not claim success. The adapter swallows every
+   * failure into `false`, so this is the only place the difference survives.
+   */
+  it('says nothing when the platform refuses', async () => {
+    const ports = createFakePorts();
+    ports.clipboard.write = async () => false;
+    renderWithProviders(<TranslatorScreen />, { ports });
+
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-copy'),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('toast')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ This button had NO `onPress` at all — drawn on the artboard and never
+ * wired, exactly like Speak in 0.2.1 and Copy in 0.3.1. Nothing fails when a
+ * handler is missing, which is how three of them reached a tester.
+ */
+describe('the language button', () => {
+  it('opens a list rather than changing anything', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    expect(screen.queryByTestId('locale-menu')).toBeNull();
+
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    expect(screen.getByTestId('locale-menu')).toBeTruthy();
+    // ⚠️ Still English. The press opens the menu and picks NOTHING — the badge
+    // used to step to the next language on every tap, which is the behaviour
+    // this replaces.
+    expect(screen.getByText('EN')).toBeOnTheScreen();
+  });
+
+  /**
+   * ⚠️ All THREE, named in their own languages. A picker that lists only the
+   * ones you are not in cannot show you where you are, and a reader who opened
+   * it by accident in a language they do not speak needs to recognise their own
+   * on sight — which is why these are endonyms and not translated.
+   */
+  it.each([
+    ['English', 'en'],
+    ['Português (Brasil)', 'pt-BR'],
+    ['Español', 'es'],
+  ])('offers %s', (name, tag) => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    // Scoped to the option, not the screen: `Modal` renders its children into
+    // the tree twice under the test renderer, so a bare `getByText` finds two
+    // of everything inside it and fails on the ambiguity rather than the name.
+    const option = screen.getByLabelText(`locale-option-${tag}`);
+    expect(within(option).getByText(name)).toBeOnTheScreen();
+  });
+
+  it('switches to the language that was chosen', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    fireEvent.press(screen.getByLabelText('locale-option-es'));
+
+    expect(screen.getByText('ES')).toBeOnTheScreen();
+  });
+
+  /**
+   * ⚠️ The badge carries its locale in a testID, and a FLOW reads that rather
+   * than the two letters. `assertVisible: '^ES$'` passed on Android and failed
+   * on iOS, where an accessible button folds its children's text into its own
+   * label and the inner "ES" stops existing as an element to find.
+   */
+  it('names the current locale in the badge id, for the flows to read', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    expect(screen.getByTestId('locale-badge-en')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
+
+    expect(screen.getByTestId('locale-badge-pt-BR')).toBeTruthy();
+    expect(screen.queryByTestId('locale-badge-en')).toBeNull();
+  });
+
+  /**
+   * ⚠️ ONE tap from anywhere, which the cycle could not do. Reaching Spanish
+   * from English used to cost two presses, and there was no way to go back a
+   * step at all.
+   */
+  it('reaches any language in a single press', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    fireEvent.press(screen.getByLabelText('locale-option-en'));
+
+    expect(screen.getByText('EN')).toBeOnTheScreen();
+  });
+
+  it('closes without choosing when the backdrop is pressed', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    fireEvent.press(screen.getByLabelText('locale-menu-backdrop'));
+
+    expect(screen.queryByTestId('locale-menu')).toBeNull();
+    expect(screen.getByText('EN')).toBeOnTheScreen();
+  });
+
+  it('shuts the menu once a language is chosen', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
+
+    expect(screen.queryByTestId('locale-menu')).toBeNull();
+  });
+
+  /**
+   * ⚠️ The INTERFACE only. Recognition is a separate setting now, and changing
+   * what the buttons say must not change what the microphone listens for.
+   */
+  it('does not touch the recogniser', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TranslatorScreen />, { ports, locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    expect(
+      ports.calls.stored.filter((entry) => entry.key === 'settings.speechLocale'),
+    ).toStrictEqual([]);
+  });
+});
+
+/**
+ * ⚠️ The input does NOT take focus on open — the keyboard covering half the
+ * screen was worse than the tap it saved. That left the dot pointing at a field
+ * the user still had to reach for, so the dot and its label became the
+ * shortcut.
+ */
+describe('the type hint', () => {
+  /**
+   * ⚠️ That the KEYBOARD comes up is asserted in `translator.yaml`, not here.
+   * RNTL 13 ships no `toBeFocused`, the imperative `focus()` goes to a native
+   * method that does nothing under the test renderer, and `element.instance` is
+   * null on the New Architecture — so a unit test can only prove the handler
+   * ran, which is what the two below do. A test that mocked its way to a green
+   * assertion about focus would be asserting the mock.
+   */
+  it('is wired to something', () => {
+    renderWithProviders(<TranslatorScreen />);
+
+    expect(screen.getByLabelText('focus-input')).toBeTruthy();
+  });
+
+  /**
+   * ⚠️ And the dot goes away, because pressing it counts as touching the field.
+   * A hint that survives the gesture it was asking for is a hint nobody can
+   * get rid of.
+   */
+  it('stops pointing once it has been used', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('type-hint-dot')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('focus-input'));
+
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+
+  /**
+   * The target is the whole label row. A 7pt circle is under a sixth of the
+   * 44pt minimum, and nobody aims at one — pressing the words beside it is the
+   * gesture a person actually makes.
+   */
+  it('is still pressable after the dot has gone', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('focus-input'));
+
+    expect(screen.getByLabelText('focus-input')).toBeTruthy();
+  });
+});
+
+describe('clearing and pasting', () => {
+  it('empties the field in one press', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
+    fireEvent.press(screen.getByLabelText('clear-input'));
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', '');
+  });
+
+  /**
+   * ⚠️ The dot means "you have not started yet". Clearing a message is not
+   * starting again, so it must not come back and point at the field.
+   */
+  it('does not bring the hint dot back', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('clear-input'));
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+
+  it('pastes the clipboard into the field', async () => {
+    const ports = createFakePorts();
+    ports.clipboard.read = async () => 'SOS FROM THE CLIPBOARD';
+    renderWithProviders(<TranslatorScreen />, { ports });
+
+    fireEvent.press(screen.getByLabelText('paste-input'));
+    await waitFor(() =>
+      expect(screen.getByTestId('translator-input')).toHaveProp(
+        'value',
+        'SOS FROM THE CLIPBOARD',
+      ),
+    );
+  });
+
+  /**
+   * ⚠️ An empty clipboard must do NOTHING. Pasting nothing would wipe what was
+   * typed, which is the one outcome a Paste button must never produce — and
+   * the user would have no way to get it back.
+   */
+  it('leaves the field alone when there is nothing to paste', async () => {
+    const ports = createFakePorts();
+    let reads = 0;
+    ports.clipboard.read = async () => {
+      reads += 1;
+      return null;
+    };
+    renderWithProviders(<TranslatorScreen />, { ports });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'TYPED BY HAND');
+
+    fireEvent.press(screen.getByLabelText('paste-input'));
+    // It really did look, and really did leave the field alone.
+    await waitFor(() => expect(reads).toBe(1));
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'TYPED BY HAND');
+  });
+});
+
+describe('the toast icons', () => {
+  /**
+   * ⚠️ The Toast hardcoded a speaker, which was right for the volume warning
+   * and then turned up beside "Copied" — a sound icon on a message about the
+   * clipboard.
+   */
+  it('shows a tick beside the copied message, not a speaker', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+
+    const toast = await screen.findByTestId('toast');
+    expect(within(toast).queryByTestId('icon-volume')).toBeNull();
+    expect(within(toast).getByTestId('icon-check')).toBeTruthy();
   });
 });

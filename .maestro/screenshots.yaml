@@ -32,12 +32,26 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-skip'
 - assertNotVisible:
     id: 'first-run'
-# The Translator autofocuses on open, so the keyboard is up and would cover
-# half of the first shot.
-- hideKeyboard
+# ⚠️ No `hideKeyboard`. The Translator no longer focuses its input on open, so
+# there is no keyboard covering this shot — and a dismiss with nothing to
+# dismiss goes looking for somewhere to tap, which cost this flow a run once.
 
 - assertVisible:
     id: 'translator-screen'
+
+# ⚠️ WAIT FOR THE HINT DOT TO STOP BREATHING.
+#
+# The field is untouched here, so the dot beside the label is pulsing: its halo
+# sweeps from 0.45 opacity to 0 every 1.1 seconds. Shooting into that catches a
+# different-sized ring every run, which is nondeterminism in an asset that gets
+# compared across seven images and two platforms — and reads as a rendering
+# artefact to anyone who does not know what it is.
+#
+# `waitForAnimationToEnd` is the right primitive ONLY because the pulse is
+# finite. It ran forever until 0.3.4, and this would have waited out its whole
+# timeout instead of returning when the dot came to rest.
+- waitForAnimationToEnd:
+    timeout: 12000
 - takeScreenshot: 01-translator
 
 # The channel strip switched on, which is the feature the listing leads with.

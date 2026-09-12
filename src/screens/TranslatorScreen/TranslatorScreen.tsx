@@ -1,14 +1,16 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
+import { LocaleMenu } from '@/components/LocaleMenu';
 import { IconButton } from '@/components/IconButton';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalButton } from '@/components/SignalButton';
 import { SignalSurface } from '@/components/SignalSurface';
 import { Toast } from '@/components/Toast';
+import { TypeHintDot } from '@/components/TypeHintDot';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
@@ -18,22 +20,22 @@ import {
   encodeToString,
   unsupportedCharacters,
 } from '@/core/domain/morse';
-import type { AppLocale } from '@/core/domain/locale';
+import { type AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { unitMsForWpm } from '@/core/domain/timeline';
+import { localeBadge } from '@/i18n/localeNames';
 import { theme } from '@/theme';
 
 /**
  * The two-letter badge in the header. Derived, not translated — it would read
  * the same in all three locales.
  */
-function localeBadge(locale: AppLocale): string {
-  return locale === 'pt-BR' ? 'PT' : locale.toUpperCase();
-}
+/** The header's height, shared with the menu that opens under it. */
+const HEADER_HEIGHT = 48;
 
 /** Which way the translation runs. */
 type Direction = 'toMorse' | 'toText';
@@ -47,16 +49,6 @@ function clock(ms: number): string {
 
 /** Both optional so the screen can still be rendered on its own in a test. */
 type Props = Readonly<{
-  /**
-   * Puts the caret in the input as the screen appears.
-   *
-   * ⚠️ Off by default, and passed only for the app's FIRST look at this
-   * screen. `autoFocus` fires on every mount, and the shell unmounts a screen
-   * when the tab changes — so left on, every return to Translate raised the
-   * keyboard over the tab bar the user had just used. That is more than "focus
-   * it on open" asked for, and the E2E suite found it before a person did.
-   */
-  autoFocusInput?: boolean | undefined;
   onSelectTab?: ((tab: TabName) => void) | undefined;
   unavailableTabs?: readonly TabName[] | undefined;
   onOpenSettings?: (() => void) | undefined;
@@ -76,11 +68,16 @@ type PaneProps = Readonly<{
  * moves inside it. Styling the window would leave the gap outside the
  * scrollable area, where it does nothing.
  */
-function ScrollableCards({ tablet, children }: PaneProps): React.JSX.Element {
+function ScrollableCards({
+  tablet,
+  children,
+  scrollRef,
+}: PaneProps & { scrollRef?: React.RefObject<ScrollView | null> }): React.JSX.Element {
   if (tablet) return <View style={styles.columns}>{children}</View>;
 
   return (
     <ScrollView
+      ref={scrollRef}
       testID="cards-scroll"
       style={styles.cardScroll}
       contentContainerStyle={styles.stack}
@@ -101,11 +98,16 @@ function ScrollableCards({ tablet, children }: PaneProps): React.JSX.Element {
  * finger — and, with no definite height to flex against, `flex: 1` would
  * resolve to zero and take the chips out of the view hierarchy entirely.
  */
-function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
+function MorseOutput({
+  tablet,
+  children,
+  scrollRef,
+}: PaneProps & { scrollRef?: React.RefObject<ScrollView | null> }): React.JSX.Element {
   if (!tablet) return <View style={styles.outputScroll}>{children}</View>;
 
   return (
     <ScrollView
+      ref={scrollRef}
       testID="morse-scroll"
       style={styles.output}
       contentContainerStyle={styles.outputScroll}
@@ -116,6 +118,29 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
 }
 
 /**
+ * How long the copy button shows a tick before turning back into a copy icon.
+ *
+ * Long enough to be seen if you glanced away, short enough that the button is
+ * itself again before you would reach for it a second time.
+ *
+ * ⚠️ 1.8s was the first value and it was too tight to OBSERVE. A single
+ * Maestro assertion on a software-rendered emulator can take longer than that,
+ * so the tick had reverted before the flow could look at it — a state that
+ * exists but cannot be checked is one nobody can defend against a regression.
+ * 2.5s reads the same to a person and leaves the test somewhere to stand.
+ */
+const COPIED_ICON_MS = 2500;
+
+/**
+ * How much room to leave above the letter being chased.
+ *
+ * Scrolling it to the very top would put every letter that comes next off
+ * screen, which is the opposite of the point: the interesting thing about a
+ * playhead is what it is about to reach.
+ */
+const FOLLOW_MARGIN = 120;
+
+/**
  * The Translator screen — built from `design/screens/Main.dc.html`.
  *
  * The artboard is HTML and does not compile; every value here was transcribed
@@ -124,12 +149,45 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
  * artboards necessarily do.
  */
 export function TranslatorScreen({
-  autoFocusInput = false,
   onSelectTab,
   unavailableTabs,
   onOpenSettings,
 }: Props = {}): React.JSX.Element {
-  const { t, locale } = useLocale();
+  const { t, locale, setLocale } = useLocale();
+  const { clipboard } = usePorts();
+
+  // ⚠️ "Untouched", not "empty". The field is SEEDED with SOS, so emptiness
+  // would never be true on open and the dot would never show; and clearing the
+  // field later is not a reason to start pointing at it again.
+  const [touchedInput, setTouchedInput] = useState(false);
+  const [localeMenu, setLocaleMenu] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  /**
+   * ⚠️ TWO states, not one, and they have different lifetimes on purpose.
+   *
+   * The tick is a fast acknowledgement at the fingertip and reverts itself
+   * after COPIED_ICON_MS. The toast is the explicit message and lives the
+   * Toast component's own LINGER_MS, or until the user taps it away.
+   *
+   * They shared one `copied` flag at first. The icon's 1.8s timer then cleared
+   * the toast as well, so the toast was gone in under two seconds instead of
+   * six — and the E2E flow failed asserting it, on a slow emulator, in the gap
+   * between checking the icon and checking the toast. The comment above the
+   * handler already described two lifetimes; the code had one.
+   */
+  /**
+   * The scroll view that actually scrolls, which differs by layout.
+   *
+   * ⚠️ On a phone the chips are NOT in their own scroll view — the cards
+   * scroll and the chips ride along inside them. On a tablet the card has a
+   * fixed height and the chips scroll within it. So exactly one of these is
+   * live at a time, and the letter has to be chased in whichever it is.
+   */
+  const cardsScroll = useRef<ScrollView | null>(null);
+  const chipsScroll = useRef<ScrollView | null>(null);
+
+  const [copiedIcon, setCopiedIcon] = useState(false);
+  const [copiedToast, setCopiedToast] = useState(false);
   const { tts } = usePorts();
   const insets = useSafeAreaInsets();
 
@@ -147,6 +205,90 @@ export function TranslatorScreen({
   const source = toMorse ? text : decoded;
   const message = useMemo(() => encode(source), [source]);
   const morse = useMemo(() => encodeToString(source), [source]);
+
+  /**
+   * The dot beside the language label — shown until the field is touched.
+   *
+   * Not `text.length === 0`: the field is SEEDED with SOS, so it is never
+   * empty on open and the dot would never appear.
+   */
+  const showTypeHint = !touchedInput;
+
+  /**
+   * Copy the Morse, confirm it twice.
+   *
+   * ⚠️ Two confirmations on purpose, and they are not redundant. The icon
+   * changing to a tick answers "did that button do anything?" at the point the
+   * finger is; the toast answers "what did it do?" for anyone who was looking
+   * at the text rather than the button. The icon is the fast one and reverts
+   * itself; the toast is the explicit one and the user dismisses it.
+   */
+  /**
+   * Empties the field the user is actually typing in.
+   *
+   * ⚠️ Marks it touched, so the hint dot does not come back. The dot means
+   * "you have not started yet", and clearing a message is not starting again.
+   */
+  const clearInput = useCallback(() => {
+    setTouchedInput(true);
+    if (toMorse) setText('');
+    else setMorseInput('');
+  }, [toMorse]);
+
+  /**
+   * Puts the clipboard into the field.
+   *
+   * ⚠️ REPLACES rather than appends. Paste beside Clear reads as "put this
+   * here", and appending to a seeded SOS would produce a message nobody asked
+   * for. An empty or non-text clipboard does nothing at all — wiping what was
+   * typed is the one outcome a Paste button must never produce.
+   */
+  const pasteInput = useCallback(() => {
+    void (async (): Promise<void> => {
+      const text = await clipboard.read();
+      if (text === null) return;
+      setTouchedInput(true);
+      if (toMorse) setText(text);
+      else setMorseInput(text);
+    })();
+  }, [clipboard, toMorse]);
+
+  const onCopy = useCallback(() => {
+    void (async (): Promise<void> => {
+      // Nothing to copy is not a failure to report — there is simply no
+      // message yet, and a toast saying so would be noise on an empty screen.
+      if (morse.length === 0) return;
+      const ok = await clipboard.write(morse);
+      if (!ok) return;
+      setCopiedIcon(true);
+      setCopiedToast(true);
+    })();
+  }, [clipboard, morse]);
+
+  /**
+   * ⚠️ STABLE, via useCallback, and it has to be.
+   *
+   * `Toast` starts its linger timer in an effect keyed on `[visible,
+   * onDismiss]`. An inline arrow is a new function every render, so every
+   * re-render of this screen restarted that timer and the toast never
+   * dismissed itself at all — it just waited for a tap. The volume toast
+   * above is fine only because its handler already comes from a hook.
+   */
+  const dismissCopiedToast = useCallback(() => setCopiedToast(false), []);
+
+  /**
+   * Put the icon back.
+   *
+   * ⚠️ The timer is cleared on unmount AND on re-copy. Without the cleanup a
+   * second copy inside the window leaves the first timer running, and the tick
+   * reverts early — the visible symptom being a button that flickers back to
+   * `copy` while the toast still says it worked.
+   */
+  useEffect(() => {
+    if (!copiedIcon) return undefined;
+    const timer = setTimeout(() => setCopiedIcon(false), COPIED_ICON_MS);
+    return () => clearTimeout(timer);
+  }, [copiedIcon]);
   // What the encoder will throw away. Dropping it is right — there is no code
   // to send — but dropping it without saying so leaves the sender believing a
   // message went out whole.
@@ -182,6 +324,73 @@ export function TranslatorScreen({
   );
 
   const { tablet } = useLayout();
+
+  /**
+   * Sets the interface language from the menu.
+   *
+   * ⚠️ The INTERFACE only. Speech recognition is its own setting and is not
+   * touched here — changing what the buttons say should not silently change
+   * what the microphone listens for.
+   */
+  const pickLocale = useCallback(
+    (next: AppLocale) => {
+      setLocaleMenu(false);
+      setLocale(next);
+    },
+    [setLocale],
+  );
+
+  const closeLocaleMenu = useCallback(() => {
+    setLocaleMenu(false);
+  }, []);
+
+  /**
+   * Puts the cursor in the field.
+   *
+   * ⚠️ The input does NOT take focus on open — the keyboard covering half the
+   * screen was worse than the tap it saved. That left the pulsing dot pointing
+   * at a field the user still had to reach for, so the dot and the label it
+   * sits beside are now the shortcut: press either and the keyboard comes up.
+   */
+  const focusInput = useCallback(() => {
+    setTouchedInput(true);
+    inputRef.current?.focus();
+  }, []);
+
+  /**
+   * Keeps the sounding letter on screen.
+   *
+   * ⚠️ `measureLayout` against the scroll view, not the chip's own `onLayout`.
+   * A chip's layout is relative to its immediate parent — a word, inside the
+   * chip container, inside a card, inside the stack — so its `y` is nowhere
+   * near an offset into the thing that scrolls. Measuring against the scroll
+   * view is the only reading that means anything, at either layout.
+   *
+   * Failures are swallowed: the node can be gone by the time the measurement
+   * lands, on a message that stopped mid-scroll. Nothing to tell the user.
+   */
+  const followSoundingLetter = useCallback(
+    (node: View | null) => {
+      const scroller = tablet ? chipsScroll.current : cardsScroll.current;
+      if (!node || !scroller) return;
+      const target = scroller as unknown as React.ComponentRef<typeof View>;
+      try {
+        node.measureLayout(
+          target,
+          (_x, y) => {
+            // A third of the viewport above it, so the letter arrives in
+            // reading position rather than pinned to the top edge where the
+            // ones after it are invisible.
+            scroller.scrollTo({ y: Math.max(0, y - FOLLOW_MARGIN), animated: true });
+          },
+          () => undefined,
+        );
+      } catch {
+        // Measurement can throw if the tree changed underneath it.
+      }
+    },
+    [tablet],
+  );
 
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
@@ -226,9 +435,31 @@ export function TranslatorScreen({
               accessibilityRole="button"
               accessibilityLabel="locale-picker"
               testID="locale-picker"
+              // ⚠️ This had NO `onPress` at all — drawn on the artboard and
+              // never wired, exactly like Speak in 0.2.1 and Copy in 0.3.1.
+              // Nothing fails when a handler is missing, which is how three of
+              // them reached a tester.
+              //
+              // It opens a LIST. It cycled in 0.3.3, which read as a defect on
+              // a device: nothing says what the next tap does, Spanish costs
+              // two taps from English, and overshooting strands the reader in
+              // a language they cannot read, tapping a badge they can no
+              // longer identify. The chevron already promised a menu.
+              accessibilityState={{ expanded: localeMenu }}
+              onPress={() => {
+                setLocaleMenu(true);
+              }}
               style={styles.localeButton}
             >
-              <Text style={styles.localeText}>{localeBadge(locale)}</Text>
+              {/* ⚠️ The testID carries the VALUE. `assertVisible: '^ES$'` was
+                  how a flow read this back, and it passed on Android and
+                  failed on iOS — an accessible button folds its children's
+                  text into its own label there, so the inner "ES" stops
+                  existing as an element to find. An id that names the locale
+                  means the same thing on both platforms. */}
+              <Text testID={`locale-badge-${locale}`} style={styles.localeText}>
+                {localeBadge(locale)}
+              </Text>
               <Icon
                 name="chevronDown"
                 size={13}
@@ -280,12 +511,30 @@ export function TranslatorScreen({
               A tablet keeps the fixed layout the artboard draws: two full
               height halves side by side, with the chips scrolling inside their
               own card. There is room there for both to be whole. */}
-          <ScrollableCards tablet={tablet}>
+          <ScrollableCards tablet={tablet} scrollRef={cardsScroll}>
             <Card>
               <View style={styles.cardHead}>
-                <Text style={styles.label}>
-                  {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
-                </Text>
+                {/* ⚠️ The LABEL is the target, not just the dot. A 7pt circle
+                    is under half the 44pt minimum and nobody would aim at it;
+                    pressing the words beside it is the gesture a person
+                    actually makes, and both land in the field. */}
+                <Pressable
+                  testID="focus-input"
+                  accessibilityRole="button"
+                  accessibilityLabel="focus-input"
+                  onPress={focusInput}
+                  style={styles.labelRow}
+                >
+                  <Text style={styles.label}>
+                    {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
+                  </Text>
+                  {/* ⚠️ Shown only while the field is UNTOUCHED. The input no
+                      longer takes focus on open, so something has to say where
+                      to start — but a dot that never leaves is decoration, and
+                      one that persists after you have typed is a bug report
+                      waiting to happen. */}
+                  {showTypeHint ? <TypeHintDot label={t('translator.typeHint')} /> : null}
+                </Pressable>
                 {/* The other two ways of getting text in. Both were drawn on
                     the artboard and neither was ever wired: a tester pressed
                     Speak, watched nothing happen, and reasonably concluded
@@ -318,18 +567,20 @@ export function TranslatorScreen({
                 </Pressable>
               </View>
               <TextInput
+                ref={inputRef}
                 testID="translator-input"
                 accessibilityLabel="translator-input"
-                // The caret is waiting when the app opens. Typing is the
-                // primary thing this screen is for, and a seeded sample you
-                // have to tap before you can replace it is a step nobody
-                // wants twice.
-                //
-                // ⚠️ On OPEN, not on every mount — see the prop.
-                autoFocus={autoFocusInput}
+                // ⚠️ NOT auto-focused. It used to be, and the keyboard
+                // covering half the screen on open was worse than the tap it
+                // saved — the seeded sample was hidden behind it. The dot
+                // beside the language label is what points here instead.
                 style={toMorse ? styles.input : styles.monoInput}
                 value={toMorse ? text : morseInput}
-                onChangeText={toMorse ? setText : setMorseInput}
+                onChangeText={(next) => {
+                  setTouchedInput(true);
+                  (toMorse ? setText : setMorseInput)(next);
+                }}
+                onFocus={() => setTouchedInput(true)}
                 multiline
                 // The way OUT of the keyboard. A multiline input defaults to
                 // `submitBehavior: 'newline'`, so Return inserts a line break
@@ -342,6 +593,33 @@ export function TranslatorScreen({
                 submitBehavior="blurAndSubmit"
                 placeholderTextColor={theme.color.faint}
               />
+
+              {/* ⚠️ Below the field, not beside the label. Clearing a long
+                  message by holding backspace is the thing this replaces, and
+                  the hand is already at the bottom of the input when it gives
+                  up doing that. */}
+              <View style={styles.inputActions}>
+                <Pressable
+                  testID="clear-input"
+                  accessibilityRole="button"
+                  accessibilityLabel="clear-input"
+                  onPress={clearInput}
+                  style={styles.inputAction}
+                >
+                  <Icon name="backspace" size={15} color={theme.color.muted} />
+                  <Text style={styles.inputActionText}>{t('translator.clearAll')}</Text>
+                </Pressable>
+                <Pressable
+                  testID="paste-input"
+                  accessibilityRole="button"
+                  accessibilityLabel="paste-input"
+                  onPress={pasteInput}
+                  style={styles.inputAction}
+                >
+                  <Icon name="copy" size={15} color={theme.color.muted} />
+                  <Text style={styles.inputActionText}>{t('translator.paste')}</Text>
+                </Pressable>
+              </View>
             </Card>
 
             <Card grow testID="morse-card">
@@ -355,12 +633,13 @@ export function TranslatorScreen({
               {toMorse && showSurface ? (
                 <SignalSurface lit={playback.screenLit} />
               ) : toMorse ? (
-                <MorseOutput tablet={tablet}>
+                <MorseOutput tablet={tablet} scrollRef={chipsScroll}>
                   <MorseText
                     message={message}
                     selectedIndex={picked}
                     soundingIndex={playback.soundingIndex}
                     onSelectLetter={pickLetter}
+                    onSoundingLetter={followSoundingLetter}
                   />
                 </MorseOutput>
               ) : (
@@ -435,8 +714,15 @@ export function TranslatorScreen({
 
           <Toast
             visible={playback.lowVolume}
+            icon="volume"
             message={t('translator.volumeLow')}
             onDismiss={playback.dismissLowVolume}
+          />
+          <Toast
+            visible={copiedToast}
+            icon="check"
+            message={t('translator.copied')}
+            onDismiss={dismissCopiedToast}
           />
           <OutputChannels cells={channelCells} />
 
@@ -445,11 +731,31 @@ export function TranslatorScreen({
               playing={playback.playing}
               canPlay={playback.canPlay}
               onPress={playback.playing ? playback.stop : playback.play}
-              label={playback.playing ? t('translator.stop') : t('translator.signal')}
+              label={playback.playing ? t('translator.stop') : t('translator.play')}
             />
-            <IconButton name="copy" label="copy-morse" onPress={() => undefined} />
+            {/* ⚠️ This did NOTHING until 0.3.2 — `onPress={() => undefined}`.
+                It is the same defect a tester reported against Speak in 0.2.1:
+                a control drawn on the artboard and never wired, which looks
+                identical to a broken one. */}
+            <IconButton
+              name={copiedIcon ? 'check' : 'copy'}
+              label="copy-morse"
+              onPress={onCopy}
+            />
           </View>
         </View>
+
+        {/* Last child, so it paints over the cards and the channel strip
+            without needing a z-index argument with the shadows. It opens under
+            the badge: `insets.top` is where the header starts and the header
+            is 48pt tall. */}
+        <LocaleMenu
+          visible={localeMenu}
+          locale={locale}
+          top={insets.top + HEADER_HEIGHT}
+          onSelect={pickLocale}
+          onDismiss={closeLocaleMenu}
+        />
       </View>
     </AppFrame>
   );
@@ -474,7 +780,7 @@ const styles = StyleSheet.create({
   cardScroll: { flex: 1 },
   columns: { flex: 1, flexDirection: 'row', gap: theme.spacing.md },
   header: {
-    height: 48,
+    height: HEADER_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -510,6 +816,14 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     marginBottom: 10,
   },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
+  inputActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+  },
+  inputAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  inputActionText: { ...theme.type.hint, color: theme.color.muted },
   label: { ...theme.type.label, color: theme.color.faint, flexShrink: 0 },
   // The hint must shrink and wrap: it fits beside the label in English at 390pt
   // and collides at 360pt in Portuguese. Same fix as the artboard.

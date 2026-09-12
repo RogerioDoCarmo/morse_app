@@ -177,3 +177,48 @@ describe('dismiss-first-run.yaml', () => {
     expect(dismiss).toMatch(/assertNotVisible:\s*\n\s*id: 'first-run'/);
   });
 });
+
+/**
+ * ⚠️ A `hideKeyboard` with nothing to dismiss is NOT harmless.
+ *
+ * Maestro goes looking for somewhere to tap and takes the app with it —
+ * `screenshots.yaml` lost a run to exactly that, arriving at a screen where
+ * the next id no longer existed. Three of these were in the suite purely
+ * because the Translator used to focus its input on open; when that went, they
+ * became live traps.
+ *
+ * So: every dismissal must follow something that actually raises a keyboard.
+ */
+describe('keyboard dismissals', () => {
+  const flowFiles = (): string[] => {
+    const roots = [
+      path.join(__dirname, '.maestro'),
+      path.join(__dirname, '.maestro', 'flows'),
+      path.join(__dirname, '.maestro', 'video'),
+    ];
+    return roots.flatMap((dir) =>
+      fs
+        .readdirSync(dir)
+        .filter((name) => name.endsWith('.yaml'))
+        .map((name) => path.join(dir, name)),
+    );
+  };
+
+  it('only dismisses a keyboard something raised', () => {
+    const offenders: string[] = [];
+    for (const file of flowFiles()) {
+      const lines = fs.readFileSync(file, 'utf8').split('\n');
+      lines.forEach((line, index) => {
+        if (line.trim() !== '- hideKeyboard') return;
+        // The last thing that could have raised one, within reach above.
+        const before = lines
+          .slice(Math.max(0, index - 6), index)
+          .filter((candidate) => !candidate.trim().startsWith('#'));
+        if (!before.some((candidate) => candidate.includes('inputText'))) {
+          offenders.push(`${path.basename(file)}:${index + 1}`);
+        }
+      });
+    }
+    expect(offenders).toStrictEqual([]);
+  });
+});

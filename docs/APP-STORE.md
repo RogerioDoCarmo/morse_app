@@ -10,7 +10,7 @@ console, and so the answers stay consistent with what the app actually does.
 ## The copy
 
 Name, subtitle, keywords, promotional text, description and What's New live per
-language in [`store-listing/`](store-listing/) — one file each, every fenced
+language in [`store-assets/listing/`](../store-assets/listing/) — one file each, every fenced
 block exactly what goes in the matching field.
 
 Not duplicated here on purpose. Copy kept in two places is copy that disagrees
@@ -65,7 +65,7 @@ standing after Analytics ships.
 | Age rating | **4+** |
 | Price | Free |
 | Copyright | `2026 Rogério do Carmo` |
-| Support URL | see the warning below |
+| Support URL | <https://rogeriodocarmo.github.io/morse_app/support.html> — ✅ live, verified 200 |
 | Marketing URL | <https://rogeriodocarmo.com> — optional |
 | Privacy policy URL | <https://rogeriodocarmo.github.io/morse_app/privacy-policy.html> |
 
@@ -85,12 +85,13 @@ Apple's Kids Category — that is a separate opt-in, and it must stay un-opted:
 the Kids Category forbids third-party analytics, which this app ships
 (Crashlytics) and plans more of.
 
-⚠️ **The Support URL must actually offer support.** <https://rogeriodocarmo.com>
-is a portfolio page and a reviewer may reject it under Guideline 1.5 as not
-providing support. The cheap fix, before the first submission: a support page
-in this repository beside the privacy policy, published by the same GitHub
-Pages setup, listing the contact address and the known issues. It costs one
-file and avoids a rejection round-trip.
+✅ **The Support URL is settled.** <https://rogeriodocarmo.com> is a portfolio
+page and a reviewer may reject it under Guideline 1.5 as not providing support,
+so a support page was published beside the privacy policy on the same GitHub
+Pages setup. Both were re-checked on 12 September 2026 and return 200.
+
+⚠️ Do not swap it back to the portfolio domain for tidiness. The whole point is
+that the URL leads somewhere that answers a user's problem.
 
 ---
 
@@ -162,18 +163,32 @@ somebody answers it in the browser.
 
 Up to 10 per size, per language.
 
-⚠️ **`supportsTablet` is `true`, so iPad screenshots are not optional.**
-`.github/workflows/screenshots.yml` boots a Pro Max and nothing else, so the
-iPad set does not exist yet. Two ways out, and the choice is a product
-decision rather than a tooling one:
+⚠️ **`supportsTablet` is `true`, so iPad screenshots are not optional** — and
+that flag is not an oversight. The app has a `NavRail` instead of a tab bar
+above a threshold width, with three `.tablet.test.tsx` files behind it. Tablet
+support is implemented, so the honest move is to capture the set rather than
+withdraw the claim.
 
-- **Keep iPad support** and add an iPad simulator to the screenshots job. The
-  job already falls back through a list of device names; an iPad row is the
-  same shape.
-- **Drop it** — set `supportsTablet` to `false`. The app is a phone app in
-  every screenshot and every layout decision, and nothing in it wants a
-  10-inch canvas. This also removes an entire device class from the review
-  surface.
+The screenshots workflow captures **both**: `store-screenshots-ios` on a 6.9-inch
+iPhone and `store-screenshots-ipad` on a 13-inch iPad, from the same build and
+the same flow. `screenshots.yaml` needs no branching — `NavRail` carries the
+same `tab-<name>` testIDs as `TabBar`, and `open-settings` too, so the flow
+drives either layout without knowing which it is on.
+
+⚠️ **If tablet support is ever dropped, the iPad capture goes in the same
+change.** `screenshots-capture.test.ts` ties them together: while `app.json`
+says `supportsTablet: true`, the workflow must capture an iPad set.
+
+⚠️ **Simulator names are matched on a PREFIX, deliberately.** The first run
+asked for `iPad Pro 13-inch (M4)` on a runner that had `iPad Pro 13-inch (M5)`
+and captured nothing. The chip revision is not what decides the screen size, so
+it is not what to match on — and Apple will ship an M6.
+
+⚠️ **That run reported SUCCESS with an empty iPad artifact.** The check only
+looked at the iPhone directory. The job now fails when `app.json` declares
+`supportsTablet` and no iPad set was captured, because a green tick over a
+missing required asset is the same failure as the Android screenshots sitting
+at 320×640 for a week — found at upload, both times.
 
 ⚠️ **Check the dimensions the workflow printed before uploading.** The collect
 step prints each image's real size, and the job warns rather than fails when no

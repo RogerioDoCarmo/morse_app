@@ -3,7 +3,7 @@
     "name": "OmniMorse",
     "slug": "morse-app",
     "owner": "rogeriodocarmo",
-    "version": "0.3.0",
+    "version": "0.3.4",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "morseapp",
@@ -44,6 +44,14 @@
         "NSPrivacyCollectedDataTypes": [
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeCrashData",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeDeviceID",
             "NSPrivacyCollectedDataTypeLinked": false,
             "NSPrivacyCollectedDataTypeTracking": false,
             "NSPrivacyCollectedDataTypePurposes": [

@@ -4,17 +4,6 @@ import { LanguageScreen } from './LanguageScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 
-function portsHolding(stored: Readonly<Record<string, string>>): FakePorts {
-  const ports = createFakePorts();
-  return {
-    ...ports,
-    preferences: {
-      ...ports.preferences,
-      read: async (key: string) => stored[key] ?? null,
-    },
-  };
-}
-
 function show(ports: FakePorts = createFakePorts()) {
   const onBack = jest.fn();
   const view = renderWithProviders(<LanguageScreen onBack={onBack} />, { ports });
@@ -54,76 +43,56 @@ describe('the interface language', () => {
   });
 });
 
+/**
+ * ⚠️ The interface language and the recogniser are INDEPENDENT.
+ *
+ * Recognition used to follow the interface unless a "Match the interface"
+ * switch was turned off — so changing the app's language silently changed what
+ * the microphone listened for, on a device that might not even have that
+ * recogniser installed. These tests replace the ones that asserted the old
+ * coupling; they are not a weakening of them.
+ */
 describe('the recogniser language', () => {
-  it('follows the interface until told otherwise', () => {
+  it('offers the recognisers without hiding them behind a switch', () => {
     show();
-    expect(screen.getByTestId('speech-follows').props.value).toBe(true);
-    expect(screen.queryByTestId('language-recogniser')).toBeNull();
+    expect(screen.getByTestId('language-recogniser')).toBeTruthy();
+    expect(screen.queryByTestId('speech-follows')).toBeNull();
   });
 
-  it('names the language it will listen for while it follows', () => {
-    show();
-    expect(screen.getByText('Recognise speech in English')).toBeOnTheScreen();
-  });
-
-  it('offers the recognisers once it stops following', () => {
-    show();
-    fireEvent(screen.getByTestId('speech-follows'), 'valueChange', false);
-    expect(screen.getByTestId('language-recogniser')).toBeOnTheScreen();
-    expect(screen.getByTestId('recogniser-en')).toHaveTextContent(/English \(US\)/u);
-  });
-
-  // Turning the switch off must not silently change which language is heard.
-  it('starts from the interface language rather than jumping elsewhere', async () => {
+  it('picks a recogniser and stores it', async () => {
     const ports = createFakePorts();
     show(ports);
-    fireEvent(screen.getByTestId('speech-follows'), 'valueChange', false);
-    expect(screen.getByTestId('recogniser-en')).toBeSelected();
+    fireEvent.press(screen.getByTestId('recogniser-pt-BR'));
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
         key: 'settings.speechLocale',
-        value: 'en',
+        value: 'pt-BR',
       });
     });
   });
 
-  it('picks a different recogniser and stores it', async () => {
+  /**
+   * ⚠️ The whole point. Changing what the buttons say must not change what the
+   * microphone hears.
+   */
+  it('does not move when the interface language changes', async () => {
     const ports = createFakePorts();
     show(ports);
-    fireEvent(screen.getByTestId('speech-follows'), 'valueChange', false);
     fireEvent.press(screen.getByTestId('recogniser-es'));
-    expect(screen.getByTestId('recogniser-es')).toBeSelected();
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
         key: 'settings.speechLocale',
         value: 'es',
       });
     });
-  });
 
-  it('restores a stored recogniser, switch already off', async () => {
-    show(portsHolding({ 'settings.speechLocale': 'pt-BR' }));
-    await waitFor(() => {
-      expect(screen.getByTestId('speech-follows').props.value).toBe(false);
-    });
-    expect(screen.getByTestId('recogniser-pt-BR')).toBeSelected();
-  });
+    fireEvent.press(screen.getByTestId('interface-pt-BR'));
 
-  // 'follow' is the sentinel the port writes, since it cannot delete a key.
-  it('goes back to following, and says so in storage', async () => {
-    const ports = portsHolding({ 'settings.speechLocale': 'es' });
-    show(ports);
-    await waitFor(() => {
-      expect(screen.getByTestId('speech-follows').props.value).toBe(false);
-    });
-    fireEvent(screen.getByTestId('speech-follows'), 'valueChange', true);
-    expect(screen.queryByTestId('language-recogniser')).toBeNull();
-    await waitFor(() => {
-      expect(ports.calls.stored).toContainEqual({
-        key: 'settings.speechLocale',
-        value: 'follow',
-      });
-    });
+    // Changing the interface wrote nothing further to the recogniser.
+    const speechWrites = ports.calls.stored.filter(
+      (entry) => entry.key === 'settings.speechLocale',
+    );
+    expect(speechWrites).toStrictEqual([{ key: 'settings.speechLocale', value: 'es' }]);
   });
 });
 
@@ -144,5 +113,39 @@ describe('the screen itself', () => {
   it('shows no tab bar — it is reached from Settings, not the tabs', () => {
     show();
     expect(screen.queryByTestId('tab-translate')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ The tick is how a FLOW tells which row is selected. All three rows exist
+ * in every language, so asserting a row's own testID proves nothing — that is
+ * the shape of assertion that let a dead button through earlier in this
+ * project. Reading a translated heading instead fixed that on Android and
+ * failed on iOS, where an accessible container folds its children's text into
+ * its own label. Only the tick's id means the same thing on both platforms.
+ */
+describe('which row is selected', () => {
+  it('ticks the interface language and no other', () => {
+    show();
+    fireEvent.press(screen.getByTestId('interface-pt-BR'));
+
+    expect(screen.getByTestId('interface-pt-BR-tick')).toBeTruthy();
+    expect(screen.queryByTestId('interface-en-tick')).toBeNull();
+    expect(screen.queryByTestId('interface-es-tick')).toBeNull();
+  });
+
+  /**
+   * ⚠️ And the two settings tick independently. This is the separation 0.3.3
+   * introduced, and it is what `language.yaml` reads back after setting the
+   * interface from the Translator header.
+   */
+  it('ticks the recogniser separately from the interface', () => {
+    show();
+    fireEvent.press(screen.getByTestId('interface-pt-BR'));
+    fireEvent.press(screen.getByTestId('recogniser-es'));
+
+    expect(screen.getByTestId('interface-pt-BR-tick')).toBeTruthy();
+    expect(screen.getByTestId('recogniser-es-tick')).toBeTruthy();
+    expect(screen.queryByTestId('recogniser-pt-BR-tick')).toBeNull();
   });
 });

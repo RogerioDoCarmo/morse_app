@@ -83,3 +83,177 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-screen'
 - assertVisible:
     id: 'signal-button'
+
+# ⚠️ The copy button did NOTHING until 0.3.2 — `onPress={() => undefined}`,
+# drawn on the artboard and never wired. That is the same defect a tester
+# reported against Speak in 0.2.1, and it is invisible from the outside: a
+# control that does nothing looks exactly like one that is broken.
+#
+# There is no way to read the system clipboard from a flow, so what this can
+# check is that pressing it says so — the tick on the button and the toast.
+- tapOn:
+    id: 'copy-morse'
+# ⚠️ The SHORT-LIVED one first. The tick lasts COPIED_ICON_MS and the toast six
+# seconds, so whichever is asserted first spends its budget on the other's
+# assertion — and only the tick can run out.
+#
+# This flow has now failed both ways round. First on the toast, because the
+# tick's timer was clearing it too; then on the tick, because the fix for that
+# came with a reorder that was no longer needed and starved it instead.
+- assertVisible:
+    id: 'icon-check'
+- assertVisible:
+    id: 'toast'
+
+# ⚠️ And that the tick REVERTS. A button stuck on a tick has stopped saying
+# what it does and started saying what it did once. The wait is longer than
+# the revert delay on purpose.
+- extendedWaitUntil:
+    visible:
+      id: 'icon-copy'
+    timeout: 5000
+
+# The dot that replaced the auto-focus. It points at the input until the field
+# is touched, and this flow has already typed into it.
+- assertNotVisible:
+    id: 'type-hint-dot'
+
+# ── Clear and Paste ─────────────────────────────────────────────────────────
+# Neither control existed before 0.3.3. Emptying a long message meant holding
+# backspace until it gave up, and there was no way to bring text in from
+# another app at all.
+#
+# Clear is proved by the notice it takes AWAY. '#' has no Morse, so the
+# unsupported notice appears — and an empty field cannot be unsupported.
+- tapOn:
+    id: 'translator-input'
+- eraseText
+- inputText: 'HI #'
+# Return, not hideKeyboard: the Clear/Paste row sits directly under the field,
+# which is exactly where the soft keyboard is. This flow already learned that
+# `hideKeyboard` stopped working the day that row was added.
+- pressKey: Enter
+- assertVisible:
+    id: 'unsupported-notice'
+- tapOn:
+    id: 'clear-input'
+- assertNotVisible:
+    id: 'unsupported-notice'
+
+# ⚠️ Pasting into the same field it was copied from proves NOTHING — the text
+# was already there, and a Paste button that does nothing would pass. Crossing
+# the direction toggle is what makes it an assertion: the Morse copied a few
+# steps up goes into the DECODE field, and the card has to spell the original
+# word back out. Only a real clipboard read puts 'HI' on the other side.
+#
+# This is also the only clipboard READ the suite can see at all. Maestro cannot
+# look at the system clipboard; it can only watch the app react to it.
+# ⚠️ `segment-toText`, NOT `direction-toggle`. The toggle is a SegmentedControl
+# whose outer track carries the testID and is not clickable — Maestro tapped it
+# happily, landed between the two segments, and the direction never changed.
+# The failure then surfaced two steps later as a missing `tap-input`, which
+# reads like a broken screen rather than a mis-aimed tap.
+- tapOn:
+    id: 'segment-toText'
+- assertVisible:
+    id: 'tap-input'
+- tapOn:
+    id: 'clear-input'
+- tapOn:
+    id: 'paste-input'
+# Extended: the read is async, so the field fills a frame or two after the tap.
+- extendedWaitUntil:
+    visible:
+      id: 'decoded-text'
+      text: 'HI'
+    timeout: 5000
+
+# ── The label as a shortcut into the field ──────────────────────────────────
+# ⚠️ THIS is where focus can be asserted. The unit tier cannot see it: RNTL 13
+# has no `toBeFocused`, the imperative `focus()` reaches a native method that
+# does nothing under the test renderer, and `element.instance` is null on the
+# New Architecture. A keyboard, on the other hand, is visible from here — it
+# covers the lower half of the screen, which is the same fact `pressKey: Enter`
+# relies on further up.
+#
+# Fresh state, because the hint only points while the field is untouched.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
+- assertVisible:
+    id: 'type-hint-dot'
+- tapOn:
+    id: 'focus-input'
+
+# ⚠️ TYPING is the proof, not geometry. The first version of this asserted that
+# the Clear/Paste row had gone behind the keyboard — true on the 320dp CI
+# emulator and false on a Pixel_9, where that row sits far above it. The
+# keyboard was up the whole time (`dumpsys input_method` said
+# `mInputViewShown=true`); the assertion was simply measuring the wrong thing.
+#
+# `eraseText` and `inputText` go to whatever holds focus. If the press had not
+# put the cursor in the field, this text would land nowhere and the assertion
+# below would fail — on any screen size.
+- eraseText
+- inputText: 'E'
+- assertVisible:
+    id: 'translator-input'
+    text: '^E$'
+
+# And the dot stops pointing, because pressing it counts as touching the field.
+# A hint that survives the gesture it was asking for cannot be dismissed.
+- assertNotVisible:
+    id: 'type-hint-dot'
+- pressKey: Enter
+- assertVisible:
+    id: 'clear-input'
+
+# ── The language menu ───────────────────────────────────────────────────────
+# ⚠️ It CYCLED in 0.3.3 and that read as a defect on a device: nothing said
+# what the next tap would do, and overshooting stranded the reader in a
+# language they could not read, tapping a badge they could no longer identify.
+- tapOn:
+    id: 'locale-picker'
+- assertVisible:
+    id: 'locale-menu'
+# All three at once, named in their own languages — that is what a list buys
+# over a cycle.
+- assertVisible:
+    id: 'locale-option-en'
+- assertVisible:
+    id: 'locale-option-pt-BR'
+- assertVisible:
+    id: 'locale-option-es'
+
+# One tap to Spanish from English. The cycle needed two, and had no way back.
+- tapOn:
+    id: 'locale-option-es'
+- assertNotVisible:
+    id: 'locale-menu'
+# ⚠️ An id, not '^ES$'. That text assertion passed on Android and FAILED on
+# iOS: an accessible button folds its children's text into its own label
+# there, so the inner "ES" is not a separate element to find. The badge's
+# testID carries the locale instead, and means the same thing on both.
+- assertVisible:
+    id: 'locale-badge-es'
+
+# And back in one, which is the half the cycle could not do at all.
+- tapOn:
+    id: 'locale-picker'
+- tapOn:
+    id: 'locale-option-en'
+- assertVisible:
+    id: 'locale-badge-en'
+
+# Opening it and pressing nothing must change nothing.
+- tapOn:
+    id: 'locale-picker'
+- tapOn:
+    id: 'locale-menu-backdrop'
+- assertNotVisible:
+    id: 'locale-menu'
+- assertVisible:
+    id: 'locale-badge-en'

@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const DIRECTORY = path.join(__dirname, 'docs', 'store-listing');
+const DIRECTORY = path.join(__dirname, 'store-assets', 'listing');
 
 /** The languages the app ships in, and therefore the listing does. */
 const LOCALES = ['en-US', 'pt-BR', 'es-419'] as const;

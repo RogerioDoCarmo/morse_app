@@ -4,6 +4,29 @@ Everything a different Mac needs to build, sign and ship this app the way the
 current one does. Written 11 September 2026, because the machine it describes
 may not be around for the next release.
 
+⚠️ **THE DATE IS NOW KNOWN: this Mac goes back on Monday 14 September 2026.**
+"May not be around" was written while that was still vague; it is not vague any
+more. Everything below stops being reachable on that date, and anything that
+only exists here is lost with it.
+
+What that means in practice:
+
+- **Local builds end.** `--local` is what has cut every build since the EAS
+  credits ran out on 9 September, and those do not reset until **1 October**.
+  Between the drop-off and that reset there is no machine and no credit — plan
+  any build that must happen in that window for before Monday.
+- **Xcode goes with it.** No `pnpm submit:ios`, no archive, no Privacy Report,
+  no simulator. An iOS build in that window cannot be made at all.
+- **`store-assets/` is gitignored and lives only here.** Screenshots and videos
+  are re-downloadable from the workflows; the archived cuts under
+  `store-assets/archive/` are not, and neither are the `build-*.{apk,aab,ipa}`
+  artifacts in the repository root.
+- ⚠️ **Two credential files exist only on this disk** and are in no backup this
+  document controls: `google-services.json` and `GoogleService-Info.plist`. The
+  Firebase service-account JSON at `~/Downloads/service-account.json` is a
+  third. They are the reason a fresh machine cannot simply clone and build —
+  see "Secrets and where they live" below.
+
 ⚠️ **No secrets are in this file, and none should be added.** It records
 *where* credentials come from and *what shape* they are, never their contents.
 
@@ -119,7 +142,14 @@ command, deliberately — see [COMMANDS.md](../COMMANDS.md).
 # the project FROM GIT, so the copy it builds has no credentials. The path must
 # be absolute: the build runs from a temp copy, and only an absolute path still
 # points at the real file from inside one.
+#
+# ⚠️ PICK THE CHANNEL FIRST — the signing decides it and there is no build that
+# does both. `build:ipa:local` is App Store signed, so it can only go to
+# TestFlight; Firebase App Distribution cannot install it. The `:adhoc` twin is
+# the one testers can install, and it needs their device registered with
+# `eas device:create`.
 GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:local
+GOOGLE_SERVICE_INFO_PLIST_PATH="$PWD/GoogleService-Info.plist" pnpm build:ipa:adhoc:local
 
 # A local Android build. ANDROID_HOME is not exported anywhere, so it is passed
 # here too.

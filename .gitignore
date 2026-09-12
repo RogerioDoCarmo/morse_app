@@ -65,3 +65,17 @@ google-services.json
 *service-account*.json
 play-store-credentials.json
 GoogleService-Info.plist
+
+# Generated store assets — screenshots, videos, archived cuts. All of it is
+# re-downloadable from the screenshots and videos workflows, so none of it
+# belongs in git.
+#
+# ⚠️ `listing/` is the EXCEPTION and must stay tracked: it is the store copy in
+# three languages plus the icon and feature graphic, it is written by hand, and
+# `store-listing.test.ts` fails the build when a block outgrows its field. It
+# lived in `docs/` until everything store-related was gathered here.
+store-assets/*
+!store-assets/listing/
+
+# Gradle state from building the local Expo modules.
+modules/*/android/.gradle/

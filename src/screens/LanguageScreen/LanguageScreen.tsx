@@ -1,19 +1,14 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import { usePorts } from '@/application/providers/PortsProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { Icon } from '@/components/Icon';
 import { SUPPORTED_LOCALES, type AppLocale } from '@/core/domain/locale';
 import type { TranslationKey } from '@/i18n';
+import { NATIVE_LOCALE_NAMES } from '@/i18n/localeNames';
 import { theme } from '@/theme';
-
-/** Endonyms: a language is listed the way its own speakers write it. */
-const NATIVE: Readonly<Record<AppLocale, string>> = {
-  en: 'English',
-  'pt-BR': 'Português (Brasil)',
-  es: 'Español',
-};
 
 /** The same language named in whatever language the reader is already in. */
 const NAME_KEY: Readonly<Record<AppLocale, TranslationKey>> = {
@@ -46,9 +41,10 @@ export function LanguageScreen({ onBack }: Props): React.JSX.Element {
   const { t, locale, setLocale } = useLocale();
   const insets = useSafeAreaInsets();
   const { settings, setSpeechLocale } = useSettings();
+  const { locale: localePort } = usePorts();
 
-  const follows = settings.speechLocale === null;
-  const speechLocale = settings.speechLocale ?? locale;
+  // ⚠️ The DEVICE locale, not the interface one — the two are independent.
+  const speechLocale = settings.speechLocale ?? localePort.getDeviceLocale();
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]} testID="language-screen">
@@ -79,7 +75,7 @@ export function LanguageScreen({ onBack }: Props): React.JSX.Element {
               <ChoiceRow
                 key={value}
                 testID={`interface-${value}`}
-                title={NATIVE[value]}
+                title={NATIVE_LOCALE_NAMES[value]}
                 subtitle={t(NAME_KEY[value])}
                 selected={value === locale}
                 first={index === 0}
@@ -94,47 +90,26 @@ export function LanguageScreen({ onBack }: Props): React.JSX.Element {
         <View style={styles.block}>
           <Text style={styles.label}>{t('language.speech')}</Text>
           <View style={styles.card}>
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleCopy}>
-                <Text style={styles.rowTitle}>{t('language.matchInterface')}</Text>
-                <Text style={styles.hint}>
-                  {t('language.matchInterfaceHint', { language: t(NAME_KEY[locale]) })}
-                </Text>
-              </View>
-              <Switch
-                testID="speech-follows"
-                accessibilityLabel="speech-follows"
-                value={follows}
-                onValueChange={(next) => {
-                  // Turning it off starts from wherever it already listens,
-                  // which is the interface — so nothing changes until a
-                  // different recogniser is picked below.
-                  setSpeechLocale(next ? null : locale);
-                }}
-                trackColor={{ false: theme.color.track, true: theme.color.accent }}
-                thumbColor={theme.color.surface}
-              />
+            {/* ⚠️ No "Match the interface" toggle any more. Recognition used
+                to follow the app language unless this was switched off, so
+                changing the UI silently changed what the microphone listened
+                for. They are two settings now, and the list is always here
+                rather than hidden behind a switch. */}
+            <View testID="language-recogniser">
+              <Text style={styles.subLabel}>{t('language.recogniseIn')}</Text>
+              {SUPPORTED_LOCALES.map((value, index) => (
+                <ChoiceRow
+                  key={value}
+                  testID={`recogniser-${value}`}
+                  title={RECOGNISER[value]}
+                  selected={value === speechLocale}
+                  first={index === 0}
+                  onPress={() => {
+                    setSpeechLocale(value);
+                  }}
+                />
+              ))}
             </View>
-
-            {/* The artboard pushes to a fourth screen here. Three options do
-                not earn one, so they open in place. */}
-            {follows ? null : (
-              <View testID="language-recogniser">
-                <Text style={styles.subLabel}>{t('language.recogniseIn')}</Text>
-                {SUPPORTED_LOCALES.map((value, index) => (
-                  <ChoiceRow
-                    key={value}
-                    testID={`recogniser-${value}`}
-                    title={RECOGNISER[value]}
-                    selected={value === speechLocale}
-                    first={index === 0}
-                    onPress={() => {
-                      setSpeechLocale(value);
-                    }}
-                  />
-                ))}
-              </View>
-            )}
           </View>
         </View>
 
@@ -180,8 +155,14 @@ function ChoiceRow({
         <Text style={styles.choiceTitle}>{title}</Text>
         {subtitle === undefined ? null : <Text style={styles.hint}>{subtitle}</Text>}
       </View>
+      {/* ⚠️ `${testID}-tick`, so which row is SELECTED can be asserted without
+          reading rendered text. The flows used to prove a language change by
+          looking for a translated heading; that passed on Android and failed on
+          iOS, where an accessible container folds its children's text into its
+          own label and the individual strings stop being separate elements.
+          A testID means the same thing on both platforms. */}
       {selected ? (
-        <View style={styles.tick}>
+        <View testID={`${testID}-tick`} style={styles.tick}>
           <Icon name="check" size={15} color={theme.color.onAccent} strokeWidth={3} />
         </View>
       ) : (
@@ -231,7 +212,6 @@ const styles = StyleSheet.create({
   pressed: { backgroundColor: theme.color.groundAlt },
   choiceCopy: { flex: 1, gap: 1 },
   choiceTitle: { ...theme.type.action, fontSize: 16, color: theme.color.ink },
-  rowTitle: { ...theme.type.action, color: theme.color.ink },
   hint: { ...theme.type.hint, fontSize: 13, lineHeight: 18, color: theme.color.muted },
   subLabel: {
     ...theme.type.label,
@@ -242,16 +222,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.color.border,
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: theme.spacing.md,
-    minHeight: 64,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  toggleCopy: { flex: 1, gap: 2 },
   tick: {
     width: 26,
     height: 26,

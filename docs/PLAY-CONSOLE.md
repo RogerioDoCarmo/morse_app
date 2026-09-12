@@ -51,8 +51,8 @@ recruiting anyone:
 
 | Field | Value |
 | --- | --- |
-| App bundle | `morse-0.3.0-6.aab` — versionCode **6**, versionName **0.3.0** |
-| Release name | `0.3.0 (6)` |
+| App bundle | `build-1789245766768.aab` — versionCode **11**, versionName **0.3.4** |
+| Release name | `0.3.4 (11)` |
 
 ⚠️ **Not** `omnimorse-play-verification-vc6.apk`. That one carries the
 developer-account token and exists only to prove key ownership — it must never
@@ -60,20 +60,20 @@ be distributed.
 
 ### Release notes
 
-Per language, and paste-ready, in [`store-listing/`](store-listing/):
+Per language, and paste-ready, in [`store-assets/listing/`](../store-assets/listing/):
 
 | | |
 | --- | --- |
-| English | [`en-US.md`](store-listing/en-US.md) |
-| Português do Brasil | [`pt-BR.md`](store-listing/pt-BR.md) |
-| Español | [`es-419.md`](store-listing/es-419.md) |
+| English | [`en-US.md`](../store-assets/listing/en-US.md) |
+| Português do Brasil | [`pt-BR.md`](../store-assets/listing/pt-BR.md) |
+| Español | [`es-419.md`](../store-assets/listing/es-419.md) |
 
 ---
 
 ## Store listing
 
 App name, short description and full description live per language in
-[`store-listing/`](store-listing/) — one file each, every block exactly what
+[`store-assets/listing/`](../store-assets/listing/) — one file each, every block exactly what
 goes in the matching Play Console field. Those files also carry the App Store's
 fields, which is why they are no longer named for Play alone; the table at the
 top of each says which block goes to which console.

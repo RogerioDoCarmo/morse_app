@@ -26,8 +26,60 @@ permissions:
 
 jobs:
   android:
-    name: Capture screenshots
+    name: Capture screenshots — ${{ matrix.label }}
     runs-on: ubuntu-latest
+    # ⚠️ Play has THREE screenshot slots, not one. A listing with only phone
+    # images shows "not available for your device" language on tablets, and
+    # the 7-inch and 10-inch slots are what turn that off. The app already
+    # draws a different layout there — two full-height halves side by side —
+    # so these are not the phone set scaled up, they are a different picture.
+    #
+    # ⚠️ The profiles are chosen for Play's rules, not for familiarity. Each
+    # side must be 320-3840px and the long side no more than twice the short
+    # one: 1200x1920 and 1600x2560 are both 1:1.6 and sit comfortably inside
+    # that. `avdmanager list device` is the list these names come from —
+    # inventing one fails the emulator step after the whole app has built.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: phone
+            profile: pixel_6
+            skin: ''
+            pad_to_16_9: 'no'
+            strip_taskbar: 'no'
+            artifact: store-screenshots-android
+          - label: 7-inch tablet
+            profile: Nexus 7 2013
+            skin: ''
+            pad_to_16_9: 'no'
+            strip_taskbar: 'yes'
+            artifact: store-screenshots-android-tablet7
+          - label: 10-inch tablet
+            profile: pixel_tablet
+            skin: ''
+            pad_to_16_9: 'no'
+            strip_taskbar: 'yes'
+            artifact: store-screenshots-android-tablet10
+          # ⚠️ The Chromebook slot wants 16:9 LANDSCAPE, and no device in
+          # `avdmanager list device` is 16:9 — the tablets are 1:1.6.
+          #
+          # ⚠️ `-skin 1920x1080` DOES NOT WORK, and the run that tried it is
+          # the proof. The option reached the emulator — the log echoes it in
+          # full — and the boot line still read
+          # `androidboot.qemu.skin=320x640`, because with no `profile` the
+          # AVD's own config wins and 320x640 is the default. That is Play's
+          # absolute minimum and exactly the trap this workflow already
+          # carries a warning about.
+          #
+          # So: a real tablet profile, and the ratio corrected afterwards by
+          # padding, where it can be verified rather than hoped for.
+          - label: chromebook
+            profile: pixel_tablet
+            skin: ''
+            pad_to_16_9: 'yes'
+            strip_taskbar: 'yes'
+            artifact: store-screenshots-android-chromebook
     # A hung build otherwise runs to GitHub's six-hour default before anyone
     # finds out. `./gradlew assembleRelease` sat here for over three hours on
     # 6 September and had reached neither Maestro nor a flow; a cold build of
@@ -63,19 +115,35 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
-          # ⚠️ A REAL phone profile, and the reason this line exists: without
+          # ⚠️ A REAL device profile, and the reason this line exists: without
           # it the emulator is 320x640, and the first full set of Android
           # store screenshots was captured at exactly that — 320px is Play's
           # absolute MINIMUM for the short side, so they were accepted and
           # looked it. Play recommends 1080x1920 or better; pixel_6 is
           # 1080x2400, which also matches the tall aspect of the iOS set.
-          profile: pixel_6
+          profile: ${{ matrix.profile }}
           emulator-options: >-
             -no-window -no-snapshot -noaudio -no-boot-anim
             -gpu swiftshader_indirect -camera-back none -camera-front none
+            ${{ matrix.skin }}
           disable-animations: true
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
+            # ⚠️ NOT the app's dialogs — the LAUNCHER'S. Three slots across two
+            # runs failed on `assertVisible: first-run`, and the debug capture
+            # kept by the previous fix showed why: a "Pixel Launcher isn't
+            # responding" ANR sitting on top, with the first-run carousel
+            # rendered perfectly behind it. The app was fine every time;
+            # Maestro simply could not see through the dialog.
+            #
+            # The flow's own `retry` cannot help, because the dialog outlives
+            # the relaunch. `record-video-clips.sh` has suppressed these since
+            # a promo recording lost its footage the same way — the screenshots
+            # workflow never learned it.
+            adb shell settings put global hide_error_dialogs 1 || true
+            # That stops the NEXT one; anything already up needs dismissing.
+            adb shell input keyevent KEYCODE_BACK || true
+            adb shell input keyevent KEYCODE_HOME || true
             maestro test .maestro/screenshots.yaml
 
       # ⚠️ `if: always()`, not `if: failure()`. In the E2E workflow the Maestro
@@ -98,12 +166,86 @@ jobs:
           test -n "$(ls -A screenshots/)" || {
             echo "::error::The flow produced no screenshots."; exit 1;
           }
+          # ⚠️ Print the SIZE. A profile name the emulator does not recognise
+          # falls back to a default rather than failing, and a 320x640 set is
+          # what that looks like — accepted by Play, and unusable. This is the
+          # line that makes the difference visible without opening a file.
+          # ⚠️ BEFORE the pad, because padding a shot that still carries the
+          # taskbar would compute the 16:9 width from the wrong height and
+          # frame Google's own app icons in a store asset.
+          #
+          # Phones are excluded on purpose — see the script's header. A phone
+          # has no taskbar and its white tab bar is the colour the scan
+          # follows, so it reports 226px of "bar" on a 1080x2400 shot.
+          if [ "${{ matrix.strip_taskbar }}" = "yes" ]; then
+            sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
+            for f in screenshots/*.png; do tools/strip-system-bar.sh "$f"; done
+          fi
+
+          # ⚠️ Padded, not cropped. Cropping 2560x1600 to 16:9 would cut 160px
+          # off a screen whose content reaches the edges; padding keeps every
+          # pixel of the app and adds ground colour at the sides. The colour is
+          # theme.ts's `ground`, so the join is invisible rather than a black
+          # bar someone has to explain.
+          if [ "${{ matrix.pad_to_16_9 }}" = "yes" ]; then
+            sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
+            for f in screenshots/*.png; do
+              ffmpeg -hide_banner -loglevel error -y -i "$f" \
+                -vf "scale=iw:ih,pad=ceil(ih*16/9/2)*2:ih:(ow-iw)/2:0:color=0xf2f4f7" \
+                "$f.16x9.png" && mv "$f.16x9.png" "$f"
+            done
+          fi
+
+          SLOT='${{ matrix.label }}' python3 - <<'PY'
+          import glob, os, struct, sys
+
+          slot = os.environ['SLOT']
+          shots = sorted(glob.glob('screenshots/*.png'))
+          if not shots:
+              sys.exit('::error::no screenshots to measure')
+
+          d = open(shots[0], 'rb').read(24)
+          w, h = struct.unpack('>II', d[16:24])
+          ratio = max(w, h) / min(w, h)
+          print(f'::notice::{slot} captured at {w}x{h} (ratio {ratio:.3f})')
+
+          if min(w, h) < 320 or max(w, h) > 3840:
+              sys.exit(f'::error::{w}x{h} is outside Play 320-3840px')
+
+          # ⚠️ NO "long side at most twice the short side" rule here, though an
+          # earlier draft had one. Running that draft against the phone set
+          # already accepted by Play failed it: 1080x2400 is 2.222, because a
+          # modern 20:9 phone simply is that shape. A check that rejects the
+          # one configuration known to work is worse than no check.
+          if slot == 'chromebook':
+              # Play asks for 16:9 and landscape here. A portrait capture means
+              # the emulator ignored the skin and the app booted upright.
+              if w < h:
+                  sys.exit(f'::error::chromebook shots must be landscape, got {w}x{h}')
+              if abs(ratio - 16 / 9) > 0.02:
+                  sys.exit(f'::error::chromebook wants 16:9, got {ratio:.3f}')
+          PY
+
+      # ⚠️ WITHOUT THIS A FAILURE TEACHES NOTHING, and three slots failed in
+      # one run to prove it. `Collect` copies only `NN-*.png`, so when a flow
+      # dies before its first screenshot there is nothing to upload and
+      # Maestro's hierarchy dumps and failure shot — which say WHY — are
+      # thrown away with the runner. e2e.yml has kept its debug output from
+      # the start; this workflow never did, and the difference only shows on
+      # the day something breaks.
+      - name: Keep the Maestro output when the flow failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-debug
+          path: ~/.maestro/tests/
+          retention-days: 14
 
       - name: Upload the screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: store-screenshots-android
+          name: ${{ matrix.artifact }}
           path: screenshots/
           retention-days: 30
 
@@ -181,52 +323,78 @@ jobs:
       # Pro Max produces. The E2E job grabs whatever comes first because it
       # only cares that the app works; here the pixel dimensions ARE the
       # deliverable, and a screenshot off a plain iPhone is rejected at upload.
-      - name: Boot a Pro Max and capture
+      # ⚠️ TWO sets, because `supportsTablet` is true. App Store Connect
+      # requires a 13-inch iPad set alongside the 6.9-inch iPhone one, and the
+      # iPad set is not optional while the app declares tablet support — which
+      # it means: there is a NavRail instead of a tab bar, and three
+      # `.tablet.test.tsx` files behind it.
+      #
+      # The flow itself needs no changes. `NavRail` carries the same
+      # `tab-<name>` testIDs as `TabBar`, and `open-settings` too, so
+      # screenshots.yaml drives either layout without knowing which it is on.
+      - name: Capture on a 6.9-inch iPhone
         continue-on-error: true
         env:
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
+          APP: ios/build/Build/Products/Release-iphonesimulator/${{ env.IOS_SCHEME }}.app
         run: |
-          xcrun simctl list devices available
-          udid=""
-          for want in "iPhone 17 Pro Max" "iPhone 16 Pro Max" "iPhone 15 Pro Max"; do
-            udid=$(xcrun simctl list devices available \
-                   | awk -F'[()]' -v w="$want" '$0 ~ w " \\(" {print $2; exit}')
-            [ -n "$udid" ] && { echo "Using $want ($udid)"; break; }
-          done
-          if [ -z "$udid" ]; then
-            echo "::warning::No Pro Max simulator on this runner. Falling back to \
-          any iPhone — the images will not be 1290x2796 and App Store Connect \
-          will refuse them for the 6.7-inch slot."
-            udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
-          fi
-          [ -n "$udid" ] || { echo "::error::No iPhone simulator at all."; exit 1; }
+          tools/capture-ios-screenshots.sh screenshots-ios \
+            "iPhone 17 Pro Max" "iPhone 16 Pro Max" "iPhone 15 Pro Max"
 
-          xcrun simctl boot "$udid" || true
-          xcrun simctl bootstatus "$udid" -b
-          xcrun simctl install "$udid" \
-            "ios/build/Build/Products/Release-iphonesimulator/${IOS_SCHEME}.app"
-          maestro --device "$udid" test .maestro/screenshots.yaml
+      # 2064x2752 on the M4, 2048x2732 on the 12.9-inch — App Store Connect
+      # accepts either for the 13-inch slot.
+      - name: Capture on a 13-inch iPad
+        continue-on-error: true
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
+          APP: ios/build/Build/Products/Release-iphonesimulator/${{ env.IOS_SCHEME }}.app
+        run: |
+          tools/capture-ios-screenshots.sh screenshots-ipad \
+            "iPad Pro 13-inch" "iPad Air 13-inch" "iPad Pro (12.9-inch)"
 
-      - name: Collect the screenshots
+      # ⚠️ `if: always()`, not `if: failure()`. The images ARE the job, and
+      # `continue-on-error` above means a flow that fell over on its last step
+      # still leaves everything before it worth keeping.
+      - name: Check something was captured
         if: always()
         run: |
-          mkdir -p screenshots-ios
-          find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} screenshots-ios/ \;
-          ls -la screenshots-ios/
-          # The size the store actually wants, reported rather than assumed —
-          # a run that quietly produced the wrong dimensions is worse than one
-          # that failed, because it is only found at upload.
-          for f in screenshots-ios/*.png; do
-            echo "$(sips -g pixelWidth -g pixelHeight "$f" | awk -F': ' '/pixel/{printf "%s ", $2}')  $(basename "$f")"
+          for dir in screenshots-ios screenshots-ipad; do
+            if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
+              echo "$dir: $(ls "$dir" | wc -l | tr -d ' ') images"
+            else
+              echo "::warning::$dir is empty."
+            fi
           done
-          test -n "$(ls -A screenshots-ios/)" || {
-            echo "::error::The flow produced no screenshots."; exit 1;
-          }
+          test -n "$(ls -A screenshots-ios 2>/dev/null)" \
+            || { echo "::error::The iPhone capture produced nothing."; exit 1; }
 
-      - name: Upload the screenshots
+          # ⚠️ While `supportsTablet` is true, App Store Connect REQUIRES the
+          # iPad set — so an empty one has to fail the job, not warn.
+          #
+          # The first run of this captured no iPad at all (it asked for an M4
+          # on a runner that had an M5) and reported SUCCESS, because the check
+          # above only looked at the iPhone. That is the same shape as the
+          # Android screenshots sitting at 320x640 for a week: a green tick
+          # over a missing or wrong asset, found at upload.
+          if node -e "process.exit(require('./app.json').expo.ios.supportsTablet ? 0 : 1)"; then
+            test -n "$(ls -A screenshots-ipad 2>/dev/null)" || {
+              echo "::error::app.json declares supportsTablet, so Apple requires an iPad set — and none was captured."
+              exit 1
+            }
+          fi
+
+      - name: Upload the iPhone screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: store-screenshots-ios
           path: screenshots-ios/
+          retention-days: 30
+
+      - name: Upload the iPad screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots-ipad
+          path: screenshots-ipad/
           retention-days: 30

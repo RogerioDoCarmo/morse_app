@@ -83,19 +83,122 @@ CELL_H=${CELL_H:-950}
 
 TABS=(tab-translate tab-speak tab-tap tab-learn)
 
-# ⚠️ A SILENT audio track, added deliberately, on both outputs.
+# ⚠️ THE AUDIO IS RE-RENDERED, NOT RECORDED.
 #
 # `adb shell screenrecord` cannot capture audio at all — there is no flag for
-# it — so the footage of an app whose headline feature is playing Morse as
-# SOUND arrives mute, and nothing here can change that. What this does avoid is
-# the second problem: a file with no audio STREAM at all is rejected or
-# silently re-encoded by several upload pipelines, and diagnosing that from the
-# other side of an upload form is miserable. A track that exists and is silent
-# costs a few kilobytes.
+# it — so footage of an app whose headline feature is playing Morse as SOUND
+# arrives mute. Rather than dub music over it, the soundtrack is produced by
+# the APP'S OWN encoder, timeline and tone renderer, for the same message and
+# speed the flow typed: see tools/render-morse-audio.ts. It is not a
+# soundalike, it is the same code that drives the speaker.
 #
-# If the promo wants music, add it on YouTube rather than here: Play takes a
-# YouTube URL, so the soundtrack is a property of the upload, not of this file.
+# Where it goes is measured from the footage rather than predicted — see
+# tools/detect-playback-start.sh — because everything about when a flow
+# reaches the play button is variable, and a soundtrack half a second out is
+# worse than silence.
+#
+# The fallback is still a silent track. A file with no audio STREAM at all is
+# rejected or silently re-encoded by several upload pipelines, and diagnosing
+# that from the far side of an upload form is miserable.
 SILENT_AUDIO=(-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100)
+
+# ⚠️ WHAT THE PUBLISHED FILE CARRIES, which is not what the app renders.
+#
+# `renderWav` produces 8 kHz MONO, and that is right for the app: a 600 Hz sine
+# needs nothing more, and it keeps a saved message under a megabyte a minute.
+# Passed through to a published video it is wrong for a different reason — 8 kHz
+# mono is telephone quality, YouTube and LinkedIn re-encode it, and a viewer
+# hears "bad audio" even though the tone itself is clean at any rate above
+# 1.2 kHz.
+#
+# Resampled on the way out only. Nothing about the app changes, and the tone is
+# still the app's own — the same samples, carried at a rate a video platform
+# expects.
+AUDIO_RATE=${AUDIO_RATE:-44100}
+AUDIO_CHANNELS=${AUDIO_CHANNELS:-2}
+AUDIO_BITRATE=${AUDIO_BITRATE:-128k}
+
+# What each recorded flow types, and how slowly it plays it. ⚠️ These MUST
+# match the flows; `video-assets.test.ts` fails the build if they drift, because
+# audio of a different message than the one on screen is worse than none.
+TOUR_TEXT=${TOUR_TEXT:-MORSE CODE}
+TRANSLATE_TEXT=${TRANSLATE_TEXT:-OMNIMORSE ENCODE DECODE LEARN}
+PLAYBACK_WPM=${PLAYBACK_WPM:-5}
+
+# ⚠️ WHETHER A SILENT RESULT IS ALLOWED TO PASS. It is not, by default.
+#
+# `plan_audio` fails softly — if the flash cannot be located in the footage it
+# returns nothing and the composition falls back to `SILENT_AUDIO`, which is a
+# real, valid, completely silent stream. Every check downstream passes: the
+# file has an audio stream, ffprobe is happy, the workflow is green, and the
+# artifact is a mute demo of an app whose headline feature is sound.
+#
+# That is not hypothetical. Two promo videos were delivered exactly that way
+# and had to be redone, which is why "does this need audio?" is now the first
+# question asked about any video here. A pipeline that can quietly answer "no"
+# on its own makes the question pointless.
+#
+# Set REQUIRE_AUDIO=0 only to deliberately produce a silent cut.
+REQUIRE_AUDIO=${REQUIRE_AUDIO:-1}
+
+# Stops the run when a soundtrack was expected and could not be produced.
+#
+# Loud and early: by the time the artifact is downloaded, the person looking at
+# it has no way to tell a deliberate silent cut from a failed onset detection.
+require_audio() {
+  local name=$1 plan=$2
+  [ -n "$plan" ] && return 0
+  if [ "$REQUIRE_AUDIO" = "1" ]; then
+    echo "::error::$name would be SILENT — playback could not be located in the footage." >&2
+    echo "  The flash onset is measured from the clip, so this usually means the flow" >&2
+    echo "  never reached the play button, or the recording stopped before it did." >&2
+    echo "  Re-run with REQUIRE_AUDIO=0 only if a silent cut is what you actually want." >&2
+    exit 1
+  fi
+  echo "    $name: no audio, and REQUIRE_AUDIO=0 — continuing with a silent track." >&2
+}
+
+AUDIO_DIR=$(mktemp -d)
+trap 'rm -rf "$AUDIO_DIR" "${NORMALISED:-}"' EXIT
+
+# Renders the tone for one flow and reports where it belongs in the OUTPUT
+# timeline, or nothing at all when playback cannot be found in the clip.
+#
+#   plan_audio <normalised clip> <text> <trim start> -> "<wav>|<offset seconds>"
+plan_audio() {
+  local clip=$1 text=$2 trim_start=$3
+  local onset wav offset
+  onset=$(tools/detect-playback-start.sh "$clip" 2>/dev/null || true)
+  [ -n "$onset" ] || { echo "    no playback found in $(basename "$clip") — leaving it silent" >&2; return 1; }
+
+  wav="$AUDIO_DIR/$(basename "$clip" .mp4).wav"
+  npx -y tsx tools/render-morse-audio.ts "$text" "$PLAYBACK_WPM" "$wav" >/dev/null || return 1
+
+  # Where the flash lands once the clip has been trimmed and a card put in
+  # front of it.
+  #
+  # ⚠️ A NEGATIVE result does not mean "no audio", and clamping it to zero is
+  # wrong. It means the window opens PART-WAY THROUGH the message — which is
+  # exactly what the four-up does, taking the last sixteen seconds of a clip
+  # whose playback began ninety seconds earlier. The tone then has to start
+  # part-way through too, or the sound is minutes out of step with the flashing
+  # it is supposed to match.
+  #
+  # ⚠️ AND THE SAME CLAMP WAS STILL ON THE OFFSET, one line below that
+  # warning. `max(0, CARD + (onset - trim))` collapses to 0 whenever the flash
+  # precedes the window — which is the four-up's normal case — and swallows
+  # CARD_SECONDS with it. The tone then started at output 0.000s, over the
+  # intro card, two seconds before the footage it belongs to.
+  #
+  # The offset is where the audio starts IN THE OUTPUT, and the earliest that
+  # can ever be is the end of the card. Only the part inside the window is
+  # allowed to push it later; the part before the window belongs in `seek`.
+  local seek
+  seek=$(python3 -c "print(f'{max(0.0, $trim_start - $onset):.3f}')")
+  offset=$(python3 -c "print(f'{$CARD_SECONDS + max(0.0, $onset - $trim_start):.3f}')")
+  echo "    $(basename "$clip"): flash at ${onset}s -> audio at ${offset}s of the output, from ${seek}s into the tone" >&2
+  echo "$wav|$offset|$seek"
+}
 
 command -v ffmpeg >/dev/null || { echo "::error::ffmpeg is not installed." >&2; exit 1; }
 [ -f "$CARD" ] || { echo "::error::No card image at $CARD" >&2; exit 1; }
@@ -124,7 +227,6 @@ done
 card_chain="scale=1920:1080:force_original_aspect_ratio=decrease,\
 pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=$GROUND,setsar=1,fps=$FPS,format=yuv420p"
 
-SILENT_INDEX=2
 # ⚠️ NORMALISE TO A CONSTANT FRAME RATE FIRST. This is not tidiness; without
 # it the four-up comes out EMPTY.
 #
@@ -141,9 +243,12 @@ SILENT_INDEX=2
 #
 # `fps=$FPS` duplicates frames across the gaps, so a resting screen becomes a
 # still image that actually exists on the timeline and can be seeked into.
+duration_of() {
+  ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$1"
+}
+
 echo "--- normalising to $FPS fps ---"
 NORMALISED=$(mktemp -d)
-trap 'rm -rf "$NORMALISED"' EXIT
 for name in tour "${TABS[@]}"; do
   ffmpeg -hide_banner -loglevel error -y -i "$CLIPS/$name.mp4" \
     -vf "fps=$FPS,tpad=stop_mode=clone:stop_duration=$TAIL_PAD" \
@@ -154,7 +259,52 @@ for name in tour "${TABS[@]}"; do
 done
 CLIPS=$NORMALISED
 
-echo "--- promo-youtube.mp4 ---"
+echo "--- audio, re-rendered from the app's own tone ---"
+tour_norm_s=$(duration_of "$CLIPS/tour.mp4")
+tour_trim=$(python3 -c "print(max(0.0, $tour_norm_s - $TOUR_SECONDS))")
+tour_audio=$(plan_audio "$CLIPS/tour.mp4" "$TOUR_TEXT" "$tour_trim") || tour_audio=""
+require_audio promo-youtube "$tour_audio"
+
+grid_norm_s=$(duration_of "$CLIPS/tab-translate.mp4")
+grid_trim=$(python3 -c "print(max(0.0, $grid_norm_s - $GRID_SECONDS))")
+grid_audio=$(plan_audio "$CLIPS/tab-translate.mp4" "$TRANSLATE_TEXT" "$grid_trim") || grid_audio=""
+require_audio linkedin-fourup "$grid_audio"
+
+# ⚠️ `adelay` then `apad`: the delay puts the tone where the flash is, and the
+# pad keeps the stream alive to the end of the video. Without the pad the audio
+# stream ends when the tone does, and `-shortest` then truncates the outro card
+# with it.
+#
+# The audio is always the LAST input, so its index is the same whether it is a
+# rendered tone or the silent fallback — which is what lets one encode command
+# serve both.
+plan_to_args() {
+  local plan=$1 index=$2
+  if [ -z "$plan" ]; then
+    AUDIO_IN=("${SILENT_AUDIO[@]}")
+    AUDIO_FILTER=""
+    AUDIO_MAP="$index:a"
+    return
+  fi
+  local wav offset seek ms
+  IFS='|' read -r wav offset seek <<<"$plan"
+  ms=$(python3 -c "print(int(float('$offset') * 1000))")
+  # ⚠️ `-ss` BEFORE `-i`, so it seeks the input rather than decoding and
+  # discarding — and so the delay below measures from the seeked position.
+  AUDIO_IN=(-ss "$seek" -i "$wav")
+  # ⚠️ `apad` alone pads FOREVER, and `-shortest` does not reliably stop a
+  # filter_complex output — the first version of this ran ffmpeg at 98% CPU for
+  # forty-four minutes on a two-minute encode, generating silence it would
+  # never stop generating. `whole_dur` bounds it to the video it accompanies.
+  AUDIO_FILTER=";[$index:a]adelay=${ms}|${ms},apad=whole_dur=${AUDIO_WHOLE_DUR}[aout]"
+  AUDIO_MAP="[aout]"
+}
+
+# The finished length: a card at each end around however much of the tour the
+# window actually holds. `apad` is bounded to exactly this.
+AUDIO_WHOLE_DUR=$(python3 -c "print(f'{2*$CARD_SECONDS + min($TOUR_SECONDS, $tour_norm_s):.3f}')")
+plan_to_args "$tour_audio" 2
+echo "--- promo-youtube.mp4 (${AUDIO_WHOLE_DUR}s) ---"
 # ⚠️ The sides are the flat ink ground, NOT a blurred copy of the footage.
 # The blur was tried first and is the obvious thing to reach for, but this app
 # is a white UI: blowing a portrait frame up to cover 1920x1080 crops a thin
@@ -168,21 +318,25 @@ echo "--- promo-youtube.mp4 ---"
 ffmpeg -hide_banner -loglevel error -y \
   -loop 1 -t "$CARD_SECONDS" -i "$CARD" \
   -sseof -"$TOUR_SECONDS" -i "$CLIPS/tour.mp4" \
-  "${SILENT_AUDIO[@]}" \
+  "${AUDIO_IN[@]}" \
   -filter_complex "
     [0:v]$card_chain[card];
     [card]split=2[intro][outro];
     [1:v]fps=$FPS,scale=-2:$PHONE_H,
          pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=$GROUND,
          setsar=1,format=yuv420p[body];
-    [intro][body][outro]concat=n=3:v=1:a=0[v]
+    [intro][body][outro]concat=n=3:v=1:a=0[v]$AUDIO_FILTER
   " \
-  -map "[v]" -map "$SILENT_INDEX:a" -shortest \
-  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -c:a aac -b:a 96k \
+  -map "[v]" -map "$AUDIO_MAP" -shortest \
+  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p \
+  -c:a aac -ar "$AUDIO_RATE" -ac "$AUDIO_CHANNELS" -b:a "$AUDIO_BITRATE" \
   -movflags +faststart "$OUT/promo-youtube.mp4"
 
-SILENT_INDEX=5
-echo "--- linkedin-fourup.mp4 ---"
+# hstack ends with its shortest input, so the grid body is the shortest cell.
+shortest_tab=$(for t in "${TABS[@]}"; do duration_of "$CLIPS/$t.mp4"; done | sort -n | head -1)
+AUDIO_WHOLE_DUR=$(python3 -c "print(f'{2*$CARD_SECONDS + min($GRID_SECONDS, $shortest_tab):.3f}')")
+plan_to_args "$grid_audio" 5
+echo "--- linkedin-fourup.mp4 (${AUDIO_WHOLE_DUR}s) ---"
 cells=""
 chain=""
 for i in "${!TABS[@]}"; do
@@ -198,23 +352,43 @@ done
 ffmpeg -hide_banner -loglevel error -y \
   -loop 1 -t "$CARD_SECONDS" -i "$CARD" \
   $(for t in "${TABS[@]}"; do printf -- '-sseof -%s -i %s ' "$GRID_SECONDS" "$CLIPS/$t.mp4"; done) \
-  "${SILENT_AUDIO[@]}" \
+  "${AUDIO_IN[@]}" \
   -filter_complex "
     [0:v]$card_chain[card];
     [card]split=2[intro][outro];
     $chain
     ${cells}hstack=inputs=4:shortest=1[row];
     [row]pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=$GROUND,setsar=1,format=yuv420p[body];
-    [intro][body][outro]concat=n=3:v=1:a=0[v]
+    [intro][body][outro]concat=n=3:v=1:a=0[v]$AUDIO_FILTER
   " \
-  -map "[v]" -map "$SILENT_INDEX:a" -shortest \
-  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -c:a aac -b:a 96k \
+  -map "[v]" -map "$AUDIO_MAP" -shortest \
+  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p \
+  -c:a aac -ar "$AUDIO_RATE" -ac "$AUDIO_CHANNELS" -b:a "$AUDIO_BITRATE" \
   -movflags +faststart "$OUT/linkedin-fourup.mp4"
 
 echo "--- what came out ---"
 for f in promo-youtube linkedin-fourup; do
-  printf '%-22s %s\n' "$f.mp4" \
+  printf '%-22s %s' "$f.mp4" \
     "$(ffprobe -v error -select_streams v:0 \
         -show_entries stream=width,height -show_entries format=duration \
         -of csv=p=0:s=x "$OUT/$f.mp4" | tr '\n' ' ')"
+
+  # The rate and channel count too: 8 kHz mono is what the app renders, and
+  # letting it through to a published file is the mistake this reports on.
+  printf '%s ' "$(ffprobe -v error -select_streams a:0 \
+    -show_entries stream=sample_rate,channels -of csv=p=0:s=/ "$OUT/$f.mp4")"
+
+  # ⚠️ MEAN VOLUME, not "has an audio stream". The silent fallback IS a valid
+  # stream — ffprobe reports it as aac, stereo, 44.1kHz, exactly like a real
+  # one. Only the level tells them apart: true silence reads as -91dB or the
+  # literal string `-inf`.
+  level=$(ffmpeg -hide_banner -nostats -i "$OUT/$f.mp4" -map 0:a:0 -af volumedetect \
+    -f null - 2>&1 | sed -n 's/.*mean_volume: \(.*\) dB/\1/p' | tail -1)
+  if [ -z "$level" ]; then
+    printf '  ⚠️ NO AUDIO STREAM\n'
+  elif [ "$level" = "-inf" ] || [ "${level%.*}" -le -90 ] 2>/dev/null; then
+    printf '  ⚠️ AUDIO IS SILENT (mean %s dB)\n' "$level"
+  else
+    printf '  audio mean %s dB\n' "$level"
+  fi
 done
