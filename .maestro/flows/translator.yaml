@@ -148,8 +148,13 @@ appId: com.rogeriodocarmo.morse
 #
 # This is also the only clipboard READ the suite can see at all. Maestro cannot
 # look at the system clipboard; it can only watch the app react to it.
+# ⚠️ `segment-toText`, NOT `direction-toggle`. The toggle is a SegmentedControl
+# whose outer track carries the testID and is not clickable — Maestro tapped it
+# happily, landed between the two segments, and the direction never changed.
+# The failure then surfaced two steps later as a missing `tap-input`, which
+# reads like a broken screen rather than a mis-aimed tap.
 - tapOn:
-    id: 'direction-toggle'
+    id: 'segment-toText'
 - assertVisible:
     id: 'tap-input'
 - tapOn:
