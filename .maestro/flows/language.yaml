@@ -78,3 +78,23 @@ appId: com.rogeriodocarmo.morse
     id: 'settings-back'
 - assertVisible:
     id: 'translator-screen'
+
+# ── The header badge on the Translator screen ───────────────────────────────
+# ⚠️ It had NO `onPress` until 0.3.3 — drawn on the artboard and never wired,
+# the third dead control from that source after Speak in 0.2.1 and Copy in
+# 0.3.1. A missing handler fails nothing and looks identical to a broken one,
+# so only a flow that presses it and reads the badge back can tell them apart.
+#
+# The interface was forced to English above, so the cycle starts somewhere
+# known. All three taps are asserted: a picker that can leave a user in a
+# language they cannot read, with no way back round, is worse than no picker.
+- assertVisible: '^EN$'
+- tapOn:
+    id: 'locale-picker'
+- assertVisible: '^PT$'
+- tapOn:
+    id: 'locale-picker'
+- assertVisible: '^ES$'
+- tapOn:
+    id: 'locale-picker'
+- assertVisible: '^EN$'
