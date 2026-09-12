@@ -102,6 +102,22 @@ TABS=(tab-translate tab-speak tab-tap tab-learn)
 # that from the far side of an upload form is miserable.
 SILENT_AUDIO=(-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100)
 
+# ⚠️ WHAT THE PUBLISHED FILE CARRIES, which is not what the app renders.
+#
+# `renderWav` produces 8 kHz MONO, and that is right for the app: a 600 Hz sine
+# needs nothing more, and it keeps a saved message under a megabyte a minute.
+# Passed through to a published video it is wrong for a different reason — 8 kHz
+# mono is telephone quality, YouTube and LinkedIn re-encode it, and a viewer
+# hears "bad audio" even though the tone itself is clean at any rate above
+# 1.2 kHz.
+#
+# Resampled on the way out only. Nothing about the app changes, and the tone is
+# still the app's own — the same samples, carried at a rate a video platform
+# expects.
+AUDIO_RATE=${AUDIO_RATE:-44100}
+AUDIO_CHANNELS=${AUDIO_CHANNELS:-2}
+AUDIO_BITRATE=${AUDIO_BITRATE:-128k}
+
 # What each recorded flow types, and how slowly it plays it. ⚠️ These MUST
 # match the flows; `video-assets.test.ts` fails the build if they drift, because
 # audio of a different message than the one on screen is worse than none.
@@ -302,7 +318,8 @@ ffmpeg -hide_banner -loglevel error -y \
     [intro][body][outro]concat=n=3:v=1:a=0[v]$AUDIO_FILTER
   " \
   -map "[v]" -map "$AUDIO_MAP" -shortest \
-  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -c:a aac -b:a 96k \
+  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p \
+  -c:a aac -ar "$AUDIO_RATE" -ac "$AUDIO_CHANNELS" -b:a "$AUDIO_BITRATE" \
   -movflags +faststart "$OUT/promo-youtube.mp4"
 
 # hstack ends with its shortest input, so the grid body is the shortest cell.
@@ -335,7 +352,8 @@ ffmpeg -hide_banner -loglevel error -y \
     [intro][body][outro]concat=n=3:v=1:a=0[v]$AUDIO_FILTER
   " \
   -map "[v]" -map "$AUDIO_MAP" -shortest \
-  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -c:a aac -b:a 96k \
+  -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p \
+  -c:a aac -ar "$AUDIO_RATE" -ac "$AUDIO_CHANNELS" -b:a "$AUDIO_BITRATE" \
   -movflags +faststart "$OUT/linkedin-fourup.mp4"
 
 echo "--- what came out ---"
@@ -344,6 +362,11 @@ for f in promo-youtube linkedin-fourup; do
     "$(ffprobe -v error -select_streams v:0 \
         -show_entries stream=width,height -show_entries format=duration \
         -of csv=p=0:s=x "$OUT/$f.mp4" | tr '\n' ' ')"
+
+  # The rate and channel count too: 8 kHz mono is what the app renders, and
+  # letting it through to a published file is the mistake this reports on.
+  printf '%s ' "$(ffprobe -v error -select_streams a:0 \
+    -show_entries stream=sample_rate,channels -of csv=p=0:s=/ "$OUT/$f.mp4")"
 
   # ⚠️ MEAN VOLUME, not "has an audio stream". The silent fallback IS a valid
   # stream — ffprobe reports it as aac, stereo, 44.1kHz, exactly like a real
