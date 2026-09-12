@@ -19,6 +19,7 @@
     "build:aab:local": "eas build --platform android --profile production --local",
     "build:ipa:local": "eas build --platform ios --profile production --local",
     "build:ipa:adhoc:local": "eas build --platform ios --profile preview --local",
+    "submit:ios": "tools/submit-ios.sh",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
