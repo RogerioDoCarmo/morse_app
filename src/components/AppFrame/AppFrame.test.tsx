@@ -39,6 +39,26 @@ describe('AppFrame', () => {
     expect(screen.queryByTestId('nav-rail')).toBeNull();
   });
 
+  /**
+   * ⚠️ A tablet had NO bottom inset at all, and the store screenshots are what
+   * found it. On a phone the inset arrives through `TabBar`, which pads itself
+   * by `Math.max(insets.bottom, spacing.md)`. A tablet has the rail instead of
+   * a tab bar, so nothing applied it — every screen ran to the physical bottom
+   * of the glass, which on an Android tablet is UNDER THE TASKBAR. The
+   * Translator's Play button was half covered by it at 2560x1600.
+   *
+   * 34 is the fixture's bottom inset, asserted literally: reading it back from
+   * `useSafeAreaInsets` would agree with whatever the component did, including
+   * doing nothing.
+   */
+  it('keeps a tablet clear of the system bar at the bottom', () => {
+    show(TABLET);
+
+    expect(screen.getByTestId('tablet-content')).toHaveStyle({
+      paddingBottom: 34,
+    });
+  });
+
   it('gives a tablet the rail and no bottom bar', () => {
     show(TABLET);
     expect(screen.getByTestId('nav-rail')).toBeOnTheScreen();

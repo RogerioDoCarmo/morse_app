@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavRail } from '@/components/NavRail';
 import { TabBar, type TabName } from '@/components/TabBar';
 import { useLayout } from '@/application/useLayout';
@@ -29,6 +30,7 @@ export function AppFrame({
   children,
 }: Props): React.JSX.Element {
   const { tablet } = useLayout();
+  const insets = useSafeAreaInsets();
 
   if (tablet) {
     return (
@@ -39,7 +41,23 @@ export function AppFrame({
           unavailable={unavailable}
           onOpenSettings={onOpenSettings}
         />
-        <View style={styles.fill}>{children}</View>
+        {/* ⚠️ `insets.bottom`, and its ABSENCE was a real defect.
+            
+            On a phone the bottom inset arrives through `TabBar`, which pads
+            itself by `Math.max(insets.bottom, spacing.md)`. A tablet has no
+            tab bar — it has the rail instead — so nothing applied the inset
+            at all, and every screen ran to the physical bottom of the glass.
+            
+            On an Android tablet that means UNDER THE TASKBAR. The Translator's
+            Play button, the last thing in its column, was half covered by it
+            on a 2560x1600 emulator; the store screenshot is what made it
+            visible, on the build that was about to ship. */}
+        <View
+          testID="tablet-content"
+          style={[styles.fill, { paddingBottom: insets.bottom }]}
+        >
+          {children}
+        </View>
       </View>
     );
   }
