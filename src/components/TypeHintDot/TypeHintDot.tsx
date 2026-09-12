@@ -12,6 +12,22 @@ const HALO = 2.6;
 const BEAT_MS = 1100;
 
 /**
+ * How many times it breathes before resting as a plain dot.
+ *
+ * ⚠️ FINITE, and measured rather than chosen. An endless loop cost the Play
+ * promo tour TWENTY-THREE SECONDS — 148s to 171s for the identical flow, the
+ * only difference being this animation — because Maestro waits for the UI to
+ * settle after every command and a perpetual animation never settles.
+ * `screenrecord` stops dead at 180s, and the tour had already been truncated
+ * once that way, losing Speak, Tap and Learn entirely.
+ *
+ * It is the better design regardless: the dot has one job, which is to catch
+ * the eye once. Something that pulses at you indefinitely has stopped being a
+ * hint and become a nag.
+ */
+const BEATS = 6;
+
+/**
  * A small pulsing dot that points at the text field.
  *
  * ⚠️ It replaced the input's AUTO-FOCUS. Focusing on open put the keyboard over
@@ -22,9 +38,12 @@ const BEAT_MS = 1100;
  * The halo pulses rather than the dot: growing the dot itself would shift the
  * label beside it on every beat, since both sit in the same flex row.
  *
- * ⚠️ `useNativeDriver` — this runs for as long as the user has not typed, which
- * may be the whole time a message is playing. On the JS thread it would compete
- * with the driver interval that switches the torch every few milliseconds.
+ * ⚠️ `useNativeDriver` — on the JS thread it would compete with the driver
+ * interval that switches the torch every few milliseconds.
+ *
+ * ⚠️ And it stops after {@link BEATS}. It used to run until the field was
+ * touched, which cost the promo tour 23 seconds of Maestro settle time against
+ * a 180-second recording ceiling.
  */
 export function TypeHintDot({
   label,
@@ -50,6 +69,7 @@ export function TypeHintDot({
           useNativeDriver: true,
         }),
       ]),
+      { iterations: BEATS },
     );
     loop.start();
     // ⚠️ Stopped on unmount. The hint disappears the moment the field is
