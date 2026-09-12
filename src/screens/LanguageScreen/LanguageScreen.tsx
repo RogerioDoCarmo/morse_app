@@ -7,14 +7,8 @@ import { useSettings } from '@/application/providers/SettingsProvider';
 import { Icon } from '@/components/Icon';
 import { SUPPORTED_LOCALES, type AppLocale } from '@/core/domain/locale';
 import type { TranslationKey } from '@/i18n';
+import { NATIVE_LOCALE_NAMES } from '@/i18n/localeNames';
 import { theme } from '@/theme';
-
-/** Endonyms: a language is listed the way its own speakers write it. */
-const NATIVE: Readonly<Record<AppLocale, string>> = {
-  en: 'English',
-  'pt-BR': 'Português (Brasil)',
-  es: 'Español',
-};
 
 /** The same language named in whatever language the reader is already in. */
 const NAME_KEY: Readonly<Record<AppLocale, TranslationKey>> = {
@@ -81,7 +75,7 @@ export function LanguageScreen({ onBack }: Props): React.JSX.Element {
               <ChoiceRow
                 key={value}
                 testID={`interface-${value}`}
-                title={NATIVE[value]}
+                title={NATIVE_LOCALE_NAMES[value]}
                 subtitle={t(NAME_KEY[value])}
                 selected={value === locale}
                 first={index === 0}

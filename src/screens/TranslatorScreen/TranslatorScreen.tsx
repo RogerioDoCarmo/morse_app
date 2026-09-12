@@ -3,12 +3,14 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
+import { LocaleMenu } from '@/components/LocaleMenu';
 import { IconButton } from '@/components/IconButton';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalButton } from '@/components/SignalButton';
 import { SignalSurface } from '@/components/SignalSurface';
 import { Toast } from '@/components/Toast';
+import { TypeHintDot } from '@/components/TypeHintDot';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
@@ -18,22 +20,22 @@ import {
   encodeToString,
   unsupportedCharacters,
 } from '@/core/domain/morse';
-import { SUPPORTED_LOCALES, type AppLocale } from '@/core/domain/locale';
+import { type AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { unitMsForWpm } from '@/core/domain/timeline';
+import { localeBadge } from '@/i18n/localeNames';
 import { theme } from '@/theme';
 
 /**
  * The two-letter badge in the header. Derived, not translated — it would read
  * the same in all three locales.
  */
-function localeBadge(locale: AppLocale): string {
-  return locale === 'pt-BR' ? 'PT' : locale.toUpperCase();
-}
+/** The header's height, shared with the menu that opens under it. */
+const HEADER_HEIGHT = 48;
 
 /** Which way the translation runs. */
 type Direction = 'toMorse' | 'toText';
@@ -158,6 +160,8 @@ export function TranslatorScreen({
   // would never be true on open and the dot would never show; and clearing the
   // field later is not a reason to start pointing at it again.
   const [touchedInput, setTouchedInput] = useState(false);
+  const [localeMenu, setLocaleMenu] = useState(false);
+  const inputRef = useRef<TextInput>(null);
   /**
    * ⚠️ TWO states, not one, and they have different lifetimes on purpose.
    *
@@ -322,17 +326,36 @@ export function TranslatorScreen({
   const { tablet } = useLayout();
 
   /**
-   * Steps to the next interface language.
+   * Sets the interface language from the menu.
    *
    * ⚠️ The INTERFACE only. Speech recognition is its own setting and is not
    * touched here — changing what the buttons say should not silently change
    * what the microphone listens for.
    */
-  const cycleLocale = useCallback(() => {
-    const order = SUPPORTED_LOCALES;
-    const next = order[(order.indexOf(locale) + 1) % order.length];
-    if (next) setLocale(next);
-  }, [locale, setLocale]);
+  const pickLocale = useCallback(
+    (next: AppLocale) => {
+      setLocaleMenu(false);
+      setLocale(next);
+    },
+    [setLocale],
+  );
+
+  const closeLocaleMenu = useCallback(() => {
+    setLocaleMenu(false);
+  }, []);
+
+  /**
+   * Puts the cursor in the field.
+   *
+   * ⚠️ The input does NOT take focus on open — the keyboard covering half the
+   * screen was worse than the tap it saved. That left the pulsing dot pointing
+   * at a field the user still had to reach for, so the dot and the label it
+   * sits beside are now the shortcut: press either and the keyboard comes up.
+   */
+  const focusInput = useCallback(() => {
+    setTouchedInput(true);
+    inputRef.current?.focus();
+  }, []);
 
   /**
    * Keeps the sounding letter on screen.
@@ -417,10 +440,15 @@ export function TranslatorScreen({
               // Nothing fails when a handler is missing, which is how three of
               // them reached a tester.
               //
-              // It cycles rather than opening a menu: three languages is a
-              // shorter list than the sheet that would present them, and the
-              // badge changing under the thumb is its own confirmation.
-              onPress={cycleLocale}
+              // It opens a LIST. It cycled in 0.3.3, which read as a defect on
+              // a device: nothing says what the next tap does, Spanish costs
+              // two taps from English, and overshooting strands the reader in
+              // a language they cannot read, tapping a badge they can no
+              // longer identify. The chevron already promised a menu.
+              accessibilityState={{ expanded: localeMenu }}
+              onPress={() => {
+                setLocaleMenu(true);
+              }}
               style={styles.localeButton}
             >
               <Text style={styles.localeText}>{localeBadge(locale)}</Text>
@@ -478,7 +506,17 @@ export function TranslatorScreen({
           <ScrollableCards tablet={tablet} scrollRef={cardsScroll}>
             <Card>
               <View style={styles.cardHead}>
-                <View style={styles.labelRow}>
+                {/* ⚠️ The LABEL is the target, not just the dot. A 7pt circle
+                    is under half the 44pt minimum and nobody would aim at it;
+                    pressing the words beside it is the gesture a person
+                    actually makes, and both land in the field. */}
+                <Pressable
+                  testID="focus-input"
+                  accessibilityRole="button"
+                  accessibilityLabel="focus-input"
+                  onPress={focusInput}
+                  style={styles.labelRow}
+                >
                   <Text style={styles.label}>
                     {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
                   </Text>
@@ -487,15 +525,8 @@ export function TranslatorScreen({
                       to start — but a dot that never leaves is decoration, and
                       one that persists after you have typed is a bug report
                       waiting to happen. */}
-                  {showTypeHint ? (
-                    <View
-                      testID="type-hint-dot"
-                      accessibilityLabel={t('translator.typeHint')}
-                      accessibilityRole="image"
-                      style={styles.hintDot}
-                    />
-                  ) : null}
-                </View>
+                  {showTypeHint ? <TypeHintDot label={t('translator.typeHint')} /> : null}
+                </Pressable>
                 {/* The other two ways of getting text in. Both were drawn on
                     the artboard and neither was ever wired: a tester pressed
                     Speak, watched nothing happen, and reasonably concluded
@@ -528,6 +559,7 @@ export function TranslatorScreen({
                 </Pressable>
               </View>
               <TextInput
+                ref={inputRef}
                 testID="translator-input"
                 accessibilityLabel="translator-input"
                 // ⚠️ NOT auto-focused. It used to be, and the keyboard
@@ -704,6 +736,18 @@ export function TranslatorScreen({
             />
           </View>
         </View>
+
+        {/* Last child, so it paints over the cards and the channel strip
+            without needing a z-index argument with the shadows. It opens under
+            the badge: `insets.top` is where the header starts and the header
+            is 48pt tall. */}
+        <LocaleMenu
+          visible={localeMenu}
+          locale={locale}
+          top={insets.top + HEADER_HEIGHT}
+          onSelect={pickLocale}
+          onDismiss={closeLocaleMenu}
+        />
       </View>
     </AppFrame>
   );
@@ -728,7 +772,7 @@ const styles = StyleSheet.create({
   cardScroll: { flex: 1 },
   columns: { flex: 1, flexDirection: 'row', gap: theme.spacing.md },
   header: {
-    height: 48,
+    height: HEADER_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -773,14 +817,6 @@ const styles = StyleSheet.create({
   inputAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   inputActionText: { ...theme.type.hint, color: theme.color.muted },
   label: { ...theme.type.label, color: theme.color.faint, flexShrink: 0 },
-  // Deliberately small and in the accent, not a red badge. It points at the
-  // field; it is not reporting that anything is wrong.
-  hintDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: theme.color.accent,
-  },
   // The hint must shrink and wrap: it fits beside the label in English at 390pt
   // and collides at 360pt in Portuguese. Same fix as the artboard.
   hint: {

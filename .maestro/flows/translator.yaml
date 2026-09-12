@@ -167,3 +167,86 @@ appId: com.rogeriodocarmo.morse
       id: 'decoded-text'
       text: 'HI'
     timeout: 5000
+
+# ── The label as a shortcut into the field ──────────────────────────────────
+# ⚠️ THIS is where focus can be asserted. The unit tier cannot see it: RNTL 13
+# has no `toBeFocused`, the imperative `focus()` reaches a native method that
+# does nothing under the test renderer, and `element.instance` is null on the
+# New Architecture. A keyboard, on the other hand, is visible from here — it
+# covers the lower half of the screen, which is the same fact `pressKey: Enter`
+# relies on further up.
+#
+# Fresh state, because the hint only points while the field is untouched.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+      - runFlow: ../dismiss-first-run.yaml
+- assertVisible:
+    id: 'type-hint-dot'
+- tapOn:
+    id: 'focus-input'
+
+# ⚠️ TYPING is the proof, not geometry. The first version of this asserted that
+# the Clear/Paste row had gone behind the keyboard — true on the 320dp CI
+# emulator and false on a Pixel_9, where that row sits far above it. The
+# keyboard was up the whole time (`dumpsys input_method` said
+# `mInputViewShown=true`); the assertion was simply measuring the wrong thing.
+#
+# `eraseText` and `inputText` go to whatever holds focus. If the press had not
+# put the cursor in the field, this text would land nowhere and the assertion
+# below would fail — on any screen size.
+- eraseText
+- inputText: 'E'
+- assertVisible:
+    id: 'translator-input'
+    text: '^E$'
+
+# And the dot stops pointing, because pressing it counts as touching the field.
+# A hint that survives the gesture it was asking for cannot be dismissed.
+- assertNotVisible:
+    id: 'type-hint-dot'
+- pressKey: Enter
+- assertVisible:
+    id: 'clear-input'
+
+# ── The language menu ───────────────────────────────────────────────────────
+# ⚠️ It CYCLED in 0.3.3 and that read as a defect on a device: nothing said
+# what the next tap would do, and overshooting stranded the reader in a
+# language they could not read, tapping a badge they could no longer identify.
+- tapOn:
+    id: 'locale-picker'
+- assertVisible:
+    id: 'locale-menu'
+# All three at once, named in their own languages — that is what a list buys
+# over a cycle.
+- assertVisible:
+    id: 'locale-option-en'
+- assertVisible:
+    id: 'locale-option-pt-BR'
+- assertVisible:
+    id: 'locale-option-es'
+
+# One tap to Spanish from English. The cycle needed two, and had no way back.
+- tapOn:
+    id: 'locale-option-es'
+- assertNotVisible:
+    id: 'locale-menu'
+- assertVisible: '^ES$'
+
+# And back in one, which is the half the cycle could not do at all.
+- tapOn:
+    id: 'locale-picker'
+- tapOn:
+    id: 'locale-option-en'
+- assertVisible: '^EN$'
+
+# Opening it and pressing nothing must change nothing.
+- tapOn:
+    id: 'locale-picker'
+- tapOn:
+    id: 'locale-menu-backdrop'
+- assertNotVisible:
+    id: 'locale-menu'
+- assertVisible: '^EN$'

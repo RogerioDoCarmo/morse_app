@@ -34,6 +34,33 @@ const TICK_MS = 50;
  */
 const DRIVE_MS = 10;
 
+/**
+ * How long the vibration waits for the camera when the torch is also running.
+ *
+ * ⚠️ THIS IS A HYPOTHESIS WITH A DEVICE TEST BEHIND IT, NOT A PROVEN FIX.
+ *
+ * Reported on a Poco X5 5G and reproduced on a Moto G22: with Light and
+ * Vibration both on, the FIRST run buzzes correctly and no run after it ever
+ * does. Vibration alone is fine, however many times in a row.
+ *
+ * Android's vibrator plays one effect at a time and a new request replaces the
+ * one in progress. Opening the camera is the only thing these runs do that a
+ * vibration-only run does not, and several OEM camera stacks fire a haptic of
+ * their own when the device opens. Ours is a whole message long, so it is
+ * maximally exposed to being replaced.
+ *
+ * That also explains the part that looks strangest — why run ONE survives. The
+ * camera was cold the first time and took longer to open than the buzz needed
+ * to get going; from run two the HAL is warm and opens fast enough to land on
+ * top of it.
+ *
+ * So the vibration now starts AFTER the camera, and joins the message already
+ * in progress rather than delaying it — `marksFrom` exists for exactly that.
+ * The rhythm stays tied to the clock, so nothing drifts against the torch or
+ * the audio; the message simply begins buzzing a fraction of a second in.
+ */
+const CAMERA_SETTLE_MS = 450;
+
 /** The ways a message can go out. */
 export type OutputChannel = 'sound' | 'light' | 'screen' | 'buzz';
 
@@ -148,6 +175,8 @@ export function useMorsePlayback(
   const held = useRef(false);
   /** The same, for the camera the torch needs open. */
   const holding = useRef(false);
+  /** A buzz waiting for the camera to finish opening — see CAMERA_SETTLE_MS. */
+  const buzzWait = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const elapsedUnits = useCallback(
     (): number => (Date.now() - startedAt.current) / unit,
@@ -196,8 +225,13 @@ export function useMorsePlayback(
   const clearTimers = useCallback((): void => {
     if (ticker.current !== null) clearInterval(ticker.current);
     if (driver.current !== null) clearInterval(driver.current);
+    // ⚠️ The deferred buzz too. A run stopped inside CAMERA_SETTLE_MS would
+    // otherwise start vibrating a message that is already over — and `stop()`
+    // has nothing to cancel yet, so nothing else would catch it.
+    if (buzzWait.current !== null) clearTimeout(buzzWait.current);
     ticker.current = null;
     driver.current = null;
+    buzzWait.current = null;
   }, []);
 
   /** Ends the run and puts every output back to rest. */
@@ -261,7 +295,16 @@ export function useMorsePlayback(
       });
     }
     if (live.current.buzz) {
-      void vibration.play(marksFrom(0));
+      if (live.current.light) {
+        // Behind the camera, and joining the message where it has got to —
+        // see CAMERA_SETTLE_MS for why the two cannot start together.
+        buzzWait.current = setTimeout(() => {
+          buzzWait.current = null;
+          void vibration.play(marksFrom(elapsedUnits()));
+        }, CAMERA_SETTLE_MS);
+      } else {
+        void vibration.play(marksFrom(0));
+      }
     }
   }, [
     audio,

@@ -947,6 +947,69 @@ describe('TranslatorScreen — the screen channel', () => {
     expect(ports.calls.torchEnabled).toEqual([]);
   });
 
+  /**
+   * ⚠️ Reported on a Poco X5 5G and reproduced on a Moto G22: with Light AND
+   * Vibration on, the first run buzzes and no run after it ever does. Android's
+   * vibrator plays one effect at a time and a new request replaces the one in
+   * progress, and opening the camera is the only thing these runs do that a
+   * vibration-only run does not.
+   *
+   * So the buzz waits for the camera. These two tests pin the difference the
+   * fix makes; whether it CURES the device is a question only the device can
+   * answer.
+   */
+  it('waits for the camera before buzzing when the torch is also on', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    // ⚠️ `enableLight`, not a bare press: Light is gated on the camera
+    // permission and the channel does not change until that promise resolves.
+    // A bare press leaves the torch OFF, and this test would then pass by
+    // taking the no-camera path it exists to distinguish from.
+    await enableLight();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    // Nothing yet — the camera is still opening.
+    expect(ports.calls.vibrated).toEqual([]);
+
+    await advance(500);
+    expect(ports.calls.vibrated.length).toBe(1);
+  });
+
+  /**
+   * ⚠️ And a run stopped inside that window must not start buzzing a message
+   * that is already over. `stop()` has nothing to cancel yet at that point, so
+   * nothing else would catch it.
+   */
+  it('drops a waiting buzz when the run is stopped first', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    await enableLight();
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+    await advance(500);
+
+    expect(ports.calls.vibrated).toEqual([]);
+  });
+
+  /**
+   * Vibration WITHOUT the torch keeps its head start. There is no camera to
+   * wait for, and delaying it would move the first buzz away from the first
+   * beat of the audio for nothing.
+   */
+  it('buzzes immediately when the torch is off', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.vibrated.length).toBe(1);
+  });
+
   it('counts as something to signal with on its own', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
@@ -1467,24 +1530,78 @@ describe('copying the Morse', () => {
  * handler is missing, which is how three of them reached a tester.
  */
 describe('the language button', () => {
-  it('changes the interface language when pressed', () => {
+  it('opens a list rather than changing anything', () => {
     renderWithProviders(<TranslatorScreen />, { locale: 'en' });
-    expect(screen.getByText('EN')).toBeOnTheScreen();
+    expect(screen.queryByTestId('locale-menu')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('locale-picker'));
-    expect(screen.getByText('PT')).toBeOnTheScreen();
+
+    expect(screen.getByTestId('locale-menu')).toBeTruthy();
+    // ⚠️ Still English. The press opens the menu and picks NOTHING — the badge
+    // used to step to the next language on every tap, which is the behaviour
+    // this replaces.
+    expect(screen.getByText('EN')).toBeOnTheScreen();
   });
 
-  it('comes back round to where it started', () => {
+  /**
+   * ⚠️ All THREE, named in their own languages. A picker that lists only the
+   * ones you are not in cannot show you where you are, and a reader who opened
+   * it by accident in a language they do not speak needs to recognise their own
+   * on sight — which is why these are endonyms and not translated.
+   */
+  it.each([
+    ['English', 'en'],
+    ['Português (Brasil)', 'pt-BR'],
+    ['Español', 'es'],
+  ])('offers %s', (name, tag) => {
     renderWithProviders(<TranslatorScreen />, { locale: 'en' });
-    const press = (): void => {
-      fireEvent.press(screen.getByLabelText('locale-picker'));
-    };
-    press();
-    press();
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    // Scoped to the option, not the screen: `Modal` renders its children into
+    // the tree twice under the test renderer, so a bare `getByText` finds two
+    // of everything inside it and fails on the ambiguity rather than the name.
+    const option = screen.getByLabelText(`locale-option-${tag}`);
+    expect(within(option).getByText(name)).toBeOnTheScreen();
+  });
+
+  it('switches to the language that was chosen', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    fireEvent.press(screen.getByLabelText('locale-option-es'));
+
     expect(screen.getByText('ES')).toBeOnTheScreen();
-    press();
+  });
+
+  /**
+   * ⚠️ ONE tap from anywhere, which the cycle could not do. Reaching Spanish
+   * from English used to cost two presses, and there was no way to go back a
+   * step at all.
+   */
+  it('reaches any language in a single press', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    fireEvent.press(screen.getByLabelText('locale-option-en'));
+
     expect(screen.getByText('EN')).toBeOnTheScreen();
+  });
+
+  it('closes without choosing when the backdrop is pressed', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    fireEvent.press(screen.getByLabelText('locale-menu-backdrop'));
+
+    expect(screen.queryByTestId('locale-menu')).toBeNull();
+    expect(screen.getByText('EN')).toBeOnTheScreen();
+  });
+
+  it('shuts the menu once a language is chosen', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
+
+    expect(screen.queryByTestId('locale-menu')).toBeNull();
   });
 
   /**
@@ -1499,6 +1616,54 @@ describe('the language button', () => {
     expect(
       ports.calls.stored.filter((entry) => entry.key === 'settings.speechLocale'),
     ).toStrictEqual([]);
+  });
+});
+
+/**
+ * ⚠️ The input does NOT take focus on open — the keyboard covering half the
+ * screen was worse than the tap it saved. That left the dot pointing at a field
+ * the user still had to reach for, so the dot and its label became the
+ * shortcut.
+ */
+describe('the type hint', () => {
+  /**
+   * ⚠️ That the KEYBOARD comes up is asserted in `translator.yaml`, not here.
+   * RNTL 13 ships no `toBeFocused`, the imperative `focus()` goes to a native
+   * method that does nothing under the test renderer, and `element.instance` is
+   * null on the New Architecture — so a unit test can only prove the handler
+   * ran, which is what the two below do. A test that mocked its way to a green
+   * assertion about focus would be asserting the mock.
+   */
+  it('is wired to something', () => {
+    renderWithProviders(<TranslatorScreen />);
+
+    expect(screen.getByLabelText('focus-input')).toBeTruthy();
+  });
+
+  /**
+   * ⚠️ And the dot goes away, because pressing it counts as touching the field.
+   * A hint that survives the gesture it was asking for is a hint nobody can
+   * get rid of.
+   */
+  it('stops pointing once it has been used', () => {
+    renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByTestId('type-hint-dot')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('focus-input'));
+
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+
+  /**
+   * The target is the whole label row. A 7pt circle is under a sixth of the
+   * 44pt minimum, and nobody aims at one — pressing the words beside it is the
+   * gesture a person actually makes.
+   */
+  it('is still pressable after the dot has gone', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('focus-input'));
+
+    expect(screen.getByLabelText('focus-input')).toBeTruthy();
   });
 });
 
