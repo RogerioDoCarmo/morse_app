@@ -87,7 +87,7 @@ jobs:
           echo "app.json says $APP_VERSION, tag says $TAG_VERSION."
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ steps.tag.outputs.name }}
           body: ${{ steps.tag.outputs.message }}
