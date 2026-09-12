@@ -45,7 +45,8 @@ for line in open(sys.argv[1]):
     if m2 and t is not None:
         rows.append((t, float(m2.group(1))))
 
-window = int(float(os.environ['FPS']) * float(os.environ['WINDOW_S']))
+fps = int(float(os.environ['FPS']))
+window = int(fps * float(os.environ['WINDOW_S']))
 spread_min = float(os.environ['MIN_SPREAD'])
 crossings_min = int(os.environ['MIN_CROSSINGS'])
 
@@ -59,9 +60,72 @@ for i in range(max(0, len(rows) - window)):
     if crossings < crossings_min:
         continue
     # ⚠️ The window START is up to WINDOW_S early — it is merely where the
-    # oscillation became measurable. The anchor is the first sample inside it
-    # that actually goes dark, which is the first MARK.
-    onset = next((tt for tt, y in rows[i:i + window] if y < mid), rows[i][0])
+    # oscillation became measurable. The anchor is the first frame that sits
+    # at one of the two levels the MARKS oscillate between.
+    #
+    # ⚠️ Two earlier anchors were both wrong, and the composed promo shows why.
+    # Frame by frame on a real clip, the screen goes:
+    #
+    #     ...-77.333   219.09   steady, before playback
+    #     77.367       220.30   the surface mounting and the progress row
+    #                           appearing — a LAYOUT change, not a mark
+    #     77.700       224.21   the first MARK, 0.667s = a 720ms dash
+    #     78.400       200.32   the first GAP, 0.267s = 240ms
+    #
+    # Anchoring on the first sample below the midpoint returned 78.400: the
+    # first gap, one whole mark late, and the soundtrack shipped 0.734s behind
+    # the picture. Anchoring on the first departure from the steady baseline
+    # returns 77.367: the layout swap, a third of a second early.
+    #
+    # Playback occupies exactly two levels and the transition into it occupies
+    # neither, so the onset is a frame that REACHES one of them. It has to be
+    # the BRIGHT one.
+    #
+    # ⚠️ "Either level" is not good enough, and the grid clip proves it. There
+    # the surface mounts UNLIT for 0.2s before the first mark renders:
+    #
+    #     108.200   216.93   steady
+    #     109.267   218.15   layout swap
+    #     109.633   199.46   the surface, mounted and DARK
+    #     109.833   222.85   the first mark
+    #
+    # The tour clip goes straight from the swap to a mark and never shows
+    # that dark frame. Accepting either level therefore anchors the tour
+    # correctly and the grid 0.2s early.
+    #
+    # ⚠️ So this DOES depend on the app lighting its surface for a mark. An
+    # earlier attempt at polarity independence is what produced the 0.7s
+    # error being fixed here — it treated a dark frame as a mark. If the app
+    # ever draws a dark-on-light surface, this needs revisiting deliberately,
+    # with a clip to measure against; it should not be generalised on a guess.
+    tol = (hi - lo) * 0.10
+    # ⚠️ The baseline comes from before the SCAN, not from before `i`.
+    #
+    # `i` is where six crossings had accumulated, which on a real clip was
+    # 78.300 — after playback had already been running for 0.6s. Sampling the
+    # second before `i` gave a median of 224.2, the LIT level itself, and the
+    # "different from the still screen" test then rejected every mark for
+    # being identical to the baseline. It returned the first gap again, which
+    # is the exact bug this rewrite exists to remove.
+    scan_from = max(0, i - window)
+    pre = rows[max(0, scan_from - fps):scan_from]
+    ys_pre = sorted(y for _, y in pre) if pre else []
+    baseline = ys_pre[len(ys_pre) // 2] if ys_pre else None
+
+    def is_playback(y: float) -> bool:
+        lit = y >= hi - tol
+        if baseline is None:
+            return lit
+        # ...and genuinely different from the still screen before it, so a
+        # resting screen that happens to sit near the lit level cannot
+        # anchor it.
+        return lit and abs(y - baseline) > tol
+
+    # Searched from a window EARLIER than the one that qualified: six crossings
+    # take a couple of seconds to accumulate, so the window that first meets
+    # the test can begin after the opening mark.
+    scan = rows[scan_from:i + window]
+    onset = next((tt for tt, y in scan if is_playback(y)), rows[i][0])
     print(f'{onset:.3f}')
     break
 PY

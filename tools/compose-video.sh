@@ -183,9 +183,19 @@ plan_audio() {
   # whose playback began ninety seconds earlier. The tone then has to start
   # part-way through too, or the sound is minutes out of step with the flashing
   # it is supposed to match.
+  #
+  # ⚠️ AND THE SAME CLAMP WAS STILL ON THE OFFSET, one line below that
+  # warning. `max(0, CARD + (onset - trim))` collapses to 0 whenever the flash
+  # precedes the window — which is the four-up's normal case — and swallows
+  # CARD_SECONDS with it. The tone then started at output 0.000s, over the
+  # intro card, two seconds before the footage it belongs to.
+  #
+  # The offset is where the audio starts IN THE OUTPUT, and the earliest that
+  # can ever be is the end of the card. Only the part inside the window is
+  # allowed to push it later; the part before the window belongs in `seek`.
   local seek
   seek=$(python3 -c "print(f'{max(0.0, $trim_start - $onset):.3f}')")
-  offset=$(python3 -c "print(f'{max(0.0, $CARD_SECONDS + ($onset - $trim_start)):.3f}')")
+  offset=$(python3 -c "print(f'{$CARD_SECONDS + max(0.0, $onset - $trim_start):.3f}')")
   echo "    $(basename "$clip"): flash at ${onset}s -> audio at ${offset}s of the output, from ${seek}s into the tone" >&2
   echo "$wav|$offset|$seek"
 }
