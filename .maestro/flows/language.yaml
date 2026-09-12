@@ -45,12 +45,17 @@ appId: com.rogeriodocarmo.morse
 - assertVisible: 'Language'
 - assertVisible: 'SPEECH RECOGNITION'
 
-# The recogniser list is hidden while speech follows the interface, and that
-# is the whole behaviour of this section.
-- assertNotVisible:
-    id: 'language-recogniser'
-- tapOn:
-    id: 'speech-follows'
+# ⚠️ The recogniser list is ALWAYS here now, and this section used to assert
+# the opposite. Recognition followed the app language unless a "Match the
+# interface" switch was turned off, so changing the interface silently pointed
+# the microphone at a recogniser the phone might not have installed. 0.3.3
+# removed the coupling and the switch with it.
+#
+# `assertNotVisible: language-recogniser` passed only because the list was
+# hidden behind that switch. It kept passing for exactly as long as the defect
+# existed, and failed the moment the fix landed — which is the correct way
+# round, but only if somebody updates the flow. Eight unit tests were rewritten
+# for this change and this one was missed.
 - assertVisible:
     id: 'language-recogniser'
 - scrollUntilVisible:
@@ -60,12 +65,12 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'recogniser-es'
 
-# Following again puts the list away — a switch that cannot come back would
-# strand a user who opened it by accident.
-- tapOn:
-    id: 'speech-follows'
-- assertNotVisible:
-    id: 'language-recogniser'
+# ⚠️ And the INTERFACE did not follow it. A Spanish recogniser must leave the
+# app in English — that separation is the whole point of the change, and the
+# two settings sit on one screen four rows apart, which is precisely where a
+# regression would go unnoticed.
+- assertVisible: 'SPEECH RECOGNITION'
+- assertVisible: 'INTERFACE'
 
 # Back out through Settings, which is where it was opened from.
 - tapOn:
