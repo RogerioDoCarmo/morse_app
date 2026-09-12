@@ -115,3 +115,37 @@ describe('the screen itself', () => {
     expect(screen.queryByTestId('tab-translate')).toBeNull();
   });
 });
+
+/**
+ * ⚠️ The tick is how a FLOW tells which row is selected. All three rows exist
+ * in every language, so asserting a row's own testID proves nothing — that is
+ * the shape of assertion that let a dead button through earlier in this
+ * project. Reading a translated heading instead fixed that on Android and
+ * failed on iOS, where an accessible container folds its children's text into
+ * its own label. Only the tick's id means the same thing on both platforms.
+ */
+describe('which row is selected', () => {
+  it('ticks the interface language and no other', () => {
+    show();
+    fireEvent.press(screen.getByTestId('interface-pt-BR'));
+
+    expect(screen.getByTestId('interface-pt-BR-tick')).toBeTruthy();
+    expect(screen.queryByTestId('interface-en-tick')).toBeNull();
+    expect(screen.queryByTestId('interface-es-tick')).toBeNull();
+  });
+
+  /**
+   * ⚠️ And the two settings tick independently. This is the separation 0.3.3
+   * introduced, and it is what `language.yaml` reads back after setting the
+   * interface from the Translator header.
+   */
+  it('ticks the recogniser separately from the interface', () => {
+    show();
+    fireEvent.press(screen.getByTestId('interface-pt-BR'));
+    fireEvent.press(screen.getByTestId('recogniser-es'));
+
+    expect(screen.getByTestId('interface-pt-BR-tick')).toBeTruthy();
+    expect(screen.getByTestId('recogniser-es-tick')).toBeTruthy();
+    expect(screen.queryByTestId('recogniser-pt-BR-tick')).toBeNull();
+  });
+});

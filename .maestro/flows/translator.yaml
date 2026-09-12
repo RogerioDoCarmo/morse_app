@@ -233,14 +233,20 @@ appId: com.rogeriodocarmo.morse
     id: 'locale-option-es'
 - assertNotVisible:
     id: 'locale-menu'
-- assertVisible: '^ES$'
+# ⚠️ An id, not '^ES$'. That text assertion passed on Android and FAILED on
+# iOS: an accessible button folds its children's text into its own label
+# there, so the inner "ES" is not a separate element to find. The badge's
+# testID carries the locale instead, and means the same thing on both.
+- assertVisible:
+    id: 'locale-badge-es'
 
 # And back in one, which is the half the cycle could not do at all.
 - tapOn:
     id: 'locale-picker'
 - tapOn:
     id: 'locale-option-en'
-- assertVisible: '^EN$'
+- assertVisible:
+    id: 'locale-badge-en'
 
 # Opening it and pressing nothing must change nothing.
 - tapOn:
@@ -249,4 +255,5 @@ appId: com.rogeriodocarmo.morse
     id: 'locale-menu-backdrop'
 - assertNotVisible:
     id: 'locale-menu'
-- assertVisible: '^EN$'
+- assertVisible:
+    id: 'locale-badge-en'

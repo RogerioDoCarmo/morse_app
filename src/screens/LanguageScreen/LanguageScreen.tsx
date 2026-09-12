@@ -155,8 +155,14 @@ function ChoiceRow({
         <Text style={styles.choiceTitle}>{title}</Text>
         {subtitle === undefined ? null : <Text style={styles.hint}>{subtitle}</Text>}
       </View>
+      {/* ⚠️ `${testID}-tick`, so which row is SELECTED can be asserted without
+          reading rendered text. The flows used to prove a language change by
+          looking for a translated heading; that passed on Android and failed on
+          iOS, where an accessible container folds its children's text into its
+          own label and the individual strings stop being separate elements.
+          A testID means the same thing on both platforms. */}
       {selected ? (
-        <View style={styles.tick}>
+        <View testID={`${testID}-tick`} style={styles.tick}>
           <Icon name="check" size={15} color={theme.color.onAccent} strokeWidth={3} />
         </View>
       ) : (
