@@ -53,9 +53,12 @@ Three reasons, in order of how much they matter.
    which needs a full Gradle build with the Firebase credentials in place. CI
    does that on every screenshots run already, from a shared action. Doing it
    locally means doing it locally *every time*.
-2. **This machine may not be around.** That was the stated reason for writing
-   [MACHINE-SETUP.md](MACHINE-SETUP.md), and it applies here: a pipeline that
-   only runs on one Mac is a pipeline that stops when the Mac does.
+2. **This machine goes back on Monday 14 September 2026.** That was the stated
+   reason for writing [MACHINE-SETUP.md](MACHINE-SETUP.md) when the date was
+   still vague, and it applies here doubly now: a pipeline that only runs on
+   one Mac is a pipeline that stops when the Mac does — and the date is known.
+   Everything in this document runs on GitHub's runners for exactly that
+   reason.
 3. **It is reproducible.** The same emulator profile, the same Android version,
    the same ffmpeg, every time. A local run would use whatever emulator images
    and ffmpeg build happen to be installed.
