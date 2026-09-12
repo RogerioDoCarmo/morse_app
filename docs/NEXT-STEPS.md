@@ -1,7 +1,7 @@
 # What is left
 
-Written 11 September 2026, at the end of a session, so the next one does not
-begin by rediscovering where this stopped.
+Written 11 September 2026 and updated 12 September, at the end of a session, so
+the next one does not begin by rediscovering where this stopped.
 
 Everything below is **outstanding**.
 
@@ -9,8 +9,9 @@ Everything below is **outstanding**.
 
 | | |
 | --- | --- |
-| `main` and `develop` | in sync, **OmniMorse 0.3.0** |
-| Tests | 951 unit and property, E2E 9/9 both platforms |
+| `main` | **OmniMorse 0.3.0** |
+| `develop` | **OmniMorse 0.3.3** — ⚠️ no longer in sync with `main`; 0.3.1 → 0.3.3 are device-test builds that have not been promoted |
+| Tests | **1023** unit and property. E2E 9 flows, and see the warning below |
 | Privacy policy | live and verified at the URL Play was given |
 | Play listing | text, icon, feature graphic and screenshots all ready |
 | App Store listing | copy ready in all three languages — [APP-STORE.md](APP-STORE.md) |
@@ -19,7 +20,9 @@ Everything below is **outstanding**.
 | iOS screenshots | **done** — run 34620373429, seven at **1320×2868** |
 | Support page | live, verified byte for byte |
 | ⚠️ Videos | machinery complete and proven; **no usable footage yet** — see §2 |
-| ⚠️ Version | 0.3.0, **unbumped and untagged on purpose** — see §5 |
+| ⚠️ Version | 0.3.3 on `develop`, **untagged on purpose** — see §5 |
+| ⚠️ Store assets | every screenshot and video still shows the **"Signal"** button, renamed to "Reproduce" in 0.3.2. Re-run both workflows before uploading anything |
+| ⚠️ E2E | the Clear/Paste and language-badge blocks added in 0.3.3 have **never executed**. Both Maestro jobs still stop at the Firebase secret guard, so CI has not run them and neither has anyone else |
 | ⚠️ EAS builds | **blocked until 1 October**. `--local` still works |
 
 What is already done is in [PLAY-CONSOLE.md](PLAY-CONSOLE.md),
@@ -121,7 +124,7 @@ will open it.
 
 ## 5. Version and tag
 
-**0.3.1 is bumped. `v0.3.1` is still untagged, and that is the deliberate half.**
+**0.3.3 is bumped. `v0.3.3` is still untagged, and that is the deliberate half.**
 
 ⚠️ **The bump fires `firebase-distribution.yml`, and that run will be RED.**
 It builds on EAS, and the credit pool ran out on 9 September and does not reset
@@ -141,12 +144,30 @@ GOOGLE_SERVICES_JSON_PATH="$PWD/google-services.json" \
 Then distribute it by hand — see the Firebase block in
 [MACHINE-SETUP.md](MACHINE-SETUP.md).
 
-⚠️ **Tagging `v0.3.1` fires `eas-build.yml` for the same red result.** Tag after
+⚠️ **Tagging `v0.3.3` fires `eas-build.yml` for the same red result.** Tag after
 1 October.
 
-⚠️ **0.3.1 carries no functional change over 0.3.0.** Nothing under `src/` has
-moved since the rename; everything since has been CI, tooling and
-documentation. If it ships to testers, the release notes are 0.3.0's.
+⚠️ **0.3.3 is NOT a paperwork bump the way 0.3.1 was.** Every version since
+0.3.1 carries functional change found by using the app on a Poco X5 5G, a Moto
+G22 and an iPhone, and each one is a genuinely different app from the last:
+
+| | What moved |
+| --- | --- |
+| 0.3.2 | copy button wired, input no longer auto-focuses, play button renamed |
+| 0.3.3 | language badge wired · interface and recognition locales separated · flashing disc no longer clipped by the progress row · iOS stop actually stops · Clear and Paste under the input · the chip strip follows the sounding letter · Settings switches confirm themselves |
+
+Shipping any two of these under one version number would leave a tester unable
+to say which build the thing they are looking at came from — which is the whole
+reason the version has to move even while EAS is out of credits.
+
+⚠️ **Still unfixed in 0.3.3: vibration dies after the first run when Light is
+also on.** Reproduced ten times on the Poco and confirmed on the Moto G22. The
+correlation is known — `TorchHost` keeps the camera mounted between runs, so
+run 2 starts with it already open — but the mechanism is not, and the two
+candidates need opposite fixes. It needs one test on a device: with Light on,
+play until the buzz stops, then turn Light **off** and play twice. If the buzz
+comes back the open camera is the cause; if it does not, the vibrator is
+wedged.
 
 ## 6. Deferred, with triggers
 
