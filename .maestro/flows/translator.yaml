@@ -188,10 +188,20 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'focus-input'
 
-# The Clear/Paste row sits directly under the field, so the keyboard hides it.
-# Its disappearance is the proof the keyboard came up.
-- assertNotVisible:
-    id: 'clear-input'
+# ⚠️ TYPING is the proof, not geometry. The first version of this asserted that
+# the Clear/Paste row had gone behind the keyboard — true on the 320dp CI
+# emulator and false on a Pixel_9, where that row sits far above it. The
+# keyboard was up the whole time (`dumpsys input_method` said
+# `mInputViewShown=true`); the assertion was simply measuring the wrong thing.
+#
+# `eraseText` and `inputText` go to whatever holds focus. If the press had not
+# put the cursor in the field, this text would land nowhere and the assertion
+# below would fail — on any screen size.
+- eraseText
+- inputText: 'E'
+- assertVisible:
+    id: 'translator-input'
+    text: '^E$'
 
 # And the dot stops pointing, because pressing it counts as touching the field.
 # A hint that survives the gesture it was asking for cannot be dismissed.

@@ -84,22 +84,52 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'translator-screen'
 
-# ── The header badge on the Translator screen ───────────────────────────────
+# ── The header badge agrees with this screen ────────────────────────────────
 # ⚠️ It had NO `onPress` until 0.3.3 — drawn on the artboard and never wired,
 # the third dead control from that source after Speak in 0.2.1 and Copy in
-# 0.3.1. A missing handler fails nothing and looks identical to a broken one,
-# so only a flow that presses it and reads the badge back can tell them apart.
+# 0.3.1. A missing handler fails nothing and looks identical to a broken one.
 #
-# The interface was forced to English above, so the cycle starts somewhere
-# known. All three taps are asserted: a picker that can leave a user in a
-# language they cannot read, with no way back round, is worse than no picker.
+# ⚠️ It CYCLED for one version, and this flow asserted the cycle. Both are gone:
+# the badge opens a list now, and `translator.yaml` owns the menu's own
+# behaviour. What is left here is the thing only this flow can see — that the
+# two places the interface language can be set agree with each other.
+#
+# The interface was forced to English above, so the badge must read EN.
 - assertVisible: '^EN$'
+
+# Set it from the HEADER, then read it back on the Language screen. These are
+# two different controls writing one setting, and a menu that changed only the
+# badge would look completely correct from the Translator.
 - tapOn:
     id: 'locale-picker'
+- tapOn:
+    id: 'locale-option-pt-BR'
 - assertVisible: '^PT$'
 - tapOn:
-    id: 'locale-picker'
-- assertVisible: '^ES$'
+    id: 'open-settings'
+- scrollUntilVisible:
+    element:
+      id: 'settings-language'
+    direction: DOWN
 - tapOn:
-    id: 'locale-picker'
-- assertVisible: '^EN$'
+    id: 'settings-language'
+
+# ⚠️ The TRANSLATED heading, not the row's testID. All three rows exist in
+# every language, so `assertVisible: interface-pt-BR` would pass on a screen
+# that never changed — the same shape of test that shipped a dead button
+# earlier in this project. "RECONHECIMENTO DE FALA" only renders when the
+# interface really is Portuguese.
+- assertVisible: 'RECONHECIMENTO DE FALA'
+
+# ⚠️ And the RECOGNISER did not move with it. Spanish was chosen above, and
+# setting the interface from the HEADER must not repoint the microphone any
+# more than setting it from this screen does — that is the coupling 0.3.3
+# removed, and the header is a second door into the same setting. The
+# recogniser names are not translated, so this string is the same either way.
+- assertVisible: 'Español (España)'
+- tapOn:
+    id: 'language-back'
+- tapOn:
+    id: 'settings-back'
+- assertVisible:
+    id: 'translator-screen'
