@@ -151,7 +151,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
           <Text style={styles.wordmark}>{t('app.name')}</Text>
         </View>
 
-        <View style={styles.stage}>
+        <View testID="speech-stage" style={styles.stage}>
           <View style={styles.level} testID="speech-level">
             {LEVELS.map((live, index) => (
               <View
@@ -256,7 +256,21 @@ const styles = StyleSheet.create({
   },
   wordmark: { ...theme.type.wordmark, color: theme.color.ink },
   stage: {
-    flex: 1,
+    // ⚠️ NOT `flex: 1`, which expands to `flexShrink: 1, flexBasis: 0%`.
+    //
+    // With a transcript on screen the stage shrank below its own content, and
+    // because it centres that content, the overflow went out BOTH edges — the
+    // "Tap the mic to record again" hint disappeared under the transcript card
+    // and the title above it was clipped in half. It looked like the card was
+    // positioned over them; it was the stage collapsing underneath.
+    //
+    // `flexBasis: 'auto'` makes its base size its content, `flexShrink: 0`
+    // stops it going below that, and `flexGrow: 1` still lets it take the
+    // whole screen when there is no transcript. The transcript is the part
+    // that gives way, which is what `heard` below always said.
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: 'auto',
     alignItems: 'center',
     justifyContent: 'center',
     gap: theme.spacing.xl,

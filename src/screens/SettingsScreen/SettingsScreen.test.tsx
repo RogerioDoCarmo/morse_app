@@ -248,4 +248,19 @@ describe('confirming what a switch did', () => {
     expect(within(toast).getByText(/Send crash reports/u)).toBeTruthy();
     expect(within(toast).getByText(/is on/u)).toBeTruthy();
   });
+
+  /**
+   * ⚠️ The Toast's icon used to be hardcoded to `volume`, and a confirmation
+   * about a switch would have shown a speaker. It carries no default now, so
+   * this asserts the glyph is asked for rather than inherited.
+   */
+  it('shows a tick, not the speaker the volume warning uses', async () => {
+    show();
+
+    fireEvent(screen.getByTestId('settings-read-aloud'), 'valueChange', false);
+
+    const toast = await screen.findByTestId('toast');
+    expect(within(toast).getByTestId('icon-check')).toBeTruthy();
+    expect(within(toast).queryByTestId('icon-volume')).toBeNull();
+  });
 });

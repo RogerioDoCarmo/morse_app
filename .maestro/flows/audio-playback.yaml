@@ -70,7 +70,17 @@ appId: com.rogeriodocarmo.morse
     id: 'translator-input'
 - eraseText
 - inputText: '00000000000000'
-- hideKeyboard
+# ⚠️ The app's OWN dismiss, not Maestro's `hideKeyboard`.
+#
+# `hideKeyboard` works by tapping somewhere harmless, and on iOS this card
+# fills the screen so completely that there is nowhere left. It failed outright
+# once when the sample was twenty SOS, and again the moment a Clear/Paste row
+# was added below the input and took the last of the space.
+#
+# The input is `returnKeyType="done"` with `submitBehavior="blurAndSubmit"`, so
+# Return blurs it — a deterministic affordance the app provides, rather than a
+# gesture that depends on how much room happens to be left over.
+- pressKey: Enter
 
 # `waitToSettleTimeoutMs: 0` on every tap taken while a message is playing.
 #

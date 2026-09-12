@@ -17,6 +17,8 @@ export const es: TranslationMap = {
   'translator.tapItIn': 'Pulsar',
   'translator.readAloud': 'Leer en voz alta',
   'translator.copy': 'Copiar',
+  'translator.clearAll': 'Borrar todo',
+  'translator.paste': 'Pegar',
   'translator.play': 'Reproducir',
   'translator.copied': 'Copiado',
   'translator.typeHint': 'Toca para escribir',

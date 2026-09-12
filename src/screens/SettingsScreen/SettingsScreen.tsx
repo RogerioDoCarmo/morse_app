@@ -226,6 +226,7 @@ export function SettingsScreen({
       <Toast
         visible={confirmation !== null}
         message={confirmation ?? ''}
+        icon="check"
         onDismiss={dismissConfirmation}
       />
     </View>
