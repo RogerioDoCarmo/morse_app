@@ -100,13 +100,14 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.0 (6). Replace for each release; keep the shape.
+For 0.3.4 (11) on Play and 0.3.4 (13) on the App Store. Replace for each release; keep the shape.
 
 ```text
-• Aviso de volume: se o som está ligado e o aparelho está no mínimo, o app avisa em vez de tocar no silêncio.
-• A vibração funciona no Android.
-• A lanterna não pisca mais um retângulo preto na tela.
-• O botão Falar no Tradutor abre a aba Falar em vez de não fazer nada.
-• O carrossel de boas-vindas desliza, e Pular fecha ele.
-• Os Ajustes mostram qual versão está instalada.
+• O botão de idioma funciona. Toque para escolher inglês, português ou espanhol.
+• Idioma do app e reconhecimento de fala agora são ajustes separados — mudar um não muda mais o outro.
+• Copiar coloca o código Morse na área de transferência e confirma.
+• Novos botões Apagar tudo e Colar abaixo do campo de texto.
+• O círculo que pisca não fica mais coberto pela barra de progresso.
+• No iPhone, parar a reprodução realmente para.
+• As chaves dos Ajustes dizem o que mudaram.
 ```

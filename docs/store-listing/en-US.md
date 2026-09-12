@@ -98,13 +98,14 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.0 (6). Replace for each release; keep the shape.
+For 0.3.4 (11) on Play and 0.3.4 (13) on the App Store. Replace for each release; keep the shape.
 
 ```text
-• The volume warning: if sound is on and the phone is turned right down, the app now says so instead of playing into silence.
-• Vibration works on Android.
-• The torch no longer flashes a black rectangle across the screen.
-• Speak on the Translator opens the Speak tab instead of doing nothing.
-• The welcome carousel swipes, and Skip closes it.
-• Settings shows which build you are on.
+• The language button works. Tap it to pick English, Portuguese or Spanish.
+• App language and speech recognition are separate settings now — changing one no longer changes the other.
+• Copy puts the Morse on the clipboard and confirms it.
+• New Clear all and Paste buttons under the text field.
+• The flashing circle is no longer covered by the progress bar.
+• On iPhone, stopping playback actually stops it.
+• Settings switches say what they changed.
 ```
