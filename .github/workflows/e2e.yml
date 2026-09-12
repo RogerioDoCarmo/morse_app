@@ -72,7 +72,7 @@ jobs:
       # recompiles every native module from scratch — Firebase, camera,
       # audio, speech recognition, SVG, reanimated.
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
