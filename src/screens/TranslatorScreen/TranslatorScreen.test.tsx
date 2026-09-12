@@ -1381,7 +1381,9 @@ describe('copying the Morse', () => {
     renderWithProviders(<TranslatorScreen />);
     fireEvent.press(screen.getByLabelText('copy-morse'));
 
-    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
+    ).toBeTruthy();
     expect(screen.getByTestId('toast')).toBeTruthy();
   });
 
@@ -1398,12 +1400,16 @@ describe('copying the Morse', () => {
     jest.useFakeTimers();
     renderWithProviders(<TranslatorScreen />);
     fireEvent.press(screen.getByLabelText('copy-morse'));
-    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
+    ).toBeTruthy();
 
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    expect(screen.getByTestId('icon-copy')).toBeTruthy();
+    expect(
+      within(screen.getByLabelText('copy-morse')).getByTestId('icon-copy'),
+    ).toBeTruthy();
     expect(screen.getByTestId('toast')).toBeTruthy();
 
     // And it does go, on the Toast's own timer rather than the icon's.
@@ -1422,7 +1428,9 @@ describe('copying the Morse', () => {
     jest.useFakeTimers();
     renderWithProviders(<TranslatorScreen />);
     fireEvent.press(screen.getByLabelText('copy-morse'));
-    expect(await screen.findByTestId('icon-check')).toBeTruthy();
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
+    ).toBeTruthy();
 
     // Past COPIED_ICON_MS, and deliberately not a round number near it: a test
     // that only just clears the boundary starts failing when the boundary moves
@@ -1430,7 +1438,9 @@ describe('copying the Morse', () => {
     await act(async () => {
       jest.advanceTimersByTime(4000);
     });
-    expect(screen.getByTestId('icon-copy')).toBeTruthy();
+    expect(
+      within(screen.getByLabelText('copy-morse')).getByTestId('icon-copy'),
+    ).toBeTruthy();
     jest.useRealTimers();
   });
 
@@ -1444,7 +1454,79 @@ describe('copying the Morse', () => {
     renderWithProviders(<TranslatorScreen />, { ports });
 
     fireEvent.press(screen.getByLabelText('copy-morse'));
-    expect(await screen.findByTestId('icon-copy')).toBeTruthy();
+    expect(
+      await within(screen.getByLabelText('copy-morse')).findByTestId('icon-copy'),
+    ).toBeTruthy();
     expect(screen.queryByTestId('toast')).toBeNull();
+  });
+});
+
+describe('clearing and pasting', () => {
+  it('empties the field in one press', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
+    fireEvent.press(screen.getByLabelText('clear-input'));
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', '');
+  });
+
+  /**
+   * ⚠️ The dot means "you have not started yet". Clearing a message is not
+   * starting again, so it must not come back and point at the field.
+   */
+  it('does not bring the hint dot back', () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('clear-input'));
+    expect(screen.queryByTestId('type-hint-dot')).toBeNull();
+  });
+
+  it('pastes the clipboard into the field', async () => {
+    const ports = createFakePorts();
+    ports.clipboard.read = async () => 'SOS FROM THE CLIPBOARD';
+    renderWithProviders(<TranslatorScreen />, { ports });
+
+    fireEvent.press(screen.getByLabelText('paste-input'));
+    await waitFor(() =>
+      expect(screen.getByTestId('translator-input')).toHaveProp(
+        'value',
+        'SOS FROM THE CLIPBOARD',
+      ),
+    );
+  });
+
+  /**
+   * ⚠️ An empty clipboard must do NOTHING. Pasting nothing would wipe what was
+   * typed, which is the one outcome a Paste button must never produce — and
+   * the user would have no way to get it back.
+   */
+  it('leaves the field alone when there is nothing to paste', async () => {
+    const ports = createFakePorts();
+    let reads = 0;
+    ports.clipboard.read = async () => {
+      reads += 1;
+      return null;
+    };
+    renderWithProviders(<TranslatorScreen />, { ports });
+    fireEvent.changeText(screen.getByTestId('translator-input'), 'TYPED BY HAND');
+
+    fireEvent.press(screen.getByLabelText('paste-input'));
+    // It really did look, and really did leave the field alone.
+    await waitFor(() => expect(reads).toBe(1));
+    expect(screen.getByTestId('translator-input')).toHaveProp('value', 'TYPED BY HAND');
+  });
+});
+
+describe('the toast icons', () => {
+  /**
+   * ⚠️ The Toast hardcoded a speaker, which was right for the volume warning
+   * and then turned up beside "Copied" — a sound icon on a message about the
+   * clipboard.
+   */
+  it('shows a tick beside the copied message, not a speaker', async () => {
+    renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByLabelText('copy-morse'));
+
+    const toast = await screen.findByTestId('toast');
+    expect(within(toast).queryByTestId('icon-volume')).toBeNull();
+    expect(within(toast).getByTestId('icon-check')).toBeTruthy();
   });
 });

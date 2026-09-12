@@ -16,6 +16,17 @@ type Props = Readonly<{
   soundingIndex?: number | null;
   /** Called with that same flat index when a letter is pressed. */
   onSelectLetter?: (index: number) => void;
+  /**
+   * Handed the sounding letter's own view, each time the playhead moves.
+   *
+   * ⚠️ The VIEW, not a position. Where a chip sits depends on how the words
+   * wrapped, and on a phone these chips are several containers deep inside a
+   * scroll view that belongs to the screen, not to this component. Only the
+   * owner of that scroll view can turn a chip into an offset, so this hands
+   * over the thing to measure rather than a number measured against the wrong
+   * origin.
+   */
+  onSoundingLetter?: (view: View | null) => void;
   /** Test identifier. Also the Maestro selector — never assert on localised text. */
   testID?: string;
 }>;
@@ -32,6 +43,7 @@ export function MorseText({
   selectedIndex = null,
   soundingIndex = null,
   onSelectLetter,
+  onSoundingLetter,
   testID = 'morse-output',
 }: Props): React.JSX.Element {
   // Each word's starting index, computed before render rather than by mutating
@@ -66,6 +78,14 @@ export function MorseText({
             return (
               <Pressable
                 key={`l${String(letterIndex)}`}
+                // ⚠️ Handed over only for the letter that is SOUNDING. A ref
+                // on every chip would fire on every render of a long message
+                // and hand the screen whichever one settled last.
+                ref={
+                  playing && index === soundingIndex
+                    ? (node) => onSoundingLetter?.(node)
+                    : null
+                }
                 testID="morse-letter"
                 accessibilityRole="button"
                 accessibilityState={{ selected: lit }}

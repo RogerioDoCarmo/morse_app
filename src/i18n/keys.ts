@@ -22,6 +22,8 @@ export type TranslationKey =
   | 'translator.tapItIn'
   | 'translator.readAloud'
   | 'translator.copy'
+  | 'translator.clearAll'
+  | 'translator.paste'
   | 'translator.play'
   | 'translator.copied'
   | 'translator.typeHint'

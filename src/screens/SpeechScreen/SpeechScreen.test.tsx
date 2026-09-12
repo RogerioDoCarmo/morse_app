@@ -361,3 +361,31 @@ describe('the microphone permission stands in front of the recogniser', () => {
     });
   });
 });
+
+/**
+ * ⚠️ Reported from an iPhone: with a transcript on screen, "Toque no microfone
+ * para gravar de novo" was invisible and the title above it was cut in half.
+ *
+ * The cause was `flex: 1` on the stage, which is `flexShrink: 1` plus
+ * `flexBasis: 0%` — so the stage shrank below its own content, and because it
+ * centres that content the overflow went out both edges. It looked like the
+ * transcript card was sitting on top of the text; the stage was collapsing
+ * underneath it.
+ */
+describe('the stage does not collapse under a transcript', () => {
+  const flatten = (style: unknown): Record<string, unknown> =>
+    Object.assign({}, ...[style].flat(Infinity).filter(Boolean)) as Record<
+      string,
+      unknown
+    >;
+
+  it('keeps its own content height when a transcript appears', () => {
+    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    const style = flatten(screen.getByTestId('speech-stage').props.style);
+    // The three that matter, asserted by value rather than by "not flex: 1":
+    // basis from content, never shrink below it, still grow into free space.
+    expect(style.flexBasis).toBe('auto');
+    expect(style.flexShrink).toBe(0);
+    expect(style.flexGrow).toBe(1);
+  });
+});

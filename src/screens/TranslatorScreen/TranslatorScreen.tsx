@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
@@ -66,11 +66,16 @@ type PaneProps = Readonly<{
  * moves inside it. Styling the window would leave the gap outside the
  * scrollable area, where it does nothing.
  */
-function ScrollableCards({ tablet, children }: PaneProps): React.JSX.Element {
+function ScrollableCards({
+  tablet,
+  children,
+  scrollRef,
+}: PaneProps & { scrollRef?: React.RefObject<ScrollView | null> }): React.JSX.Element {
   if (tablet) return <View style={styles.columns}>{children}</View>;
 
   return (
     <ScrollView
+      ref={scrollRef}
       testID="cards-scroll"
       style={styles.cardScroll}
       contentContainerStyle={styles.stack}
@@ -91,11 +96,16 @@ function ScrollableCards({ tablet, children }: PaneProps): React.JSX.Element {
  * finger — and, with no definite height to flex against, `flex: 1` would
  * resolve to zero and take the chips out of the view hierarchy entirely.
  */
-function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
+function MorseOutput({
+  tablet,
+  children,
+  scrollRef,
+}: PaneProps & { scrollRef?: React.RefObject<ScrollView | null> }): React.JSX.Element {
   if (!tablet) return <View style={styles.outputScroll}>{children}</View>;
 
   return (
     <ScrollView
+      ref={scrollRef}
       testID="morse-scroll"
       style={styles.output}
       contentContainerStyle={styles.outputScroll}
@@ -118,6 +128,15 @@ function MorseOutput({ tablet, children }: PaneProps): React.JSX.Element {
  * 2.5s reads the same to a person and leaves the test somewhere to stand.
  */
 const COPIED_ICON_MS = 2500;
+
+/**
+ * How much room to leave above the letter being chased.
+ *
+ * Scrolling it to the very top would put every letter that comes next off
+ * screen, which is the opposite of the point: the interesting thing about a
+ * playhead is what it is about to reach.
+ */
+const FOLLOW_MARGIN = 120;
 
 /**
  * The Translator screen — built from `design/screens/Main.dc.html`.
@@ -152,6 +171,17 @@ export function TranslatorScreen({
    * between checking the icon and checking the toast. The comment above the
    * handler already described two lifetimes; the code had one.
    */
+  /**
+   * The scroll view that actually scrolls, which differs by layout.
+   *
+   * ⚠️ On a phone the chips are NOT in their own scroll view — the cards
+   * scroll and the chips ride along inside them. On a tablet the card has a
+   * fixed height and the chips scroll within it. So exactly one of these is
+   * live at a time, and the letter has to be chased in whichever it is.
+   */
+  const cardsScroll = useRef<ScrollView | null>(null);
+  const chipsScroll = useRef<ScrollView | null>(null);
+
   const [copiedIcon, setCopiedIcon] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
   const { tts } = usePorts();
@@ -189,6 +219,36 @@ export function TranslatorScreen({
    * at the text rather than the button. The icon is the fast one and reverts
    * itself; the toast is the explicit one and the user dismisses it.
    */
+  /**
+   * Empties the field the user is actually typing in.
+   *
+   * ⚠️ Marks it touched, so the hint dot does not come back. The dot means
+   * "you have not started yet", and clearing a message is not starting again.
+   */
+  const clearInput = useCallback(() => {
+    setTouchedInput(true);
+    if (toMorse) setText('');
+    else setMorseInput('');
+  }, [toMorse]);
+
+  /**
+   * Puts the clipboard into the field.
+   *
+   * ⚠️ REPLACES rather than appends. Paste beside Clear reads as "put this
+   * here", and appending to a seeded SOS would produce a message nobody asked
+   * for. An empty or non-text clipboard does nothing at all — wiping what was
+   * typed is the one outcome a Paste button must never produce.
+   */
+  const pasteInput = useCallback(() => {
+    void (async (): Promise<void> => {
+      const text = await clipboard.read();
+      if (text === null) return;
+      setTouchedInput(true);
+      if (toMorse) setText(text);
+      else setMorseInput(text);
+    })();
+  }, [clipboard, toMorse]);
+
   const onCopy = useCallback(() => {
     void (async (): Promise<void> => {
       // Nothing to copy is not a failure to report — there is simply no
@@ -260,6 +320,41 @@ export function TranslatorScreen({
   );
 
   const { tablet } = useLayout();
+
+  /**
+   * Keeps the sounding letter on screen.
+   *
+   * ⚠️ `measureLayout` against the scroll view, not the chip's own `onLayout`.
+   * A chip's layout is relative to its immediate parent — a word, inside the
+   * chip container, inside a card, inside the stack — so its `y` is nowhere
+   * near an offset into the thing that scrolls. Measuring against the scroll
+   * view is the only reading that means anything, at either layout.
+   *
+   * Failures are swallowed: the node can be gone by the time the measurement
+   * lands, on a message that stopped mid-scroll. Nothing to tell the user.
+   */
+  const followSoundingLetter = useCallback(
+    (node: View | null) => {
+      const scroller = tablet ? chipsScroll.current : cardsScroll.current;
+      if (!node || !scroller) return;
+      const target = scroller as unknown as React.ComponentRef<typeof View>;
+      try {
+        node.measureLayout(
+          target,
+          (_x, y) => {
+            // A third of the viewport above it, so the letter arrives in
+            // reading position rather than pinned to the top edge where the
+            // ones after it are invisible.
+            scroller.scrollTo({ y: Math.max(0, y - FOLLOW_MARGIN), animated: true });
+          },
+          () => undefined,
+        );
+      } catch {
+        // Measurement can throw if the tree changed underneath it.
+      }
+    },
+    [tablet],
+  );
 
   const readAloud = useCallback(async (): Promise<void> => {
     await tts.speak(decoded, locale);
@@ -358,7 +453,7 @@ export function TranslatorScreen({
               A tablet keeps the fixed layout the artboard draws: two full
               height halves side by side, with the chips scrolling inside their
               own card. There is room there for both to be whole. */}
-          <ScrollableCards tablet={tablet}>
+          <ScrollableCards tablet={tablet} scrollRef={cardsScroll}>
             <Card>
               <View style={styles.cardHead}>
                 <View style={styles.labelRow}>
@@ -436,6 +531,33 @@ export function TranslatorScreen({
                 submitBehavior="blurAndSubmit"
                 placeholderTextColor={theme.color.faint}
               />
+
+              {/* ⚠️ Below the field, not beside the label. Clearing a long
+                  message by holding backspace is the thing this replaces, and
+                  the hand is already at the bottom of the input when it gives
+                  up doing that. */}
+              <View style={styles.inputActions}>
+                <Pressable
+                  testID="clear-input"
+                  accessibilityRole="button"
+                  accessibilityLabel="clear-input"
+                  onPress={clearInput}
+                  style={styles.inputAction}
+                >
+                  <Icon name="backspace" size={15} color={theme.color.muted} />
+                  <Text style={styles.inputActionText}>{t('translator.clearAll')}</Text>
+                </Pressable>
+                <Pressable
+                  testID="paste-input"
+                  accessibilityRole="button"
+                  accessibilityLabel="paste-input"
+                  onPress={pasteInput}
+                  style={styles.inputAction}
+                >
+                  <Icon name="copy" size={15} color={theme.color.muted} />
+                  <Text style={styles.inputActionText}>{t('translator.paste')}</Text>
+                </Pressable>
+              </View>
             </Card>
 
             <Card grow testID="morse-card">
@@ -449,12 +571,13 @@ export function TranslatorScreen({
               {toMorse && showSurface ? (
                 <SignalSurface lit={playback.screenLit} />
               ) : toMorse ? (
-                <MorseOutput tablet={tablet}>
+                <MorseOutput tablet={tablet} scrollRef={chipsScroll}>
                   <MorseText
                     message={message}
                     selectedIndex={picked}
                     soundingIndex={playback.soundingIndex}
                     onSelectLetter={pickLetter}
+                    onSoundingLetter={followSoundingLetter}
                   />
                 </MorseOutput>
               ) : (
@@ -529,11 +652,13 @@ export function TranslatorScreen({
 
           <Toast
             visible={playback.lowVolume}
+            icon="volume"
             message={t('translator.volumeLow')}
             onDismiss={playback.dismissLowVolume}
           />
           <Toast
             visible={copiedToast}
+            icon="check"
             message={t('translator.copied')}
             onDismiss={dismissCopiedToast}
           />
@@ -618,6 +743,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
+  inputActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+  },
+  inputAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  inputActionText: { ...theme.type.hint, color: theme.color.muted },
   label: { ...theme.type.label, color: theme.color.faint, flexShrink: 0 },
   // Deliberately small and in the accent, not a red badge. It points at the
   // field; it is not reporting that anything is wrong.

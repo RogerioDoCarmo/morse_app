@@ -12,6 +12,18 @@ import type { IClipboardPort } from '@/core/ports';
  */
 export function createExpoClipboardAdapter(): IClipboardPort {
   return {
+    async read(): Promise<string | null> {
+      try {
+        const text = await Clipboard.getStringAsync();
+        // ⚠️ An empty string is "nothing to paste", not a value. Pasting it
+        // would silently wipe what the user had typed, which is the one
+        // outcome a Paste button must never produce.
+        return text.length > 0 ? text : null;
+      } catch {
+        return null;
+      }
+    },
+
     async write(text: string): Promise<boolean> {
       try {
         // ⚠️ `setStringAsync` RETURNS whether it worked — it does not throw on

@@ -17,6 +17,8 @@ export const ptBR: TranslationMap = {
   'translator.tapItIn': 'Tocar',
   'translator.readAloud': 'Ler em voz alta',
   'translator.copy': 'Copiar',
+  'translator.clearAll': 'Apagar tudo',
+  'translator.paste': 'Colar',
   'translator.play': 'Reproduzir',
   'translator.copied': 'Copiado',
   'translator.typeHint': 'Toque para escrever',
