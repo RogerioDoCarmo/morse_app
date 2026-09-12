@@ -46,22 +46,35 @@ jobs:
           - label: phone
             profile: pixel_6
             skin: ''
+            pad_to_16_9: 'no'
             artifact: store-screenshots-android
           - label: 7-inch tablet
             profile: Nexus 7 2013
             skin: ''
+            pad_to_16_9: 'no'
             artifact: store-screenshots-android-tablet7
           - label: 10-inch tablet
             profile: pixel_tablet
             skin: ''
+            pad_to_16_9: 'no'
             artifact: store-screenshots-android-tablet10
-          # ⚠️ The Chromebook slot wants 16:9 LANDSCAPE, and NO device profile
-          # in `avdmanager list device` is 16:9 — the tablets are 1:1.6 and the
-          # desktop profiles 16:10. The size is pinned with `-skin` instead of
-          # inherited, which is the only way to hit the ratio Play asks for.
+          # ⚠️ The Chromebook slot wants 16:9 LANDSCAPE, and no device in
+          # `avdmanager list device` is 16:9 — the tablets are 1:1.6.
+          #
+          # ⚠️ `-skin 1920x1080` DOES NOT WORK, and the run that tried it is
+          # the proof. The option reached the emulator — the log echoes it in
+          # full — and the boot line still read
+          # `androidboot.qemu.skin=320x640`, because with no `profile` the
+          # AVD's own config wins and 320x640 is the default. That is Play's
+          # absolute minimum and exactly the trap this workflow already
+          # carries a warning about.
+          #
+          # So: a real tablet profile, and the ratio corrected afterwards by
+          # padding, where it can be verified rather than hoped for.
           - label: chromebook
-            profile: ''
-            skin: '-skin 1920x1080'
+            profile: pixel_tablet
+            skin: ''
+            pad_to_16_9: 'yes'
             artifact: store-screenshots-android-chromebook
     # A hung build otherwise runs to GitHub's six-hour default before anyone
     # finds out. `./gradlew assembleRelease` sat here for over three hours on
@@ -138,6 +151,20 @@ jobs:
           # falls back to a default rather than failing, and a 320x640 set is
           # what that looks like — accepted by Play, and unusable. This is the
           # line that makes the difference visible without opening a file.
+          # ⚠️ Padded, not cropped. Cropping 2560x1600 to 16:9 would cut 160px
+          # off a screen whose content reaches the edges; padding keeps every
+          # pixel of the app and adds ground colour at the sides. The colour is
+          # theme.ts's `ground`, so the join is invisible rather than a black
+          # bar someone has to explain.
+          if [ "${{ matrix.pad_to_16_9 }}" = "yes" ]; then
+            sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
+            for f in screenshots/*.png; do
+              ffmpeg -hide_banner -loglevel error -y -i "$f" \
+                -vf "scale=iw:ih,pad=ceil(ih*16/9/2)*2:ih:(ow-iw)/2:0:color=0xf2f4f7" \
+                "$f.16x9.png" && mv "$f.16x9.png" "$f"
+            done
+          fi
+
           SLOT='${{ matrix.label }}' python3 - <<'PY'
           import glob, os, struct, sys
 
@@ -167,6 +194,21 @@ jobs:
               if abs(ratio - 16 / 9) > 0.02:
                   sys.exit(f'::error::chromebook wants 16:9, got {ratio:.3f}')
           PY
+
+      # ⚠️ WITHOUT THIS A FAILURE TEACHES NOTHING, and three slots failed in
+      # one run to prove it. `Collect` copies only `NN-*.png`, so when a flow
+      # dies before its first screenshot there is nothing to upload and
+      # Maestro's hierarchy dumps and failure shot — which say WHY — are
+      # thrown away with the runner. e2e.yml has kept its debug output from
+      # the start; this workflow never did, and the difference only shows on
+      # the day something breaks.
+      - name: Keep the Maestro output when the flow failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-debug
+          path: ~/.maestro/tests/
+          retention-days: 14
 
       - name: Upload the screenshots
         if: always()
