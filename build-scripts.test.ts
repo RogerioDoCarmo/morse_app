@@ -56,7 +56,28 @@ describe('build scripts', () => {
   );
 
   // A script nobody can find is a script nobody uses.
-  it.each(['build:ipa:adhoc', 'build:ipa:adhoc:local'])('documents %s', (script) => {
-    expect(COMMANDS).toContain(script);
+  it.each(['build:ipa:adhoc', 'build:ipa:adhoc:local', 'submit:ios'])(
+    'documents %s',
+    (script) => {
+      expect(COMMANDS).toContain(script);
+    },
+  );
+
+  /**
+   * ⚠️ `submit:ios` must not become an `eas submit` wrapper without someone
+   * deciding to. EAS submits through a shared queue that sat on "waiting for
+   * an available submitter" long enough to be abandoned on 12 September;
+   * altool uploads directly. Both are legitimate, but the script is the direct
+   * one and the difference is the reason it exists.
+   */
+  it('submits with altool rather than through the EAS queue', () => {
+    expect(scripts['submit:ios']).toBe('tools/submit-ios.sh');
+    const script = fs.readFileSync(path.join(__dirname, 'tools/submit-ios.sh'), 'utf8');
+    expect(script).toContain('altool --upload-app');
+    // The password goes in by reference, never as an argument altool's process
+    // line would carry.
+    expect(script).toContain("'@env:ALTOOL_PW'");
+    // And an ad-hoc build is refused before the upload is spent.
+    expect(script).toContain('ProvisionedDevices');
   });
 });

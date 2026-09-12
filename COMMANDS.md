@@ -255,6 +255,45 @@ pnpm build:ipa:adhoc:local
 comes from EAS, so stay logged in. Set `EAS_LOCAL_BUILD_SKIP_CLEANUP=1` to keep
 the generated native project when a build fails and you want to look at it.
 
+### Sending an iOS build to App Store Connect
+
+```bash
+pnpm submit:ios                      # prompts, or reads the keychain
+pnpm submit:ios abcd-efgh-ijkl-mnop  # or takes it as an argument
+```
+
+It picks the **newest** `build-*.ipa`, prints the version and build number it
+is about to send, and uploads with `altool`.
+
+⚠️ **It refuses an ad-hoc build.** Both kinds land here with indistinguishable
+names and `build:ipa:adhoc:local` is the one run more often, because that is
+what goes to Firebase. Apple rejects an ad-hoc upload *after* the transfer,
+with a message about the provisioning profile that reads like a signing fault
+rather than "you picked the wrong file". The tell is `ProvisionedDevices` —
+an ad-hoc profile lists the UDIDs it may install on, an App Store profile has
+no such key — and the script checks for it before spending the upload.
+
+⚠️ **The password is an APP-SPECIFIC one**, not the Apple ID password. `altool`
+cannot answer a two-factor prompt, which is why Apple issues these. Make one at
+appleid.apple.com → Sign-In and Security → App-Specific Passwords; it is shown
+once.
+
+⚠️ **Passing it as an argument puts it in your shell history.** It is accepted
+because it is convenient, not because it is safe. Store it once instead:
+
+```bash
+security add-generic-password -a "rogerio.carmo02@gmail.com" \
+  -s omnimorse-altool -w '<the app-specific password>'
+```
+
+…after which `pnpm submit:ios` finds it with no argument at all. However it
+arrives, it reaches `altool` through `@env:` so it never appears in the process
+list.
+
+`eas submit --platform ios` does the same job through EAS's shared queue, which
+on 12 September sat on "waiting for an available submitter" long enough to be
+abandoned. Submitting costs no build credits either way.
+
 ⚠️ **A local build proving nothing about a remote one.** Your machine carries
 state a clean builder does not — that divergence is what once hid three iOS
 build failures here. Run one remote build before a real release.
