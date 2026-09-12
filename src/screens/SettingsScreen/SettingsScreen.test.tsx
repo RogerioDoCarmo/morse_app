@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { SettingsScreen } from './SettingsScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
@@ -217,5 +217,35 @@ describe('which build this is', () => {
   // and the first of the three to go stale.
   it('reads the version rather than restating it', () => {
     expect(APP_VERSION).toBe(appJson.expo.version);
+  });
+});
+
+/**
+ * ⚠️ A platform Switch animates, which reads as "something happened" but not
+ * as WHICH thing. On a row whose title and hint are two lines of small grey
+ * text, a tester could not tell afterwards whether crash reports had been
+ * turned on or off.
+ */
+describe('confirming what a switch did', () => {
+  it('names the setting and the state it moved to', async () => {
+    show();
+
+    fireEvent(screen.getByTestId('settings-read-aloud'), 'valueChange', false);
+
+    const toast = await screen.findByTestId('toast');
+    // The setting by NAME, not "Saved" — three switches would otherwise all
+    // say the same thing.
+    expect(within(toast).getByText(/Read decoded text aloud/u)).toBeTruthy();
+    expect(within(toast).getByText(/is off/u)).toBeTruthy();
+  });
+
+  it('says on when it goes the other way', async () => {
+    show();
+
+    fireEvent(screen.getByTestId('settings-crash-reports'), 'valueChange', true);
+
+    const toast = await screen.findByTestId('toast');
+    expect(within(toast).getByText(/Send crash reports/u)).toBeTruthy();
+    expect(within(toast).getByText(/is on/u)).toBeTruthy();
   });
 });

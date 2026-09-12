@@ -1448,3 +1448,44 @@ describe('copying the Morse', () => {
     expect(screen.queryByTestId('toast')).toBeNull();
   });
 });
+
+/**
+ * ⚠️ This button had NO `onPress` at all — drawn on the artboard and never
+ * wired, exactly like Speak in 0.2.1 and Copy in 0.3.1. Nothing fails when a
+ * handler is missing, which is how three of them reached a tester.
+ */
+describe('the language button', () => {
+  it('changes the interface language when pressed', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    expect(screen.getByText('EN')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+    expect(screen.getByText('PT')).toBeOnTheScreen();
+  });
+
+  it('comes back round to where it started', () => {
+    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    const press = (): void => {
+      fireEvent.press(screen.getByLabelText('locale-picker'));
+    };
+    press();
+    press();
+    expect(screen.getByText('ES')).toBeOnTheScreen();
+    press();
+    expect(screen.getByText('EN')).toBeOnTheScreen();
+  });
+
+  /**
+   * ⚠️ The INTERFACE only. Recognition is a separate setting now, and changing
+   * what the buttons say must not change what the microphone listens for.
+   */
+  it('does not touch the recogniser', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<TranslatorScreen />, { ports, locale: 'en' });
+    fireEvent.press(screen.getByLabelText('locale-picker'));
+
+    expect(
+      ports.calls.stored.filter((entry) => entry.key === 'settings.speechLocale'),
+    ).toStrictEqual([]);
+  });
+});

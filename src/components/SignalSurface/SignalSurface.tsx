@@ -55,6 +55,14 @@ type Props = Readonly<{
 }>;
 
 /**
+ * The least room the stage will insist on.
+ *
+ * Enough that the disc is still recognisably a disc, small enough that a
+ * progress row appearing below it can take the space it needs.
+ */
+const MIN_STAGE = 96;
+
+/**
  * A disc that carries the message as light and dark.
  *
  * Near-black rather than pure black, and the app's own white: this sits inside
@@ -76,11 +84,23 @@ export function SignalSurface({
   };
 
   return (
-    // The floor is what stops this collapsing now that the card scrolls rather
-    // than filling a fixed viewport: `flex: 1` in a container whose height is
-    // its content resolves to zero, and a zero-height stage takes the disc out
-    // of the view hierarchy along with it.
-    <View style={[styles.stage, { minHeight: cap }]} onLayout={measure}>
+    // ⚠️ The floor is a FLOOR, not the ideal size.
+    //
+    // It was `minHeight: cap` — the diameter the disc would like — so the
+    // stage refused to shrink when the progress bar and clock appeared beneath
+    // it during playback, and the disc spilled under them. It looked like the
+    // clock was drawn on top of the circle; the stage was overflowing its
+    // room. "Sometimes" was the giveaway: that row only exists while playing.
+    //
+    // A small floor still does the job it was added for — `flex: 1` in a
+    // container whose height is its content resolves to zero, and a
+    // zero-height stage takes the disc out of the view hierarchy — without
+    // claiming space the screen does not have.
+    <View
+      testID={`${testID}-stage`}
+      style={[styles.stage, { minHeight: Math.min(cap, MIN_STAGE) }]}
+      onLayout={measure}
+    >
       <View
         testID={testID}
         accessibilityRole="image"

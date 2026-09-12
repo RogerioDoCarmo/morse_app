@@ -34,6 +34,8 @@ const BUDGETS: Partial<Record<TranslationKey, number>> = {
   'translator.playing': 16,
   'translator.unsupported': 26,
   'translator.play': 14,
+  'settings.turnedOn': 40,
+  'settings.turnedOff': 44,
   'translator.volumeLow': 26,
   'translator.copied': 12,
   'translator.typeHint': 22,

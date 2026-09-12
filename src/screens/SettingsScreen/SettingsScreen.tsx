@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_VERSION } from '@/appVersion';
+import { Toast } from '@/components/Toast';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { Icon } from '@/components/Icon';
@@ -42,6 +43,29 @@ export function SettingsScreen({
   onShowGuide,
 }: Props): React.JSX.Element {
   const { t, locale } = useLocale();
+
+  /**
+   * What the last switch did, echoed back.
+   *
+   * ⚠️ A platform Switch animates, which reads as "something happened" but not
+   * as WHICH thing — on a row whose title and hint are two lines of small
+   * grey text, a tester could not tell afterwards whether they had turned
+   * crash reports on or off. The toast says the setting by name and the state
+   * in words.
+   */
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const dismissConfirmation = useCallback(() => setConfirmation(null), []);
+
+  const confirming = useCallback(
+    (setting: string, apply: (next: boolean) => void) =>
+      (next: boolean): void => {
+        apply(next);
+        setConfirmation(
+          t(next ? 'settings.turnedOn' : 'settings.turnedOff', { setting }),
+        );
+      },
+    [t],
+  );
   const insets = useSafeAreaInsets();
   const { settings, setTapUnitMs, setPlaybackWpm, setSpeakDecoded, setCrashReports } =
     useSettings();
@@ -140,7 +164,7 @@ export function SettingsScreen({
               title={t('settings.readAloud')}
               hint={t('settings.readAloudHint')}
               value={settings.speakDecoded}
-              onChange={setSpeakDecoded}
+              onChange={confirming(t('settings.readAloud'), setSpeakDecoded)}
             />
           </View>
         </View>
@@ -153,7 +177,7 @@ export function SettingsScreen({
               title={t('settings.crashReports')}
               hint={t('settings.crashReportsHint')}
               value={settings.crashReports}
-              onChange={setCrashReports}
+              onChange={confirming(t('settings.crashReports'), setCrashReports)}
             />
           </View>
         </View>
@@ -199,6 +223,11 @@ export function SettingsScreen({
           {t('settings.version', { version: APP_VERSION })}
         </Text>
       </ScrollView>
+      <Toast
+        visible={confirmation !== null}
+        message={confirmation ?? ''}
+        onDismiss={dismissConfirmation}
+      />
     </View>
   );
 }

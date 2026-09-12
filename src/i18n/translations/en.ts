@@ -101,6 +101,8 @@ export const en: TranslationMap = {
   'translator.channelScreen': 'Screen',
   'translator.channelBuzz': 'Vibrate',
   'settings.title': 'Settings',
+  'settings.turnedOn': '{{setting}} is on',
+  'settings.turnedOff': '{{setting}} is off',
   'settings.cutoff': 'Dot / dash cut-off',
   'settings.cutoffHint':
     'Hold the key longer than this and it counts as a dash. “Long” depends on your speed, so set it to suit you.',

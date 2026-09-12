@@ -91,6 +91,8 @@ export type TranslationKey =
   | 'translator.channelScreen'
   | 'translator.channelBuzz'
   | 'settings.title'
+  | 'settings.turnedOn'
+  | 'settings.turnedOff'
   | 'settings.cutoff'
   | 'settings.cutoffHint'
   | 'settings.calibrate'

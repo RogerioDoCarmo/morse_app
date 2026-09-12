@@ -278,18 +278,30 @@ describe('which language it listens for', () => {
     };
   };
 
-  it('follows the interface when nothing has been chosen', async () => {
+  /**
+   * ⚠️ The DEVICE language when nothing has been chosen — NOT the interface.
+   *
+   * This test used to assert the opposite. Recognition followed the interface,
+   * so switching the app to Portuguese silently pointed the microphone at a
+   * recogniser the phone might not even have installed. The two are separate
+   * settings now; an unset recogniser means "whatever this phone speaks",
+   * which is what it meant on first launch and no longer moves afterwards.
+   */
+  it('listens in the device language when nothing has been chosen', async () => {
     const isAvailable = jest.fn(async () => true);
     const ports = createFakePorts();
     ports.speech.isAvailable = isAvailable;
+    ports.locale.getDeviceLocale = () => 'en';
     renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
       ports,
+      // The INTERFACE is Portuguese; the recogniser must not follow it.
       locale: 'pt-BR',
     });
     fireEvent.press(screen.getByTestId('mic-button'));
     await waitFor(() => {
-      expect(isAvailable).toHaveBeenCalledWith('pt-BR');
+      expect(isAvailable).toHaveBeenCalledWith('en');
     });
+    expect(isAvailable).not.toHaveBeenCalledWith('pt-BR');
   });
 
   // The whole point of the setting: a device may have no recogniser for the

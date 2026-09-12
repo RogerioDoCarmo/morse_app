@@ -99,6 +99,8 @@ export const es: TranslationMap = {
   'translator.channelScreen': 'Pantalla',
   'translator.channelBuzz': 'Vibrar',
   'settings.title': 'Ajustes',
+  'settings.turnedOn': '{{setting}}: activado',
+  'settings.turnedOff': '{{setting}}: desactivado',
   'settings.cutoff': 'Umbral de punto / raya',
   'settings.cutoffHint':
     'Mantener la tecla más tiempo que esto cuenta como raya. «Largo» depende de tu velocidad, así que ajústalo a tu gusto.',
