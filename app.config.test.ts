@@ -146,10 +146,22 @@ describe('app.config', () => {
     }
   });
 
-  // The privacy label has to match what the app does. It collects crash
-  // diagnostics and nothing else, it does not link them to anyone, and there
-  // is no advertising identifier anywhere in the app to track with.
-  it('claims crash data only, unlinked and untracked', () => {
+  /**
+   * The privacy label has to match what the app does — and match what the two
+   * STORE FORMS claim, which is where this went wrong.
+   *
+   * ⚠️ It declared crash data ALONE while Play's Data safety declared Device
+   * IDs as well, and nobody noticed until the App Privacy questionnaire asked
+   * the same question a third time, mid-submission. Crashlytics identifies an
+   * installation to group reports, so Device ID is collected whatever the
+   * manifest said.
+   *
+   * ⚠️ Three surfaces move together and it is easy to update one: Play Data
+   * safety, Apple App Privacy, and this manifest. Neither is linked to a
+   * person and neither is used for tracking — there is no advertising
+   * identifier anywhere in the app, verified against the shipped AAB.
+   */
+  it('claims crash data and a device id, unlinked and untracked', () => {
     const { expo } = loadConfig([ANDROID, IOS]);
     const manifests = expo.ios?.privacyManifests;
 
@@ -158,6 +170,14 @@ describe('app.config', () => {
     expect(manifests?.NSPrivacyCollectedDataTypes).toStrictEqual([
       {
         NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeCrashData',
+        NSPrivacyCollectedDataTypeLinked: false,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: [
+          'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+        ],
+      },
+      {
+        NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeDeviceID',
         NSPrivacyCollectedDataTypeLinked: false,
         NSPrivacyCollectedDataTypeTracking: false,
         NSPrivacyCollectedDataTypePurposes: [
