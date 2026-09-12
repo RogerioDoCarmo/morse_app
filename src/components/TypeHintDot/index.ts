@@ -1,0 +1,1 @@
+export { TypeHintDot } from './TypeHintDot';
