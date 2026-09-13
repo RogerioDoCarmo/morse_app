@@ -40,6 +40,8 @@ export type TranslationKey =
   | 'firstRun.twoBody'
   | 'firstRun.threeTitle'
   | 'firstRun.threeBody'
+  | 'firstRun.fourTitle'
+  | 'firstRun.fourBody'
   | 'speech.tapToSpeak'
   | 'speech.listening'
   | 'speech.gotIt'

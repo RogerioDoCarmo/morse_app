@@ -38,6 +38,9 @@ export const es: TranslationMap = {
   'firstRun.threeTitle': 'Escucha una letra a la vez',
   'firstRun.threeBody':
     'Toca cualquier letra para oír solo esa. Es la forma más rápida de aprender el ritmo, y la pestaña Aprender tiene el alfabeto entero cuando lo quieras.',
+  'firstRun.fourTitle': 'Míralo en la pantalla',
+  'firstRun.fourBody':
+    'Activa Pantalla y el círculo parpadea el mensaje — largo para raya, corto para punto. Útil cuando el sonido molesta y la linterna llama demasiado la atención. Esto es en funcionamiento.',
   'speech.tapToSpeak': 'Toca para hablar',
   'speech.listening': 'Escuchando…',
   'speech.gotIt': 'Listo',

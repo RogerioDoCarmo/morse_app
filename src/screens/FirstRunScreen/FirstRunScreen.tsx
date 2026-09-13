@@ -18,12 +18,14 @@ import { useLayout } from '@/application/useLayout';
 import type { IconName } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
+import { SurfaceDemo } from '@/components/SurfaceDemo';
 import { encode } from '@/core/domain/morse';
+import { DEFAULT_PLAYBACK_UNIT_MS } from '@/core/domain/timeline';
 import type { TranslationKey } from '@/i18n';
 import { theme } from '@/theme';
 
 /** Which illustration a slide carries. */
-type Illustration = 'chips' | 'channels' | 'letter';
+type Illustration = 'chips' | 'channels' | 'letter' | 'surface';
 
 type Slide = Readonly<{
   title: TranslationKey;
@@ -40,6 +42,10 @@ const SLIDES = [
   { title: 'firstRun.oneTitle', body: 'firstRun.oneBody', show: 'chips' },
   { title: 'firstRun.twoTitle', body: 'firstRun.twoBody', show: 'channels' },
   { title: 'firstRun.threeTitle', body: 'firstRun.threeBody', show: 'letter' },
+  // ⚠️ A DEMONSTRATION, not a fourth paragraph. The chips are explained twice
+  // already — slide three above, and the Morse card's own header — and a
+  // tester still missed them. The circle gets shown running instead.
+  { title: 'firstRun.fourTitle', body: 'firstRun.fourBody', show: 'surface' },
 ] as const satisfies readonly Slide[];
 
 /**
@@ -180,6 +186,12 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
   const sampleMessage = useMemo(() => encode(sample), [sample]);
   const oneLetter = useMemo(() => encode(sample.slice(0, 3)), [sample]);
 
+  // ⚠️ 'A' rather than the sample: it is dot-then-dash, so one short run shows
+  // BOTH lengths and the difference between them, which is the whole point of
+  // the circle. The sample's first letters may be three dots and demonstrate
+  // only half of it.
+  const demoLetter = useMemo(() => encode('A'), []);
+
   // Two columns only where both halves fit; a tablet in portrait keeps one
   // column, capped so it is not a phone layout stretched across an iPad.
   const { tablet, twoColumns } = useLayout();
@@ -208,6 +220,16 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
       {each.show === 'letter' ? (
         <View style={styles.card}>
           <MorseText message={oneLetter} selectedIndex={1} testID="first-run-letter" />
+        </View>
+      ) : null}
+
+      {each.show === 'surface' ? (
+        <View style={styles.card}>
+          <SurfaceDemo
+            message={demoLetter}
+            unitMs={DEFAULT_PLAYBACK_UNIT_MS}
+            testID="first-run-surface"
+          />
         </View>
       ) : null}
     </View>

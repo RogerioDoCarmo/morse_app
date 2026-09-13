@@ -29,13 +29,15 @@ describe('the carousel on a tablet', () => {
     expect(screen.getByTestId('first-run-next')).toBeOnTheScreen();
   });
 
-  it('still walks all three slides and lands on Start', () => {
+  it('still walks all four slides and lands on Start', () => {
     show();
     expect(screen.getByText('Type it, see it')).toBeOnTheScreen();
     fireEvent.press(screen.getByTestId('first-run-next'));
     expect(screen.getByText('Choose how it goes out')).toBeOnTheScreen();
     fireEvent.press(screen.getByTestId('first-run-next'));
     expect(screen.getByText('Hear one letter at a time')).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('first-run-next'));
+    expect(screen.getByText('Watch it on the screen')).toBeOnTheScreen();
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
 

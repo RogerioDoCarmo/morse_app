@@ -61,6 +61,24 @@ appId: com.rogeriodocarmo.morse
       - assertVisible:
           id: 'first-run'
 
+# ⚠️ A FOURTH SWIPE, for the slide that demonstrates the flashing circle. It
+# was added because a tester could not tell what the circle did; it is also the
+# only moving thing in the carousel, which makes it the one slide worth filming.
+# Without this the tour would Skip straight past it.
+#
+# ⚠️ It costs roughly six seconds against the 180-second `screenrecord`
+# ceiling. The clip measured 146.8s before it, so there is room — but that
+# budget is the thing to check if this tour grows again.
+- swipe:
+    from:
+      id: 'first-run-pager'
+    direction: LEFT
+- repeat:
+    times: 4
+    commands:
+      - assertVisible:
+          id: 'first-run-art-surface'
+
 - tapOn:
     id: 'first-run-skip'
 - assertNotVisible:
