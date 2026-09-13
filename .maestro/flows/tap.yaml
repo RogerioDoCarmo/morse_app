@@ -26,6 +26,15 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-screen'
 - assertVisible:
     id: 'tap-key'
+# ⚠️ The key names the two marks it makes, and while it is HELD it dims the
+# one it is not making. That is the only thing on this screen that can say how
+# long a hold has to be — the rule is written above the key, and the threshold
+# is still a setting in milliseconds nobody can feel. A tester pressed,
+# released, and only then found out what they had made.
+- assertVisible:
+    id: 'tap-key-dot'
+- assertVisible:
+    id: 'tap-key-dash'
 # Nothing keyed yet, so the card holds the hint rather than a decoding.
 - assertVisible:
     id: 'tap-empty'

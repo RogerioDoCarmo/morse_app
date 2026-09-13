@@ -121,6 +121,52 @@ describe('TapScreen', () => {
     expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
   });
 
+  /**
+   * ⚠️ THE ONE THING THIS SCREEN COULD NOT TELL YOU. The rule is on screen —
+   * "Hold the key for a dash, tap it for a dot" — and the key draws both
+   * marks. Neither could say HOW LONG a hold is, because the threshold is a
+   * setting measured in milliseconds nobody can feel. A tester pressed,
+   * released, and only then found out what they had made.
+   *
+   * So the key says which mark it is making while it is still down. The
+   * opacities are asserted literally: reading them back off the component
+   * would agree with whatever it rendered, including nothing at all.
+   */
+  it('shows a dot while the press is still short', () => {
+    show();
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+
+    expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 1 });
+    expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 0.28 });
+  });
+
+  it('switches to the dash the moment the hold earns one', () => {
+    show();
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    act(() => {
+      // Past one unit — the same threshold the decoder uses.
+      jest.advanceTimersByTime(DEFAULT_UNIT_MS + 20);
+    });
+
+    expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 1 });
+    expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 0.28 });
+  });
+
+  /**
+   * ⚠️ And the key offers BOTH again once released — neither is dimmed. A key
+   * left showing the last mark would read as a mode the user had entered.
+   */
+  it('offers both marks again once the key is released', () => {
+    show();
+    hold(DEFAULT_UNIT_MS + 20);
+
+    expect(screen.getByTestId('tap-key-dot')).not.toHaveStyle({ opacity: 0.28 });
+    expect(screen.getByTestId('tap-key-dash')).not.toHaveStyle({ opacity: 0.28 });
+  });
+
   it('lights the key while it is held', () => {
     show();
     fireEvent(screen.getByTestId('tap-key'), 'pressIn');
