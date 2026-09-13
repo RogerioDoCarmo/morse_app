@@ -137,9 +137,19 @@ jobs:
             echo "Mutating: $KEPT"
           fi
 
+      # ⚠️ NO `--` BEFORE THE FLAG. pnpm 10 forwards it to the script verbatim
+      # rather than swallowing it, so `pnpm mutation -- --mutate X` reached
+      # Stryker as `run -- --mutate X` and died on
+      # "too many arguments for 'run'. Expected 1 argument but got 2."
+      #
+      # ⚠️ And it died on EVERY scoped run, which is to say the step has never
+      # once mutated anything. It went unnoticed because the other branch is
+      # the common one: a PR that touches no `src/core` source skips this step
+      # entirely and reports green, and most do. The first PR in weeks to add
+      # a domain file is what finally ran it.
       - name: Stryker
         if: steps.scope.outputs.run == 'true'
-        run: pnpm mutation -- --mutate "${{ steps.scope.outputs.mutate }}"
+        run: pnpm mutation --mutate "${{ steps.scope.outputs.mutate }}"
 
       - name: Upload mutation report
         if: always() && steps.scope.outputs.run == 'true'
