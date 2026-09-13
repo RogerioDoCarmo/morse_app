@@ -262,11 +262,20 @@ pnpm submit:ios                      # prompts, or reads the keychain
 pnpm submit:ios abcd-efgh-ijkl-mnop  # or takes it as an argument
 ```
 
-It picks the **newest** `build-*.ipa`, prints the version and build number it
-is about to send, and uploads with `altool`.
+It picks the **newest** `.ipa` in the repository root, prints the version and
+build number it is about to send, and uploads with `altool`.
 
-⚠️ **It refuses an ad-hoc build.** Both kinds land here with indistinguishable
-names and `build:ipa:adhoc:local` is the one run more often, because that is
+⚠️ **Rename every artefact as soon as it is built** — EAS produces
+`build-<epoch-ms>.ipa`, which says nothing about what is inside it. The
+convention is `omnimorse-<version>-<build>-<destination>`, so
+`omnimorse-0.3.5-16-appstore.ipa` and `omnimorse-0.3.5-15-firebase-adhoc.ipa`
+rather than two timestamps four minutes apart. Read the version and build
+number off the artefact, not off the build log: a failed build still consumes
+a build number, so the log can be one ahead of the file.
+
+⚠️ **It refuses an ad-hoc build, and the NAME is not what it goes on.** A file
+called `…-appstore.ipa` is a claim; the embedded provisioning profile is the
+fact. `build:ipa:adhoc:local` is the one run more often, because that is
 what goes to Firebase. Apple rejects an ad-hoc upload *after* the transfer,
 with a message about the provisioning profile that reads like a signing fault
 rather than "you picked the wrong file". The tell is `ProvisionedDevices` —
