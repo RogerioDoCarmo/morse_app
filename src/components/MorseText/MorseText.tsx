@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { TapHalo } from '@/components/TapHalo';
 import type { MorseMessage } from '@/core/domain/morse';
 import { theme } from '@/theme';
 
@@ -16,6 +17,15 @@ type Props = Readonly<{
   soundingIndex?: number | null;
   /** Called with that same flat index when a letter is pressed. */
   onSelectLetter?: (index: number) => void;
+  /**
+   * Index of the letter that should point at itself, or null for none.
+   *
+   * ⚠️ FOR THE CHIPS' ONE UNDISCOVERABLE TRICK. Tapping a chip plays that
+   * letter on its own, and a tester used 0.3.4 without ever finding out — past
+   * the card header that says so and past the guide slide that says so. A
+   * pressable that looks like a label is invisible until something moves.
+   */
+  hintIndex?: number | null;
   /**
    * Handed the sounding letter's own view, each time the playhead moves.
    *
@@ -44,6 +54,7 @@ export function MorseText({
   soundingIndex = null,
   onSelectLetter,
   onSoundingLetter,
+  hintIndex = null,
   testID = 'morse-output',
 }: Props): React.JSX.Element {
   // Each word's starting index, computed before render rather than by mutating
@@ -97,6 +108,11 @@ export function MorseText({
                   lit && styles.letterSelected,
                 ]}
               >
+                {/* Behind the marks and outside the layout — see TapHalo.
+                    Never while this chip is lit: the highlight is already
+                    saying "this one", and two signals on one chip read as a
+                    state rather than as an invitation. */}
+                {hintIndex === index && !lit ? <TapHalo /> : null}
                 <View style={styles.marks}>
                   {letter.symbols.map((symbol, symbolIndex) => (
                     <View

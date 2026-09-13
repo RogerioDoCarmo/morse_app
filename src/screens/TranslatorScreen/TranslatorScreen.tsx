@@ -24,6 +24,7 @@ import { type AppLocale } from '@/core/domain/locale';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
+import { useLetterHint } from '@/application/useLetterHint';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { unitMsForWpm } from '@/core/domain/timeline';
@@ -302,6 +303,8 @@ export function TranslatorScreen({
   // One decimal is enough to look continuous and keeps the style object stable.
   const progressPercent = Math.round(playback.progress * 1000) / 10;
 
+  const letterHint = useLetterHint();
+
   const segments: readonly Segment<Direction>[] = [
     { value: 'toMorse', label: t('translator.toMorse') },
     { value: 'toText', label: t('translator.toText') },
@@ -317,10 +320,15 @@ export function TranslatorScreen({
       // moving it under a running message would fight with it.
       if (playback.playing) return;
 
+      // ⚠️ Spent BEFORE the sound. The user has just done the thing the hint
+      // exists to teach, and the halo is still on screen at this instant —
+      // leaving it to breathe on after a successful tap is the app explaining
+      // something back to someone who has already understood it.
+      letterHint.spend();
       setPicked(index);
       playback.playLetter(index);
     },
-    [playback],
+    [letterHint, playback],
   );
 
   const { tablet } = useLayout();
@@ -399,6 +407,16 @@ export function TranslatorScreen({
   // The chips are a reading aid; while the screen is carrying the message the
   // square IS the message, and the chips would only compete with it.
   const showSurface = playback.playing && playback.channels.screen;
+
+  /**
+   * Which chip points at itself — the first one, or none.
+   *
+   * ⚠️ NOT WHILE ANYTHING IS PLAYING. A press does nothing then (see
+   * `pickLetter`), so a ring inviting one would be inviting a press the screen
+   * is about to ignore — the one thing worse than never mentioning the
+   * feature is mentioning it at the moment it does not work.
+   */
+  const hintLetter = letterHint.show && !playback.playing ? 0 : null;
 
   // One slot, three things it can say — and they rank. What is happening now
   // beats a warning, and a warning beats a standing hint.
@@ -640,6 +658,7 @@ export function TranslatorScreen({
                     soundingIndex={playback.soundingIndex}
                     onSelectLetter={pickLetter}
                     onSoundingLetter={followSoundingLetter}
+                    hintIndex={hintLetter}
                   />
                 </MorseOutput>
               ) : (

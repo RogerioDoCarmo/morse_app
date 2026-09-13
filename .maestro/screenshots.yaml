@@ -50,6 +50,16 @@ appId: com.rogeriodocarmo.morse
 # `waitForAnimationToEnd` is the right primitive ONLY because the pulse is
 # finite. It ran forever until 0.3.4, and this would have waited out its whole
 # timeout instead of returning when the dot came to rest.
+#
+# ⚠️ TWO animations now, not one: the first letter chip also wears a ring that
+# breathes four times before coming to rest. Both are finite and both are
+# covered by this one wait — the chip's is the shorter of the two.
+#
+# ⚠️ AND THE RING IS STILL THERE IN THE SHOT, at rest. That is deliberate, not
+# a leftover frame: it says the chips are pressable, which is the one thing
+# about this screen a tester used a whole release without discovering. It
+# disappears for good the first time any chip is pressed, so it is only ever
+# in a shot taken on a freshly cleared device — which is every shot here.
 - waitForAnimationToEnd:
     timeout: 12000
 - takeScreenshot: 01-translator
