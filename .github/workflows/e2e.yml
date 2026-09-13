@@ -182,6 +182,28 @@ jobs:
             -gpu swiftshader_indirect -camera-back none -camera-front none
           disable-animations: true
           script: |
+            # ⚠️ THE LAUNCHER'S ANR DIALOG FAILS THE WHOLE SUITE, and it is not
+            # this app's crash. "Pixel Launcher isn't responding" appears over
+            # everything, so `first-run` is never visible and EVERY flow dies on
+            # its first assertion — 9/9 failed, identically, in the run that
+            # finally produced the proof: the screen hierarchy at the moment of
+            # failure held `android:id/aerr_close`, `android:id/aerr_wait` and
+            # the text "Pixel Launcher isn't responding", with the app nowhere
+            # in it.
+            #
+            # ⚠️ The flows' own `retry:` cannot help — the dialog outlives the
+            # relaunch, which is exactly why nine retries all failed the same
+            # way and why this reads like a real regression every time.
+            #
+            # `record-video-clips.sh` has suppressed this since a promo
+            # recording lost its footage to it, and `screenshots.yml` learned it
+            # after the Play tour was truncated. THIS workflow never did, and
+            # went on paying for it.
+            adb shell settings put global hide_error_dialogs 1 || true
+            # That stops the NEXT one; anything already up needs dismissing.
+            adb shell input keyevent KEYCODE_BACK || true
+            adb shell input keyevent KEYCODE_HOME || true
+
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             maestro test .maestro/flows/
 
