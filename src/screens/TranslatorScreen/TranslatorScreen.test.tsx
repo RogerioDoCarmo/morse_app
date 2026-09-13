@@ -476,6 +476,59 @@ describe('TranslatorScreen — audio playback', () => {
     expect(screen.queryByTestId('playing-badge')).toBeNull();
   });
 
+  /**
+   * ⚠️ THE RUN ENDING MUST NOT CUT THE SOUND, and nothing asserted that until a
+   * tester lost the last letter of every message above 5 wpm.
+   *
+   * The clock and the audio do not start together: `startedAt` is stamped in
+   * JS, then the adapter awaits `setAudioModeAsync`, writes the WAV and builds
+   * a player. The clock leads the sound by that preparation for the whole run,
+   * so stopping the audio when the CLOCK finishes removed exactly that much
+   * from the end — and a fixed lead eats a larger share of a shorter mark. At
+   * 5 wpm the closing dot is 240ms and survived; at 15 wpm it is 80ms and
+   * vanished.
+   */
+  it('lets the sound run out when the message ends on its own', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    // Past the end of SOS — 27 units at the default speed.
+    await advance(9000);
+
+    expect(screen.queryByTestId('playing-badge')).toBeNull();
+    expect(ports.calls.audioStopped).toBe(0);
+  });
+
+  /**
+   * ⚠️ And STOPPING still stops it, immediately. That is what the button
+   * means, and it is the half that a fix for the above could quietly break.
+   */
+  it('cuts the sound the moment the user stops it', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.audioStopped).toBeGreaterThan(0);
+  });
+
+  /**
+   * ⚠️ Vibration has the same shape of bug: Android is handed the whole
+   * waveform in one call and plays it on the OS's clock, so cancelling at the
+   * clock's end truncates the closing buzz exactly as it truncated the tone.
+   */
+  it('lets the buzz run out too, and cuts it only on a stop', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await advance(9000);
+    expect(ports.calls.vibrationStops).toBe(0);
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+    expect(ports.calls.vibrationStops).toBeGreaterThan(0);
+  });
+
   // The audio was rendered from the old text and cannot be edited in flight.
   it('stops when the message is edited mid-playback', () => {
     const audio = pendingAudio();
