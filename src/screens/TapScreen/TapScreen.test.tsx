@@ -225,6 +225,34 @@ describe('TapScreen — the cut-off it reads', () => {
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('T');
   });
 
+  /**
+   * ⚠️ AND THE KEY'S LIVE PREVIEW READS THE SAME SETTING. This is the guard
+   * the preview exists for: a second, hard-coded threshold would look right at
+   * the shipped default and quietly teach the wrong boundary to everyone who
+   * moved it — a key promising a dot while the decoder is about to record a
+   * dash is worse than a key that promises nothing.
+   *
+   * The same 150ms hold as the two tests above, so the only thing that differs
+   * is the cut-off: at the default it is still showing a dot, and under a
+   * 120ms cut-off it has already turned into a dash.
+   */
+  it('turns the preview into a dash early when the cut-off is lower', async () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports: holdingCutoff('120'),
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
+    });
+
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    act(() => {
+      jest.advanceTimersByTime(150);
+    });
+
+    expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 1 });
+    expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 0.28 });
+  });
+
   it('does not offer the stepper any more — Settings owns it', () => {
     show();
     expect(screen.queryByTestId('cutoff-value')).toBeNull();
