@@ -39,6 +39,9 @@ export const en: TranslationMap = {
   'firstRun.threeTitle': 'Hear one letter at a time',
   'firstRun.threeBody':
     'Tap any letter to hear just that one. It is the quickest way to learn the rhythm — and the Learn tab has the whole alphabet whenever you want it.',
+  'firstRun.fourTitle': 'Watch it on the screen',
+  'firstRun.fourBody':
+    'Switch on Screen and the circle flashes the message — long for a dash, short for a dot. Useful when sound would be rude and the torch too bright. This is it running.',
   'speech.tapToSpeak': 'Tap to speak',
   'speech.listening': 'Listening…',
   'speech.gotIt': 'Got it',

@@ -10,7 +10,7 @@ const next = (): void => {
 
 /** Which dot is lit — the one thing that says where the carousel is now. */
 const at = (): number =>
-  [0, 1, 2].findIndex(
+  [0, 1, 2, 3].findIndex(
     (dot) =>
       screen.getByTestId(`first-run-dot-${String(dot)}`).props.accessibilityState
         ?.selected === true,
@@ -40,13 +40,15 @@ describe('FirstRunScreen', () => {
     expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
   });
 
-  it('walks through the three slides in order', () => {
+  it('walks through the four slides in order', () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     next();
     expect(at()).toBe(1);
     next();
     expect(at()).toBe(2);
+    next();
+    expect(at()).toBe(3);
   });
 
   it('marks how far through it is', () => {
@@ -66,14 +68,15 @@ describe('FirstRunScreen', () => {
     expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-art-channels')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-art-letter')).toBeOnTheScreen();
+    expect(screen.getByTestId('first-run-art-surface')).toBeOnTheScreen();
   });
 
   it('follows a swipe rather than only the button', () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    swipeTo(2);
+    swipeTo(3);
 
-    expect(at()).toBe(2);
+    expect(at()).toBe(3);
     expect(screen.getByText('Start')).toBeOnTheScreen();
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
@@ -142,6 +145,7 @@ describe('FirstRunScreen', () => {
 
     next();
     next();
+    next();
     expect(onDone).not.toHaveBeenCalled();
 
     next();
@@ -164,6 +168,8 @@ describe('FirstRunScreen', () => {
   it('offers Skip on every slide but the last, where Start says it', () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
+    expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
+    next();
     expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
     next();
     expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
