@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { APP_VERSION } from '@/appVersion';
+import { APP_VERSION_FULL } from '@/appVersion';
 import { Toast } from '@/components/Toast';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
@@ -223,7 +223,7 @@ export function SettingsScreen({
             is on the phone: Firebase App Distribution hands out several in a
             day and they are otherwise identical from the inside. */}
         <Text testID="settings-version" style={styles.version}>
-          {t('settings.version', { version: APP_VERSION })}
+          {t('settings.version', { version: APP_VERSION_FULL })}
         </Text>
       </ScrollView>
       <Toast
