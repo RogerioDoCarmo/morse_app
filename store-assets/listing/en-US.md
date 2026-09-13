@@ -98,14 +98,13 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.4 (11) on Play and 0.3.4 (13) on the App Store. Replace for each release; keep the shape.
+For 0.3.5 on both stores. Replace for each release; keep the shape. ⚠️ The build number is assigned by EAS at build time and is not in this repository — read it off the binary, or off the Settings screen, which shows it from 0.3.5 onward.
 
 ```text
-• The language button works. Tap it to pick English, Portuguese or Spanish.
-• App language and speech recognition are separate settings now — changing one no longer changes the other.
-• Copy puts the Morse on the clipboard and confirms it.
-• New Clear all and Paste buttons under the text field.
-• The flashing circle is no longer covered by the progress bar.
-• On iPhone, stopping playback actually stops it.
-• Settings switches say what they changed.
+• The guide now shows the flashing circle running, so you can see what Screen does.
+• Tap any letter to hear just that one — the first letter points this out, and the guide lets you try it.
+• While you hold the tap key, it shows whether you are making a dot or a dash.
+• Playback no longer cuts the last letter short at faster speeds.
+• The low-volume warning appears sooner, and where it used to stay silent.
+• Settings shows the build number beside the version.
 ```

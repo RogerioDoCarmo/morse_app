@@ -100,14 +100,13 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.4 (11) on Play and 0.3.4 (13) on the App Store. Replace for each release; keep the shape.
+For 0.3.5 on both stores. Replace for each release; keep the shape. ⚠️ The build number is assigned by EAS at build time and is not in this repository — read it off the binary, or off the Settings screen, which shows it from 0.3.5 onward.
 
 ```text
-• O botão de idioma funciona. Toque para escolher inglês, português ou espanhol.
-• Idioma do app e reconhecimento de fala agora são ajustes separados — mudar um não muda mais o outro.
-• Copiar coloca o código Morse na área de transferência e confirma.
-• Novos botões Apagar tudo e Colar abaixo do campo de texto.
-• O círculo que pisca não fica mais coberto pela barra de progresso.
-• No iPhone, parar a reprodução realmente para.
-• As chaves dos Ajustes dizem o que mudaram.
+• O guia agora mostra o círculo piscando de verdade, para ver o que a saída em Tela faz.
+• Toque em qualquer letra para ouvir só ela — a primeira letra indica isso, e dá para experimentar no guia.
+• Enquanto você segura a tecla, ela mostra se está fazendo um ponto ou um traço.
+• A reprodução não corta mais a última letra nas velocidades altas.
+• O aviso de volume baixo aparece mais cedo, e onde antes ficava calado.
+• Os ajustes mostram o número da compilação ao lado da versão.
 ```
