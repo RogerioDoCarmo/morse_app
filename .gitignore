@@ -79,3 +79,10 @@ store-assets/*
 
 # Gradle state from building the local Expo modules.
 modules/*/android/.gradle/
+
+# Agent worktrees. A subagent gets its own git worktree under here, which means
+# a full second checkout AND its own node_modules — 740MB on 13 September —
+# sitting inside the repository. ⚠️ Untracked is not enough: `git add -A` would
+# happily commit all of it, and the linters below walk into it and report its
+# copy of the source as this one's errors.
+.claude/

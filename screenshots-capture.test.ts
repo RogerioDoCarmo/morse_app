@@ -111,3 +111,56 @@ describe('iOS screenshot capture', () => {
     expect(CAPTURE).toContain('pixelWidth');
   });
 });
+
+/**
+ * ⚠️ PLAY REJECTED A WHOLE CHROMEBOOK SET OVER 0.0006.
+ *
+ * The slot's rule is "proporção 16:9 ou 9:16, cada lado medindo entre 1.080 e
+ * 7.680 px", and it means 16:9 exactly. The workflow padded to
+ * `ceil(ih*16/9/2)*2`, which cannot be exact unless the height is a multiple
+ * of 9 — a 1480px-tall capture became 2632x1480 = 1.7784 — and the workflow's
+ * own guard allowed `abs(ratio - 16/9) > 0.02`, so it certified the set and
+ * the store refused it.
+ *
+ * A guard looser than the store it guards against is worse than no guard,
+ * because it is believed. These tests pin both halves of that fix.
+ */
+describe('the Chromebook slot, which Play measures exactly', () => {
+  it('pads onto a fixed 2560x1440 canvas, not a computed width', () => {
+    expect(WORKFLOW).toContain('pad=2560:1440');
+  });
+
+  // 2560x1440 asserted as the literal it is: it is exactly 16:9, and both
+  // sides sit inside 1080-7680. Arithmetic on the constant would agree with
+  // whatever the constant became.
+  it('uses a canvas that is exactly 16:9 and inside Play limits', () => {
+    const [w, h] = [2560, 1440];
+    expect(w * 9).toBe(h * 16);
+    expect(Math.min(w, h)).toBeGreaterThanOrEqual(1080);
+    expect(Math.max(w, h)).toBeLessThanOrEqual(7680);
+  });
+
+  /**
+   * ⚠️ Every pixel of the app survives. `decrease` fits the capture inside the
+   * canvas and the pad fills the rest with `ground`; a crop would cut a screen
+   * whose content reaches the edges.
+   */
+  it('fits the capture inside the canvas rather than cropping it', () => {
+    expect(WORKFLOW).toContain('force_original_aspect_ratio=decrease');
+  });
+
+  it('checks the ratio exactly, by integer arithmetic', () => {
+    expect(WORKFLOW).toContain('w * 9 != h * 16');
+  });
+
+  // The tolerance that let the rejected set through. Asserting its ABSENCE is
+  // the only way this stays fixed — the guard passed, so nothing else would
+  // have noticed it come back.
+  it('no longer allows a tolerance around 16:9', () => {
+    expect(WORKFLOW).not.toContain('abs(ratio - 16 / 9) > 0.02');
+  });
+
+  it('enforces Play’s 1080-7680 range for this slot', () => {
+    expect(WORKFLOW).toContain('outside Play 1080-7680px');
+  });
+});
