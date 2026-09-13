@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePorts } from '@/application/providers/PortsProvider';
+import { isOutputChannelEnabled, type OutputChannel } from '@/core/domain/featureFlags';
 import { letterAt, messageOfLetter, type MorseMessage } from '@/core/domain/morse';
 import {
   DEFAULT_PLAYBACK_UNIT_MS,
@@ -62,7 +63,9 @@ const DRIVE_MS = 10;
 const CAMERA_SETTLE_MS = 450;
 
 /** The ways a message can go out. */
-export type OutputChannel = 'sound' | 'light' | 'screen' | 'buzz';
+// The list itself lives in the domain, beside the flags that can withhold
+// one. Re-exported because every screen already imports the type from here.
+export type { OutputChannel };
 
 /** Where playback is, how to drive it, and which outputs are carrying it. */
 export type MorsePlayback = Readonly<{
@@ -324,6 +327,11 @@ export function useMorsePlayback(
 
   const toggleChannel = useCallback(
     (channel: OutputChannel): void => {
+      // A channel withheld by a flag cannot be switched on by any route.
+      // ⚠️ Enforced HERE, not only in the UI. Hiding a channel's tile would
+      // leave a stored or already-toggled channel still driving playback,
+      // which is the opposite of what turning it off is for.
+      if (!isOutputChannelEnabled(channel)) return;
       const next = { ...live.current, [channel]: !live.current[channel] };
       live.current = next;
       setChannels(next);
