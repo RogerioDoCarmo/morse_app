@@ -10,12 +10,21 @@
  */
 
 /**
- * At or below this, the warning is worth showing. Chosen at 30% rather than at
- * silence because a phone at one or two notches is not silent — it is quiet
- * enough that a 600Hz tone in a room with other people in it is missed, which
- * is the same failure with a longer explanation.
+ * At or below this, the warning is worth showing.
+ *
+ * Not at silence: a phone at one or two notches is not silent, it is quiet
+ * enough that a 600Hz tone in a room with other people in it is missed — the
+ * same failure with a longer explanation.
+ *
+ * ⚠️ RAISED FROM 30% TO HALF, because 30% did not reach the person it was
+ * written for. A tester played messages on 0.3.4 (13) and never saw this
+ * warning; the volume that produced that report was therefore ABOVE the old
+ * threshold, so the fix is a wider bar and not a narrower one. Half is where a
+ * phone stops being reliably audible across a room, and it is still low enough
+ * that someone who has deliberately turned the volume down to a working level
+ * is not told their phone is too quiet on every message.
  */
-export const LOW_VOLUME_LEVEL = 0.3;
+export const LOW_VOLUME_LEVEL = 0.5;
 
 /**
  * Whether the device is too quiet for the Sound channel to be heard.

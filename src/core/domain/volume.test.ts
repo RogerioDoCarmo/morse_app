@@ -8,10 +8,11 @@ describe('isLowVolume', () => {
   it.each([
     [0, true],
     [0.1, true],
-    [0.29, true],
     [0.3, true],
-    [0.31, false],
-    [0.5, false],
+    [0.49, true],
+    [0.5, true],
+    [0.51, false],
+    [0.8, false],
     [1, false],
   ])('reads %f as low: %s', (level, expected) => {
     expect(isLowVolume(level)).toBe(expected);
@@ -24,8 +25,14 @@ describe('isLowVolume', () => {
     expect(isLowVolume(LOW_VOLUME_LEVEL)).toBe(true);
   });
 
-  it('is 0.3, which is what "30% or lower" means', () => {
-    expect(LOW_VOLUME_LEVEL).toBe(0.3);
+  /**
+   * ⚠️ 0.5, RAISED FROM 0.3 — and asserted as the literal it is. A tester
+   * played messages on 0.3.4 (13) and never saw the warning at all, which
+   * means the volume behind that report was above the old bar: the way to
+   * reach it is a wider threshold, not a narrower one.
+   */
+  it('is 0.5, which is what "half volume or lower" means', () => {
+    expect(LOW_VOLUME_LEVEL).toBe(0.5);
   });
 
   /**
@@ -45,7 +52,7 @@ describe('isLowVolume', () => {
   it('never warns above the threshold, for any level a device can report', () => {
     fc.assert(
       fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (level) => {
-        expect(isLowVolume(level)).toBe(level <= 0.3);
+        expect(isLowVolume(level)).toBe(level <= 0.5);
       }),
     );
   });

@@ -19,9 +19,16 @@ import expo.modules.kotlin.modules.ModuleDefinition
  * beside it. Both are read here and divided here, so nothing above this line
  * has to know that Android counts rather than measures.
  *
- * Returns null rather than throwing or guessing. A device with no audio
- * service, or a maximum of zero, has not told us it is quiet — it has told us
- * nothing, and the domain treats those differently.
+ * Returns a null LEVEL rather than throwing or guessing. A device with no
+ * audio service, or a maximum of zero, has not told us it is quiet — it has
+ * told us nothing, and the domain treats those differently.
+ *
+ * ⚠️ The answer is a RECORD, `{ level, stale }`, to match iOS. Nothing here is
+ * ever stale: `getStreamVolume` asks the audio service every time and there is
+ * no session to activate, so this side always reports `false`. The field
+ * exists so the adapter above has one shape to read on both platforms rather
+ * than a branch on `Platform.OS`, which is the kind of branch that gets tested
+ * on one phone.
  */
 class MorseVolumeModule : Module() {
   private val context: Context
@@ -35,11 +42,14 @@ class MorseVolumeModule : Module() {
       val max = audio?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 0
 
       // A maximum of zero would divide by nothing, and is not a quiet phone.
-      if (audio == null || max <= 0) {
-        null
-      } else {
-        audio.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble() / max.toDouble()
-      }
+      val level =
+        if (audio == null || max <= 0) {
+          null
+        } else {
+          audio.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble() / max.toDouble()
+        }
+
+      mapOf("level" to level, "stale" to false)
     }
   }
 }
