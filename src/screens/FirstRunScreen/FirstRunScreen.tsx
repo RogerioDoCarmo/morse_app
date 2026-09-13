@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -15,15 +15,19 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useLayout } from '@/application/useLayout';
+import { useLetterHint } from '@/application/useLetterHint';
+import { useMorsePlayback } from '@/application/useMorsePlayback';
 import type { IconName } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
+import { SurfaceDemo } from '@/components/SurfaceDemo';
 import { encode } from '@/core/domain/morse';
+import { DEFAULT_PLAYBACK_UNIT_MS } from '@/core/domain/timeline';
 import type { TranslationKey } from '@/i18n';
 import { theme } from '@/theme';
 
 /** Which illustration a slide carries. */
-type Illustration = 'chips' | 'channels' | 'letter';
+type Illustration = 'chips' | 'channels' | 'letter' | 'surface';
 
 type Slide = Readonly<{
   title: TranslationKey;
@@ -40,6 +44,10 @@ const SLIDES = [
   { title: 'firstRun.oneTitle', body: 'firstRun.oneBody', show: 'chips' },
   { title: 'firstRun.twoTitle', body: 'firstRun.twoBody', show: 'channels' },
   { title: 'firstRun.threeTitle', body: 'firstRun.threeBody', show: 'letter' },
+  // ⚠️ A DEMONSTRATION, not a fourth paragraph. The chips are explained twice
+  // already — slide three above, and the Morse card's own header — and a
+  // tester still missed them. The circle gets shown running instead.
+  { title: 'firstRun.fourTitle', body: 'firstRun.fourBody', show: 'surface' },
 ] as const satisfies readonly Slide[];
 
 /**
@@ -180,6 +188,43 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
   const sampleMessage = useMemo(() => encode(sample), [sample]);
   const oneLetter = useMemo(() => encode(sample.slice(0, 3)), [sample]);
 
+  // ⚠️ 'A' rather than the sample: it is dot-then-dash, so one short run shows
+  // BOTH lengths and the difference between them, which is the whole point of
+  // the circle. The sample's first letters may be three dots and demonstrate
+  // only half of it.
+  const demoLetter = useMemo(() => encode('A'), []);
+
+  /**
+   * The letter slide's chips are LIVE — pressing one plays that letter here,
+   * in the guide, before the user has reached the Translator.
+   *
+   * ⚠️ THE SAME HOOK THE TRANSLATOR USES, so what the guide teaches is what
+   * the next screen does. A stand-in that played a tone of its own would be a
+   * second implementation of the one thing this slide promises, free to drift
+   * from it.
+   *
+   * ⚠️ And it is a DEMONSTRATION because a description was already tried. This
+   * slide has said "tap any letter to hear just that one" since the guide
+   * existed, above a chip drawn with the highlight on it, and a tester still
+   * finished 0.3.4 without knowing the chips do anything. Reading about a
+   * press and making one are not the same act.
+   */
+  const letterPlayback = useMorsePlayback(oneLetter, DEFAULT_PLAYBACK_UNIT_MS);
+  const letterHint = useLetterHint();
+  const [heardOne, setHeardOne] = useState(false);
+
+  const hearLetter = useCallback(
+    (index: number): void => {
+      setHeardOne(true);
+      // The Translator's own hint is settled by this too: the user has done
+      // the thing it exists to teach, and being pointed at it on the next
+      // screen would be the app explaining back what they just did.
+      letterHint.spend();
+      letterPlayback.playLetter(index);
+    },
+    [letterHint, letterPlayback],
+  );
+
   // Two columns only where both halves fit; a tablet in portrait keeps one
   // column, capped so it is not a phone layout stretched across an iPad.
   const { tablet, twoColumns } = useLayout();
@@ -207,7 +252,25 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
 
       {each.show === 'letter' ? (
         <View style={styles.card}>
-          <MorseText message={oneLetter} selectedIndex={1} testID="first-run-letter" />
+          <MorseText
+            message={oneLetter}
+            onSelectLetter={hearLetter}
+            // Points at the first chip until one has been pressed. After that
+            // the invitation has been accepted and a ring still breathing on
+            // it would be asking for something already given.
+            hintIndex={heardOne ? null : 0}
+            testID="first-run-letter"
+          />
+        </View>
+      ) : null}
+
+      {each.show === 'surface' ? (
+        <View style={styles.card}>
+          <SurfaceDemo
+            message={demoLetter}
+            unitMs={DEFAULT_PLAYBACK_UNIT_MS}
+            testID="first-run-surface"
+          />
         </View>
       ) : null}
     </View>

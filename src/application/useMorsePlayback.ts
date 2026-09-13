@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePorts } from '@/application/providers/PortsProvider';
+import { isOutputChannelEnabled, type OutputChannel } from '@/core/domain/featureFlags';
 import { letterAt, messageOfLetter, type MorseMessage } from '@/core/domain/morse';
 import {
   DEFAULT_PLAYBACK_UNIT_MS,
@@ -62,7 +63,9 @@ const DRIVE_MS = 10;
 const CAMERA_SETTLE_MS = 450;
 
 /** The ways a message can go out. */
-export type OutputChannel = 'sound' | 'light' | 'screen' | 'buzz';
+// The list itself lives in the domain, beside the flags that can withhold
+// one. Re-exported because every screen already imports the type from here.
+export type { OutputChannel };
 
 /** Where playback is, how to drive it, and which outputs are carrying it. */
 export type MorsePlayback = Readonly<{
@@ -234,16 +237,56 @@ export function useMorsePlayback(
     buzzWait.current = null;
   }, []);
 
-  /** Ends the run and puts every output back to rest. */
-  const finish = useCallback((): void => {
-    clearTimers();
-    darken();
-    void audio.stop();
-    void vibration.stop();
-    keepScreenOn(false);
-    setPlaying(false);
-    setElapsedMs(0);
-  }, [audio, clearTimers, darken, keepScreenOn, vibration]);
+  /**
+   * Ends the run and puts every output back to rest.
+   *
+   * ⚠️ `reason` decides ONE thing, and it is the whole point of this
+   * parameter: whether the sound and the buzz are CUT OFF or left to finish.
+   *
+   * The clock and the audio do not start together. `startedAt` is stamped
+   * here, in JS; the adapter then awaits `setAudioModeAsync`, writes the WAV
+   * to the cache, creates a player and only then plays. That preparation is a
+   * couple of hundred milliseconds on a real phone, so the clock leads the
+   * sound by that much for the whole run.
+   *
+   * Cutting the audio when the CLOCK finishes therefore removed exactly that
+   * much from the end of the message — and a fixed lead eats a larger share of
+   * a shorter mark. A tester found it at once: at 5 wpm the closing dot is
+   * 240ms and survived, at 15 wpm it is 80ms and vanished completely, and a
+   * message ending in a single `.` lost its last letter outright.
+   *
+   * The same applies to vibration, which is handed to the OS as one waveform
+   * and plays on its own clock.
+   *
+   * So a run that ENDS stops the timers and the visible outputs and lets the
+   * sound and the motor run out by themselves — both are within a few hundred
+   * milliseconds of done. A run the user STOPS cuts everything immediately,
+   * which is what stopping means.
+   */
+  const finish = useCallback(
+    (reason: 'ended' | 'stopped'): void => {
+      clearTimers();
+      darken();
+      if (reason === 'stopped') {
+        void audio.stop();
+        void vibration.stop();
+      }
+      keepScreenOn(false);
+      setPlaying(false);
+      setElapsedMs(0);
+    },
+    [audio, clearTimers, darken, keepScreenOn, vibration],
+  );
+
+  /**
+   * ⚠️ A wrapper, and it must stay one. `stop: finish` would hand a press
+   * handler's `GestureResponderEvent` straight in as `reason`, which is not
+   * `'stopped'`, and the button would silently stop cutting the audio — the
+   * exact bug this change exists to fix, reintroduced through the back door.
+   */
+  const stop = useCallback((): void => {
+    finish('stopped');
+  }, [finish]);
 
   const play = useCallback((): void => {
     // Nothing to play, or nothing to play it on. Running anyway would animate
@@ -265,7 +308,7 @@ export function useMorsePlayback(
     // it, and the clock is already what the progress bar and the chips follow.
     ticker.current = setInterval(() => {
       const elapsed = Date.now() - startedAt.current;
-      if (elapsed >= durationMs) finish();
+      if (elapsed >= durationMs) finish('ended');
       else setElapsedMs(elapsed);
     }, TICK_MS);
 
@@ -324,6 +367,11 @@ export function useMorsePlayback(
 
   const toggleChannel = useCallback(
     (channel: OutputChannel): void => {
+      // A channel withheld by a flag cannot be switched on by any route.
+      // ⚠️ Enforced HERE, not only in the UI. Hiding a channel's tile would
+      // leave a stored or already-toggled channel still driving playback,
+      // which is the opposite of what turning it off is for.
+      if (!isOutputChannelEnabled(channel)) return;
       const next = { ...live.current, [channel]: !live.current[channel] };
       live.current = next;
       setChannels(next);
@@ -421,7 +469,7 @@ export function useMorsePlayback(
     toggleChannel,
     canPlay: timeline.totalUnits > 0 && Object.values(channels).some(Boolean),
     play,
-    stop: finish,
+    stop,
     playLetter,
   };
 }

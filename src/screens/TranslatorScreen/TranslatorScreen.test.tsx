@@ -6,6 +6,7 @@ import { renderWav } from '@/core/domain/tone';
 import type { Ports } from '@/core/ports';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
+import { elementAt } from '@/testing/elementAt';
 import { TranslatorScreen } from './TranslatorScreen';
 
 /**
@@ -474,6 +475,59 @@ describe('TranslatorScreen — audio playback', () => {
     await advance(3300);
     expect(screen.queryByTestId('playback-progress')).toBeNull();
     expect(screen.queryByTestId('playing-badge')).toBeNull();
+  });
+
+  /**
+   * ⚠️ THE RUN ENDING MUST NOT CUT THE SOUND, and nothing asserted that until a
+   * tester lost the last letter of every message above 5 wpm.
+   *
+   * The clock and the audio do not start together: `startedAt` is stamped in
+   * JS, then the adapter awaits `setAudioModeAsync`, writes the WAV and builds
+   * a player. The clock leads the sound by that preparation for the whole run,
+   * so stopping the audio when the CLOCK finishes removed exactly that much
+   * from the end — and a fixed lead eats a larger share of a shorter mark. At
+   * 5 wpm the closing dot is 240ms and survived; at 15 wpm it is 80ms and
+   * vanished.
+   */
+  it('lets the sound run out when the message ends on its own', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    // Past the end of SOS — 27 units at the default speed.
+    await advance(9000);
+
+    expect(screen.queryByTestId('playing-badge')).toBeNull();
+    expect(ports.calls.audioStopped).toBe(0);
+  });
+
+  /**
+   * ⚠️ And STOPPING still stops it, immediately. That is what the button
+   * means, and it is the half that a fix for the above could quietly break.
+   */
+  it('cuts the sound the moment the user stops it', () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    expect(ports.calls.audioStopped).toBeGreaterThan(0);
+  });
+
+  /**
+   * ⚠️ Vibration has the same shape of bug: Android is handed the whole
+   * waveform in one call and plays it on the OS's clock, so cancelling at the
+   * clock's end truncates the closing buzz exactly as it truncated the tone.
+   */
+  it('lets the buzz run out too, and cuts it only on a stop', async () => {
+    const { ports } = renderWithProviders(<TranslatorScreen />);
+    fireEvent.press(screen.getByTestId('channel-buzz'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await advance(9000);
+    expect(ports.calls.vibrationStops).toBe(0);
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+    fireEvent.press(screen.getByTestId('signal-button'));
+    expect(ports.calls.vibrationStops).toBeGreaterThan(0);
   });
 
   // The audio was rendered from the old text and cannot be edited in flight.
@@ -1751,5 +1805,84 @@ describe('the toast icons', () => {
     const toast = await screen.findByTestId('toast');
     expect(within(toast).queryByTestId('icon-volume')).toBeNull();
     expect(within(toast).getByTestId('icon-check')).toBeTruthy();
+  });
+});
+
+/**
+ * ⚠️ A TESTER FINISHED 0.3.4 WITHOUT DISCOVERING THE CHIPS. Tapping one plays
+ * that letter alone — the quickest way there is to learn the rhythm — and it
+ * was said twice in words: the card header carries "Tap a letter to hear it",
+ * and the guide gives it a slide of its own. Both were on screen. Both were
+ * read past.
+ *
+ * So the first chip points at itself once, and stops for good the moment any
+ * chip is pressed.
+ */
+describe('finding out that the chips are pressable', () => {
+  const halos = (): unknown[] =>
+    screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
+
+  const untaught = (): FakePorts => {
+    const preferences: Ports['preferences'] = {
+      read: async () => null,
+      write: async () => undefined,
+    };
+    return createFakePorts({ preferences });
+  };
+
+  const taught = (): FakePorts => {
+    const preferences: Ports['preferences'] = {
+      read: async (key: string) => (key === 'hint.letterTapSeenVersion' ? '1' : null),
+      write: async () => undefined,
+    };
+    return createFakePorts({ preferences });
+  };
+
+  it('rings exactly one chip on a device that has never tapped one', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+  });
+
+  it('rings nothing once the device has been taught', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: taught() });
+
+    // Waited on the same beat the other test waits on, so this is "it did not
+    // appear", not "it had not appeared yet".
+    await waitFor(() => {
+      expect(screen.getAllByTestId('morse-letter').length).toBeGreaterThan(0);
+    });
+    expect(halos()).toHaveLength(0);
+  });
+
+  it('stops pointing the moment a chip is pressed', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+
+    fireEvent.press(elementAt(screen.getAllByTestId('morse-letter')));
+
+    expect(halos()).toHaveLength(0);
+  });
+
+  /**
+   * ⚠️ And not while a message is running. A press does nothing then — the
+   * chips are the progress display at that moment, not a keyboard — so a ring
+   * inviting one would be inviting a press the screen is about to ignore.
+   */
+  it('says nothing while a message is going out', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await waitFor(() => {
+      expect(halos()).toHaveLength(0);
+    });
   });
 });

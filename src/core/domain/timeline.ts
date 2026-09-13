@@ -65,6 +65,17 @@ export const DEFAULT_PLAYBACK_WPM = 10;
 export const DEFAULT_PLAYBACK_UNIT_MS = unitMsForWpm(DEFAULT_PLAYBACK_WPM);
 
 /**
+ * The speeds the picker offers, in words per minute.
+ *
+ * ⚠️ Lives here rather than in `settings.ts`, beside DEFAULT_PLAYBACK_WPM and
+ * the unit maths that gives these numbers meaning. `featureFlags.ts` needs the
+ * full list to subtract from, and `settings.ts` needs the flags to validate a
+ * stored value — with the list in settings that is a cycle, and with it here
+ * it is a line.
+ */
+export const PLAYBACK_WPM_CHOICES: readonly number[] = Object.freeze([5, 10, 15]);
+
+/**
  * Holds a playback speed inside the range the settings screen offers.
  *
  * Shares tapping's range — one slider's worth of sensible unit lengths covers

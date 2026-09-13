@@ -35,12 +35,36 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-next'
 - assertVisible:
     id: 'first-run-art-letter'
+# ⚠️ AND THE CHIPS ON IT ARE LIVE. This slide has said "tap any letter to hear
+# just that one" since the guide existed, above a chip drawn with the
+# highlight already on it — and a tester finished 0.3.4 not knowing the chips
+# do anything. So one of them points at itself until it is pressed, and
+# pressing it plays that letter here, in the guide.
+- assertVisible:
+    id: 'tap-halo'
+- tapOn:
+    id: 'morse-letter'
+    index: 0
+- assertNotVisible:
+    id: 'tap-halo'
+
+# ⚠️ The fourth slide DEMONSTRATES rather than describes, and it is the only
+# one that does. A tester came back from 0.3.4 confused by the flashing circle
+# — and by the letter chips, which are explained twice in words: on slide three
+# above and again in the Morse card's own header. Both were on screen and both
+# were missed, so this one shows the surface actually running.
+- tapOn:
+    id: 'first-run-next'
+- assertVisible:
+    id: 'first-run-art-surface'
+- assertVisible:
+    id: 'first-run-surface-surface'
 # Skip is gone on the last slide: there is nothing left to skip, and Start
 # already says the same thing.
 - assertNotVisible:
     id: 'first-run-skip'
 
-# It swipes as well as it taps. The three slides are mounted side by side in a
+# It swipes as well as it taps. The four slides are mounted side by side in a
 # paging scroll view, which is the whole of the gesture — so what this proves
 # is that the DOTS and the BUTTON follow it, rather than the pager and the
 # index drifting apart. Back to the middle slide, then on again.

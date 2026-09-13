@@ -116,14 +116,48 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
   /** What the row actually shows: nothing once the letter has been committed. */
   const shown = closed ? [] : letter;
 
+  /**
+   * Whether the press being held has already earned a dash.
+   *
+   * ⚠️ THE ONE THING THIS SCREEN COULD NOT TELL YOU. The rule is written on
+   * screen — "Hold the key for a dash, tap it for a dot" — and the key draws
+   * both marks. What neither could say is HOW LONG a hold is, because the
+   * threshold is a setting measured in milliseconds nobody can feel. You
+   * pressed, released, and only then found out what you had made; a wrong mark
+   * gave no clue why it was wrong.
+   *
+   * So the key now says which mark it is making WHILE the key is down. One or
+   * two presses and the boundary is learned by hand rather than read.
+   */
+  const [holdingDash, setHoldingDash] = useState(false);
+  const dashAt = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopDashTimer = useCallback((): void => {
+    if (dashAt.current !== null) clearTimeout(dashAt.current);
+    dashAt.current = null;
+  }, []);
+
+  // A held key with a timer still running outlives the screen otherwise, and
+  // this one is a tab away from everything.
+  useEffect(() => stopDashTimer, [stopDashTimer]);
+
   const onDown = useCallback((): void => {
     stopClosing();
     setClosed(false);
     pressedAt.current = Date.now();
     setDown(true);
-  }, [stopClosing]);
+    // The same threshold the decoder uses, so what the key promises is what
+    // the letter row is about to show.
+    setHoldingDash(false);
+    stopDashTimer();
+    dashAt.current = setTimeout(() => {
+      setHoldingDash(true);
+    }, UNITS.dashThreshold * unitMs);
+  }, [stopClosing, stopDashTimer, unitMs]);
 
   const onUp = useCallback((): void => {
+    stopDashTimer();
+    setHoldingDash(false);
     const now = Date.now();
     const durationMs = now - pressedAt.current;
     // The gap before the FIRST press has no preceding letter to close, and the
@@ -140,7 +174,7 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
     closing.current = setTimeout(() => {
       setClosed(true);
     }, UNITS.letterGap * unitMs);
-  }, [stopClosing, unitMs]);
+  }, [stopClosing, stopDashTimer, unitMs]);
 
   // The decoded text read back in the app language. AGENTS.md asks for this
   // on tap input specifically: keying a message you cannot hear is how you
@@ -343,9 +377,24 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
               >
                 {/* A dot and a dash on the key itself: the two things it
                     makes, drawn at the size the output draws them. */}
+                {/* ⚠️ While the key is DOWN, one of these is the mark you are
+                    currently making and the other is dimmed. Released, both
+                    sit at full strength — the key is offering both again. */}
                 <View style={styles.keyMarks}>
-                  <View style={styles.keyDot} />
-                  <View style={styles.keyDash} />
+                  <View
+                    testID="tap-key-dot"
+                    style={[
+                      styles.keyDot,
+                      down && (holdingDash ? styles.keyMarkIdle : styles.keyMarkLive),
+                    ]}
+                  />
+                  <View
+                    testID="tap-key-dash"
+                    style={[
+                      styles.keyDash,
+                      down && (holdingDash ? styles.keyMarkLive : styles.keyMarkIdle),
+                    ]}
+                  />
                 </View>
                 <Text style={styles.keyLabel}>{t('tap.key')}</Text>
               </Pressable>
@@ -503,5 +552,10 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: theme.color.onAccent,
   },
+  // The mark being made, against the one that is not. Opacity rather than a
+  // second colour: the key is already the accent, and a third hue on it would
+  // read as a state rather than as emphasis.
+  keyMarkLive: { opacity: 1 },
+  keyMarkIdle: { opacity: 0.28 },
   keyLabel: { ...theme.type.control, color: theme.color.onAccent },
 });

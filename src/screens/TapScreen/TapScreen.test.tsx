@@ -121,6 +121,52 @@ describe('TapScreen', () => {
     expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
   });
 
+  /**
+   * ⚠️ THE ONE THING THIS SCREEN COULD NOT TELL YOU. The rule is on screen —
+   * "Hold the key for a dash, tap it for a dot" — and the key draws both
+   * marks. Neither could say HOW LONG a hold is, because the threshold is a
+   * setting measured in milliseconds nobody can feel. A tester pressed,
+   * released, and only then found out what they had made.
+   *
+   * So the key says which mark it is making while it is still down. The
+   * opacities are asserted literally: reading them back off the component
+   * would agree with whatever it rendered, including nothing at all.
+   */
+  it('shows a dot while the press is still short', () => {
+    show();
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+
+    expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 1 });
+    expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 0.28 });
+  });
+
+  it('switches to the dash the moment the hold earns one', () => {
+    show();
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    act(() => {
+      // Past one unit — the same threshold the decoder uses.
+      jest.advanceTimersByTime(DEFAULT_UNIT_MS + 20);
+    });
+
+    expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 1 });
+    expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 0.28 });
+  });
+
+  /**
+   * ⚠️ And the key offers BOTH again once released — neither is dimmed. A key
+   * left showing the last mark would read as a mode the user had entered.
+   */
+  it('offers both marks again once the key is released', () => {
+    show();
+    hold(DEFAULT_UNIT_MS + 20);
+
+    expect(screen.getByTestId('tap-key-dot')).not.toHaveStyle({ opacity: 0.28 });
+    expect(screen.getByTestId('tap-key-dash')).not.toHaveStyle({ opacity: 0.28 });
+  });
+
   it('lights the key while it is held', () => {
     show();
     fireEvent(screen.getByTestId('tap-key'), 'pressIn');
@@ -177,6 +223,34 @@ describe('TapScreen — the cut-off it reads', () => {
     hold(150);
 
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('T');
+  });
+
+  /**
+   * ⚠️ AND THE KEY'S LIVE PREVIEW READS THE SAME SETTING. This is the guard
+   * the preview exists for: a second, hard-coded threshold would look right at
+   * the shipped default and quietly teach the wrong boundary to everyone who
+   * moved it — a key promising a dot while the decoder is about to record a
+   * dash is worse than a key that promises nothing.
+   *
+   * The same 150ms hold as the two tests above, so the only thing that differs
+   * is the cut-off: at the default it is still showing a dot, and under a
+   * 120ms cut-off it has already turned into a dash.
+   */
+  it('turns the preview into a dash early when the cut-off is lower', async () => {
+    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports: holdingCutoff('120'),
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
+    });
+
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    act(() => {
+      jest.advanceTimersByTime(150);
+    });
+
+    expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 1 });
+    expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 0.28 });
   });
 
   it('does not offer the stepper any more — Settings owns it', () => {

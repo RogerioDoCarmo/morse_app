@@ -187,12 +187,23 @@ describe('which build this is', () => {
    * Read from `app.json` rather than typed out here: it is the same file EAS
    * builds from and the same one `release.yml` checks a tag against, so this
    * asserts against the declaration itself and cannot go stale.
+   *
+   * ⚠️ THE BUILD NUMBER IS THE HALF THAT IDENTIFIES THE BINARY, and it is the
+   * half that was missing. On 12 September the Firebase testers had 0.3.4 (10)
+   * while TestFlight had 0.3.4 (13) — an hour apart, from different commits,
+   * differing in real app behaviour. Both called themselves 0.3.4, so a report
+   * of "0.3.4 does X" could not be matched to code and this line could not
+   * answer it.
+   *
+   * It cannot come from `app.json`: EAS assigns it at build time under
+   * `appVersionSource: "remote"`, so it is read from the binary. `jest-expo`
+   * stands in the literal string `mock` for it, which is the `(mock)` below.
    */
-  it('shows the version the app claims', () => {
+  it('shows the version and the build the app claims', () => {
     show();
 
     expect(screen.getByTestId('settings-version')).toHaveTextContent(
-      `Version ${appJson.expo.version}`,
+      `Version ${appJson.expo.version} (mock)`,
     );
   });
 
@@ -208,7 +219,7 @@ describe('which build this is', () => {
     );
 
     expect(screen.getByTestId('settings-version')).toHaveTextContent(
-      `Versão ${appJson.expo.version}`,
+      `Versão ${appJson.expo.version} (mock)`,
     );
   });
 

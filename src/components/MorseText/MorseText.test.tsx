@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, within } from '@testing-library/react-native';
 import { encode } from '@/core/domain/morse';
+import { elementAt } from '@/testing/elementAt';
 import { MorseText } from './MorseText';
 
 describe('MorseText', () => {
@@ -77,6 +78,61 @@ describe('MorseText — playback', () => {
 
     expect(screen.getAllByTestId('morse-letter')[2]).toHaveStyle({
       backgroundColor: '#12a594',
+    });
+  });
+
+  /**
+   * ⚠️ THE CHIPS' ONE UNDISCOVERABLE TRICK. Pressing one plays that letter
+   * alone, and a tester used 0.3.4 without ever finding out — past a card
+   * header that says so and past a guide slide that says so. A pressable that
+   * looks like a label is invisible until something on it moves, so one chip
+   * points at itself.
+   */
+  describe('pointing at a chip that does not look pressable', () => {
+    const halos = (): unknown[] =>
+      screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
+
+    it('points at nobody by default — the hint is owed, not permanent', () => {
+      render(<MorseText message={encode('SOS')} />);
+
+      expect(halos()).toHaveLength(0);
+    });
+
+    it('rings the chip it was asked to ring, and only that one', () => {
+      render(<MorseText message={encode('SOS')} hintIndex={0} />);
+
+      expect(halos()).toHaveLength(1);
+    });
+
+    /**
+     * ⚠️ Never on a chip that is already lit. The highlight is itself saying
+     * "this one"; a ring around it as well reads as a state the chip has
+     * entered rather than as an invitation to press it.
+     */
+    it('stays off a chip the playhead is already on', () => {
+      render(<MorseText message={encode('SOS')} hintIndex={0} soundingIndex={0} />);
+
+      expect(halos()).toHaveLength(0);
+    });
+
+    it('stays off a chip the user has already selected', () => {
+      render(<MorseText message={encode('SOS')} hintIndex={0} selectedIndex={0} />);
+
+      expect(halos()).toHaveLength(0);
+    });
+
+    // The index counts across words, the same way every other index here
+    // does — a hint that landed on the wrong chip would point at a letter the
+    // user did not ask about.
+    it('counts across words rather than restarting at each one', () => {
+      render(<MorseText message={encode('A B')} hintIndex={1} />);
+      const chips = screen.getAllByTestId('morse-letter');
+
+      expect(
+        within(elementAt(chips, 1)).queryAllByTestId('tap-halo', {
+          includeHiddenElements: true,
+        }),
+      ).toHaveLength(1);
     });
   });
 });

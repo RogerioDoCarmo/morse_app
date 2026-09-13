@@ -10,7 +10,7 @@ Everything below is **outstanding**.
 | | |
 | --- | --- |
 | `main` | **OmniMorse 0.3.0** |
-| `develop` | **OmniMorse 0.3.4** — ⚠️ no longer in sync with `main`; 0.3.1 → 0.3.4 are device-test builds that have not been promoted |
+| `develop` | **OmniMorse 0.3.5** — ⚠️ no longer in sync with `main`; 0.3.1 → 0.3.5 are device-test builds that have not been promoted |
 | Tests | **1042** unit and property. E2E **9/9 green on CI, both platforms** — first time |
 | Privacy policy | live and verified at the URL Play was given |
 | Play listing | text, icon, feature graphic and screenshots all ready |
@@ -20,7 +20,7 @@ Everything below is **outstanding**.
 | iOS screenshots | **done** — run 34620373429, seven at **1320×2868** |
 | Support page | live, verified byte for byte |
 | ⚠️ Videos | machinery complete and proven; **no usable footage yet** — see §2 |
-| ⚠️ Version | 0.3.4 on `develop`, **untagged on purpose** — see §5 |
+| ⚠️ Version | 0.3.5 on `develop`, **untagged on purpose** — see §5 |
 | ⚠️ Store assets | every screenshot and video still shows the **"Signal"** button, renamed to "Reproduce" in 0.3.2. Re-run both workflows before uploading anything |
 | ⚠️ Vibration | with Light on, run 2 onwards does not buzz. A fix shipped in 0.3.4 on a **hypothesis** — see §5b. Unconfirmed on a device |
 | ⚠️ EAS builds | **blocked until 1 October**. `--local` still works — ⚠️ until Monday |
@@ -125,7 +125,7 @@ will open it.
 
 ## 5. Version and tag
 
-**0.3.4 is bumped. `v0.3.4` is still untagged, and that is the deliberate half.**
+**0.3.5 is bumped. `v0.3.5` is still untagged, and that is the deliberate half.**
 
 ⚠️ **The bump fires `firebase-distribution.yml`, and that run will be RED.**
 It builds on EAS, and the credit pool ran out on 9 September and does not reset
@@ -145,7 +145,7 @@ GOOGLE_SERVICES_JSON_PATH="$PWD/google-services.json" \
 Then distribute it by hand — see the Firebase block in
 [MACHINE-SETUP.md](MACHINE-SETUP.md).
 
-⚠️ **Tagging `v0.3.4` fires `eas-build.yml` for the same red result.** Tag after
+⚠️ **Tagging `v0.3.5` fires `eas-build.yml` for the same red result.** Tag after
 1 October.
 
 ⚠️ **0.3.3 is NOT a paperwork bump the way 0.3.1 was.** Every version since
@@ -157,6 +157,7 @@ G22 and an iPhone, and each one is a genuinely different app from the last:
 | 0.3.2 | copy button wired, input no longer auto-focuses, play button renamed |
 | 0.3.3 | language badge wired · interface and recognition locales separated · flashing disc no longer clipped by the progress row · iOS stop actually stops · Clear and Paste under the input · the chip strip follows the sounding letter · Settings switches confirm themselves |
 | 0.3.4 | the language badge opens a LIST instead of cycling · the type hint pulses, sits higher and opens the keyboard · a hypothesis about the vibration (§5b) |
+| 0.3.5 | the guide DEMONSTRATES the flashing circle and the letter chips instead of describing them · the tap key shows which mark it is making while held · the first chip points at itself · playback no longer cuts the last letter · the low-volume warning reaches half volume and can no longer silence itself · Settings shows the build number |
 
 Shipping any two of these under one version number would leave a tester unable
 to say which build the thing they are looking at came from — which is the whole

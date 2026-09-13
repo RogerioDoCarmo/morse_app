@@ -37,7 +37,10 @@ export const es: TranslationMap = {
     'El sonido está activado. La luz está apagada hasta que la enciendas, porque la linterna necesita la cámara. Pantalla y vibración también están ahí. Cambia cualquiera cuando quieras, incluso con un mensaje en curso.',
   'firstRun.threeTitle': 'Escucha una letra a la vez',
   'firstRun.threeBody':
-    'Toca cualquier letra para oír solo esa. Es la forma más rápida de aprender el ritmo, y la pestaña Aprender tiene el alfabeto entero cuando lo quieras.',
+    'Pruébalo aquí: toca una de esas letras y oyes solo esa. Es la forma más rápida de aprender el ritmo, y la pestaña Aprender tiene el alfabeto entero cuando lo quieras.',
+  'firstRun.fourTitle': 'Míralo en la pantalla',
+  'firstRun.fourBody':
+    'Activa Pantalla y el círculo parpadea el mensaje — largo para raya, corto para punto. Útil cuando el sonido molesta y la linterna llama demasiado la atención. Esto es en funcionamiento.',
   'speech.tapToSpeak': 'Toca para hablar',
   'speech.listening': 'Escuchando…',
   'speech.gotIt': 'Listo',

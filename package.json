@@ -1,6 +1,6 @@
 {
   "name": "morse-app",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "packageManager": "pnpm@10.4.1",
   "main": "index.ts",
@@ -42,6 +42,7 @@
     "@react-native-firebase/app": "^26.3.2",
     "@react-native-firebase/crashlytics": "^26.3.2",
     "expo": "~57.0.15",
+    "expo-application": "~57.0.3",
     "expo-audio": "~57.0.4",
     "expo-build-properties": "~57.0.15",
     "expo-camera": "~57.0.4",

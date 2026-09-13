@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { APP_VERSION } from '@/appVersion';
+import { APP_VERSION_FULL } from '@/appVersion';
 import { Toast } from '@/components/Toast';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
@@ -9,7 +9,7 @@ import { Icon } from '@/components/Icon';
 import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { Slider } from '@/components/Slider';
 import type { AppLocale } from '@/core/domain/locale';
-import { PLAYBACK_WPM_CHOICES } from '@/core/domain/settings';
+import { enabledPlaybackWpm } from '@/core/domain/featureFlags';
 import { MAX_UNIT_MS, MIN_UNIT_MS } from '@/core/domain/tapping';
 import { theme } from '@/theme';
 
@@ -71,7 +71,10 @@ export function SettingsScreen({
     useSettings();
 
   // Segment values are strings, so the speed round-trips through one.
-  const speedSegments: readonly Segment<string>[] = PLAYBACK_WPM_CHOICES.map((wpm) => ({
+  // ⚠️ The FLAGGED list, not every speed the app can render. A speed switched
+  // off in `featureFlags.ts` must disappear from the picker, or it is still
+  // one tap away from whatever it was switched off for.
+  const speedSegments: readonly Segment<string>[] = enabledPlaybackWpm().map((wpm) => ({
     value: String(wpm),
     label: t('settings.wpm', { wpm: String(wpm) }),
   }));
@@ -220,7 +223,7 @@ export function SettingsScreen({
             is on the phone: Firebase App Distribution hands out several in a
             day and they are otherwise identical from the inside. */}
         <Text testID="settings-version" style={styles.version}>
-          {t('settings.version', { version: APP_VERSION })}
+          {t('settings.version', { version: APP_VERSION_FULL })}
         </Text>
       </ScrollView>
       <Toast
