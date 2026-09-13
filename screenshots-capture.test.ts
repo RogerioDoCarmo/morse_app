@@ -164,3 +164,56 @@ describe('the Chromebook slot, which Play measures exactly', () => {
     expect(WORKFLOW).toContain('outside Play 1080-7680px');
   });
 });
+
+/**
+ * ⚠️ THE 6.5-INCH SLOT CANNOT BE CAPTURED AT ALL. Xcode 26 ships no 6.5-inch
+ * simulator — XS Max, 11 Pro Max and 12/13 Pro Max are all gone — so 1284x2778
+ * comes from converting the 6.9-inch capture or it does not come at all.
+ *
+ * ⚠️ It used to live as a SENTENCE. BEFORE-THE-DROP-OFF said the set was
+ * recoverable "only if someone remembers the conversion, which is scaling on
+ * height and padding 5px". A recipe nobody can run is one bad week from being
+ * lost, so it is a script now, and these pin the numbers in it.
+ */
+describe('deriving the 6.5-inch iPhone set, which no simulator can capture', () => {
+  const DERIVE = fs.readFileSync(
+    path.join(__dirname, 'tools', 'derive-iphone-65.sh'),
+    'utf8',
+  );
+
+  // The four sizes, as literals. Reading them back out of the script would
+  // agree with whatever the script said, including a typo.
+  it('converts 1320x2868 into 1284x2778', () => {
+    expect(DERIVE).toContain('SRC_W=1320 SRC_H=2868');
+    expect(DERIVE).toContain('DST_W=1284 DST_H=2778');
+  });
+
+  /**
+   * ⚠️ Scaling on HEIGHT is the whole recipe. The slots differ by 0.4% in
+   * shape, so height-first lands the width at 1278.58 → 1279 and leaves 5px
+   * for `ground`. Scaling on width instead would overshoot the height and
+   * force a crop, which takes content off a screen that reaches its edges.
+   */
+  it('scales on height and pads the remainder', () => {
+    expect(DERIVE).toContain('scale=-1:${DST_H}');
+    expect(DERIVE).toContain('pad=${DST_W}:${DST_H}');
+  });
+
+  it('pads with the app’s ground colour, not black', () => {
+    expect(DERIVE).toContain('GROUND=0xf2f4f7');
+  });
+
+  /**
+   * ⚠️ It refuses a source that is not the 6.9-inch capture. Deriving from the
+   * wrong size yields files of the RIGHT dimensions at the WRONG content
+   * scale, which nothing downstream would catch — App Store Connect measures
+   * the frame, not what is drawn in it.
+   */
+  it('refuses a source that is not the 6.9-inch capture', () => {
+    expect(DERIVE).toContain('expected ${SRC_W}x${SRC_H} (6.9-inch)');
+  });
+
+  it('verifies what it produced rather than trusting ffmpeg', () => {
+    expect(DERIVE).toContain('expected ${DST_W}x${DST_H}');
+  });
+});
