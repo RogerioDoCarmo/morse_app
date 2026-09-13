@@ -76,6 +76,25 @@ GoogleService-Info.plist
 # lived in `docs/` until everything store-related was gathered here.
 store-assets/*
 !store-assets/listing/
+# ⚠️ The composed videos ARE tracked, deliberately. They are small — 2.3 MB for
+# both, against a 25 MB .git — and they are the one asset that cannot be
+# regenerated cheaply: a re-record is a different take, with different timings
+# and a different onset, so "the video we published" is only recoverable if the
+# file itself is kept. The screenshots are not tracked for the opposite reason:
+# they re-capture identically from a workflow.
+#
+# ⚠️ Each release adds ~2.3 MB permanently, since git never forgets a binary.
+# That is affordable here and worth knowing before it becomes a habit for
+# larger assets.
+#
+# ⚠️ THE SHAPE MATTERS. Git will not re-include a file whose PARENT DIRECTORY is
+# excluded, and `store-assets/*` excludes the version folders themselves — so a
+# bare `!store-assets/*/video/**` matches nothing at all. The version
+# directories have to be re-included first so git descends into them, their
+# contents excluded again, and only then the video folders carved back out.
+!store-assets/*/
+store-assets/*/*
+!store-assets/*/video/
 
 # Gradle state from building the local Expo modules.
 modules/*/android/.gradle/
