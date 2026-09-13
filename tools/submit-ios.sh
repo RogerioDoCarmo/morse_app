@@ -31,12 +31,21 @@ KEYCHAIN_ITEM=${KEYCHAIN_ITEM:-omnimorse-altool}
 # Newest by modification time rather than a name typed in: this directory
 # accumulates a build per attempt, and the one you want is almost always the
 # last one made.
-IPA=${IPA:-$(ls -t build-*.ipa 2>/dev/null | head -1)}
-[ -n "$IPA" ] || { echo "::error::No build-*.ipa in $PWD. Run pnpm build:ipa:local first." >&2; exit 1; }
+#
+# ⚠️ ANY `*.ipa`, not `build-*.ipa`. Artefacts are renamed after every build to
+# say what they are — `omnimorse-0.3.5-16-appstore.ipa` rather than the
+# `build-<epoch-ms>.ipa` EAS produces — and this glob silently matched nothing
+# the moment that started.
+IPA=${IPA:-$(ls -t ./*.ipa 2>/dev/null | head -1)}
+[ -n "$IPA" ] || { echo "::error::No .ipa in $PWD. Run pnpm build:ipa:local first." >&2; exit 1; }
 
-# ⚠️ REFUSE AN AD-HOC BUILD. Both kinds land in this directory with
-# indistinguishable names, and `build:ipa:adhoc:local` is the one run more
-# often — it is what goes to Firebase. Apple rejects an ad-hoc upload after
+# ⚠️ REFUSE AN AD-HOC BUILD. `build:ipa:adhoc:local` is the one run more often
+# — it is what goes to Firebase.
+#
+# ⚠️ AND THE NAME IS NOT THE AUTHORITY, however clearly it is written. A file
+# called `…-appstore.ipa` is a claim; the embedded profile is the fact. Renaming
+# artefacts made the two kinds easy for a PERSON to tell apart, which is worth
+# doing — and would be a poor reason to weaken the check below. Apple rejects an ad-hoc upload after
 # the transfer, with a message about the provisioning profile that reads like
 # a signing problem rather than "you picked the wrong file".
 #
