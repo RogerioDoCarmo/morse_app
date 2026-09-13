@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -63,12 +63,20 @@ jobs:
       # Setup, once: create the project on SonarCloud, add SONAR_TOKEN to the
       # repository secrets, and turn Automatic Analysis OFF — it conflicts with
       # CI-based analysis.
+      #
+      # ⚠️ v8 is not a runtime-only bump like the other three in this commit.
+      # `skipSignatureVerification` flipped from true to false, so the scanner
+      # download is now GPG-verified against a public keyserver — a new network
+      # dependency that can fail on its own. 8.0.0 through 8.2.0 also failed
+      # verification outright when the temp directory path was long; the
+      # floating `@v8` tag picks up 8.2.1+, which fixes it. Do NOT pin this to
+      # an exact 8.0.x or 8.1.x.
       - name: SonarCloud
         if: >-
           github.actor != 'dependabot[bot]' &&
           github.event.pull_request.head.repo.fork != true &&
           env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
 
   mutation:
     name: Mutation testing
@@ -83,7 +91,7 @@ jobs:
           # default shallow clone has neither.
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
