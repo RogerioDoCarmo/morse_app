@@ -35,5 +35,10 @@ module.exports = {
     '<rootDir>/.stryker-tmp/',
     '<rootDir>/android/',
     '<rootDir>/ios/',
+    // ⚠️ A subagent's git worktree lives here — a SECOND FULL CHECKOUT of this
+    // source, inside the repository. Without this, `pnpm test` collects its
+    // copy of every test file as well, and they fail: the worktree has its own
+    // node_modules and resolves '@/...' against its own rootDir, not this one.
+    '<rootDir>/.claude/',
   ],
 };
