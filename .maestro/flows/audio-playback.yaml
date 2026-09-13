@@ -180,11 +180,25 @@ appId: com.rogeriodocarmo.morse
     id: 'channel-screen'
 
 # --- a letter preview, now that nothing is running ---
+# ⚠️ AND THE FIRST CHIP IS POINTING AT ITSELF. A tester finished 0.3.4 without
+# ever discovering that a chip plays its own letter — past the card header
+# that says so and past the guide slide that says so — so one chip wears a
+# ring until any of them is pressed. This flow skipped the guide, so nothing
+# here has taught it yet.
+#
+# It is gone while a message runs: a press does nothing then, and inviting one
+# would be inviting a press the screen is about to ignore. The section above
+# left a run going and stopped it, so this is the state after that.
+- assertVisible:
+    id: 'tap-halo'
 - tapOn:
     id: 'morse-letter'
     index: 1
 - assertNotVisible:
     id: 'playing-badge'
+# Spent for good by the press, whichever chip it was.
+- assertNotVisible:
+    id: 'tap-halo'
 
 # --- the screen channel takes the card over while it carries the message ---
 # The chips are a reading aid; the square IS the message at that moment.

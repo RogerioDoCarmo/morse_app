@@ -35,6 +35,18 @@ appId: com.rogeriodocarmo.morse
     id: 'first-run-next'
 - assertVisible:
     id: 'first-run-art-letter'
+# ⚠️ AND THE CHIPS ON IT ARE LIVE. This slide has said "tap any letter to hear
+# just that one" since the guide existed, above a chip drawn with the
+# highlight already on it — and a tester finished 0.3.4 not knowing the chips
+# do anything. So one of them points at itself until it is pressed, and
+# pressing it plays that letter here, in the guide.
+- assertVisible:
+    id: 'tap-halo'
+- tapOn:
+    id: 'morse-letter'
+    index: 0
+- assertNotVisible:
+    id: 'tap-halo'
 
 # ⚠️ The fourth slide DEMONSTRATES rather than describes, and it is the only
 # one that does. A tester came back from 0.3.4 confused by the flashing circle

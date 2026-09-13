@@ -1,7 +1,8 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/testing/renderWithProviders';
+import { elementAt } from '@/testing/elementAt';
 import { FirstRunScreen } from './FirstRunScreen';
 
 const next = (): void => {
@@ -221,4 +222,73 @@ describe('FirstRunScreen', () => {
       expect(screen.getByText('SOS')).toBeOnTheScreen();
     },
   );
+});
+
+/**
+ * ⚠️ THE SLIDE THAT DESCRIBED AND WAS READ PAST. It has said "tap any letter
+ * to hear just that one" since the guide existed, above a chip drawn with the
+ * highlight already on it — and a tester finished 0.3.4 not knowing the chips
+ * do anything at all.
+ *
+ * So the slide hands the press over instead of describing it: the chips are
+ * live here, and pressing one plays that letter through the app's own
+ * playback. Same shape of fix as the circle slide, for the same reason.
+ */
+describe('the letter slide demonstrates rather than describes', () => {
+  const halos = (): unknown[] =>
+    screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
+
+  const letterChips = (): unknown[] =>
+    within(screen.getByTestId('first-run-art-letter')).getAllByTestId('morse-letter');
+
+  it('points at a chip before anything has been pressed', async () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+  });
+
+  it('plays that one letter when its chip is pressed', async () => {
+    const { ports } = renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    fireEvent.press(elementAt(letterChips()));
+
+    await waitFor(() => {
+      expect(ports.calls.played).toHaveLength(1);
+    });
+  });
+
+  /**
+   * ⚠️ And it stops pointing. The invitation has been accepted; a ring still
+   * breathing on the chip would be asking for something already given.
+   */
+  it('stops pointing once the invitation has been taken up', async () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+
+    fireEvent.press(elementAt(letterChips()));
+
+    expect(halos()).toHaveLength(0);
+  });
+
+  /**
+   * ⚠️ And the TRANSLATOR's hint is settled by it too. The user has done the
+   * very thing that hint exists to teach; being pointed at it on the next
+   * screen would be the app explaining back what they just did.
+   */
+  it('settles the Translator hint, which teaches the same thing', async () => {
+    const { ports } = renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    fireEvent.press(elementAt(letterChips()));
+
+    await waitFor(() => {
+      expect(ports.calls.stored).toContainEqual({
+        key: 'hint.letterTapSeenVersion',
+        value: '1',
+      });
+    });
+  });
 });

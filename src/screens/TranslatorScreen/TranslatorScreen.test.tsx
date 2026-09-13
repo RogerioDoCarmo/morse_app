@@ -6,6 +6,7 @@ import { renderWav } from '@/core/domain/tone';
 import type { Ports } from '@/core/ports';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
+import { elementAt } from '@/testing/elementAt';
 import { TranslatorScreen } from './TranslatorScreen';
 
 /**
@@ -1804,5 +1805,84 @@ describe('the toast icons', () => {
     const toast = await screen.findByTestId('toast');
     expect(within(toast).queryByTestId('icon-volume')).toBeNull();
     expect(within(toast).getByTestId('icon-check')).toBeTruthy();
+  });
+});
+
+/**
+ * ⚠️ A TESTER FINISHED 0.3.4 WITHOUT DISCOVERING THE CHIPS. Tapping one plays
+ * that letter alone — the quickest way there is to learn the rhythm — and it
+ * was said twice in words: the card header carries "Tap a letter to hear it",
+ * and the guide gives it a slide of its own. Both were on screen. Both were
+ * read past.
+ *
+ * So the first chip points at itself once, and stops for good the moment any
+ * chip is pressed.
+ */
+describe('finding out that the chips are pressable', () => {
+  const halos = (): unknown[] =>
+    screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
+
+  const untaught = (): FakePorts => {
+    const preferences: Ports['preferences'] = {
+      read: async () => null,
+      write: async () => undefined,
+    };
+    return createFakePorts({ preferences });
+  };
+
+  const taught = (): FakePorts => {
+    const preferences: Ports['preferences'] = {
+      read: async (key: string) => (key === 'hint.letterTapSeenVersion' ? '1' : null),
+      write: async () => undefined,
+    };
+    return createFakePorts({ preferences });
+  };
+
+  it('rings exactly one chip on a device that has never tapped one', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+  });
+
+  it('rings nothing once the device has been taught', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: taught() });
+
+    // Waited on the same beat the other test waits on, so this is "it did not
+    // appear", not "it had not appeared yet".
+    await waitFor(() => {
+      expect(screen.getAllByTestId('morse-letter').length).toBeGreaterThan(0);
+    });
+    expect(halos()).toHaveLength(0);
+  });
+
+  it('stops pointing the moment a chip is pressed', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+
+    fireEvent.press(elementAt(screen.getAllByTestId('morse-letter')));
+
+    expect(halos()).toHaveLength(0);
+  });
+
+  /**
+   * ⚠️ And not while a message is running. A press does nothing then — the
+   * chips are the progress display at that moment, not a keyboard — so a ring
+   * inviting one would be inviting a press the screen is about to ignore.
+   */
+  it('says nothing while a message is going out', async () => {
+    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await waitFor(() => {
+      expect(halos()).toHaveLength(1);
+    });
+
+    fireEvent.press(screen.getByTestId('signal-button'));
+
+    await waitFor(() => {
+      expect(halos()).toHaveLength(0);
+    });
   });
 });

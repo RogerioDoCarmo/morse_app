@@ -37,7 +37,7 @@ export const ptBR: TranslationMap = {
     'O som está ligado. A luz fica desligada até você ligá-la, porque a lanterna precisa da câmera. Tela e vibração também estão ali. Mude qualquer uma a qualquer momento, mesmo com uma mensagem em andamento.',
   'firstRun.threeTitle': 'Ouça uma letra por vez',
   'firstRun.threeBody':
-    'Toque em qualquer letra para ouvir só ela. É o jeito mais rápido de aprender o ritmo, e a aba Aprender tem o alfabeto inteiro quando você quiser.',
+    'Experimente aqui: toque em uma dessas letras e você ouve só ela. É o jeito mais rápido de aprender o ritmo, e a aba Aprender tem o alfabeto inteiro quando você quiser.',
   'firstRun.fourTitle': 'Veja na tela',
   'firstRun.fourBody':
     'Ligue a Tela e o círculo pisca a mensagem — longo para traço, curto para ponto. Útil quando o som incomoda e a lanterna chama atenção demais. Isto é ele funcionando.',
