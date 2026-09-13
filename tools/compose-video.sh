@@ -122,6 +122,12 @@ SILENT_AUDIO=(-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100)
 # Resampled on the way out only. Nothing about the app changes, and the tone is
 # still the app's own — the same samples, carried at a rate a video platform
 # expects.
+# ⚠️ SILENT=1 IS NOT THE SAME AS REQUIRE_AUDIO=0, and conflating them produced
+# a "silent" cut with full audio at -11.9 dB. `REQUIRE_AUDIO` only decides
+# whether a MISSING soundtrack is an error; it never suppresses one that was
+# found. This switch is the one that actually asks for a silent video — for a
+# platform that autoplays muted, or a cut published alongside the audio one.
+SILENT=${SILENT:-0}
 AUDIO_RATE=${AUDIO_RATE:-44100}
 AUDIO_CHANNELS=${AUDIO_CHANNELS:-2}
 AUDIO_BITRATE=${AUDIO_BITRATE:-128k}
@@ -176,6 +182,13 @@ trap 'rm -rf "$AUDIO_DIR" "${NORMALISED:-}"' EXIT
 plan_audio() {
   local clip=$1 text=$2 trim_start=$3
   local onset wav offset window window_onset
+
+  # A deliberately silent cut plans no audio at all, and the silent-stream
+  # fallback below then supplies a real, valid, empty track.
+  if [ "$SILENT" = "1" ]; then
+    echo "    $(basename "$clip"): SILENT=1 — no soundtrack by request" >&2
+    return 1
+  fi
 
   # ⚠️ MEASURE THE WINDOW THAT WILL BE SHOWN, not the whole clip.
   #
@@ -479,9 +492,22 @@ done
 # which is precisely why this check could not have existed before. Measured: 12
 # and 6 find nothing, 3 and 2 both find 48.833s in the promo.
 COMPOSED_MIN_SPREAD=${COMPOSED_MIN_SPREAD:-3}
-# One frame at 30fps is 33ms — the floor of a per-frame detector, so anything
-# inside that is as aligned as this method can prove.
-SYNC_TOLERANCE=${SYNC_TOLERANCE:-0.034}
+# ⚠️ ONE FRAME PLUS A MARGIN, not exactly one frame. At 30fps a frame is
+# 33.3ms, and the two measurements have different granularities — the flash is
+# found per FRAME, the sound per SAMPLE — so a correct result lands slightly
+# over one frame. The first version of this check used 0.034 and REJECTED A
+# CORRECTLY ALIGNED VIDEO whose delta was 0.034075: it failed by 75
+# microseconds. 50ms is one and a half frames, still far below anything a
+# listener can hear against a flash.
+SYNC_TOLERANCE=${SYNC_TOLERANCE:-0.050}
+
+# ⚠️ Nothing to check on a deliberately silent cut. "Does the sound land on the
+# flashing" has no answer when there is no sound, and failing the build for it
+# would make SILENT=1 unusable.
+if [ "$SILENT" = "1" ]; then
+  echo "--- sync: skipped, this is a deliberately silent cut ---"
+  exit 0
+fi
 
 echo "--- sync: does the sound land on the flashing? ---"
 sync_failed=0
