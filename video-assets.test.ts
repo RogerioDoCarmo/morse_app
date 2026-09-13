@@ -600,3 +600,73 @@ describe('video audio', () => {
     },
   );
 });
+
+/**
+ * ⚠️ THE AUDIO WAS 7.28 SECONDS EARLY IN A PUBLISHED VIDEO, and nothing in the
+ * pipeline could have noticed.
+ *
+ * `plan_audio` ran the onset detector on the WHOLE clip and took the first
+ * playback. The four-up shows only the last `GRID_SECONDS`, and
+ * `tab-translate` plays more than once — so the onset it measured (109.633s in
+ * run 34714691834) was not the one on screen. The arithmetic concluded the
+ * flash preceded the window, seeked into the tone, and started the sound at
+ * `CARD_SECONDS`.
+ *
+ * Measured afterwards on the composed file: flashing at 9.400s, sound at
+ * 2.120s. The person who found it was Rogério, five days later, by ear.
+ */
+describe('the sound has to land on the flashing', () => {
+  it('measures the window that will be shown, not the whole clip', () => {
+    expect(COMPOSE).toContain('MEASURE THE WINDOW THAT WILL BE SHOWN');
+    expect(COMPOSE).toContain('window_onset=$(tools/detect-playback-start.sh "$window"');
+  });
+
+  /**
+   * ⚠️ A playback starting inside the window needs NO seek. The seek existed
+   * only for the "window opens mid-message" case, and applying it to a message
+   * that begins on screen is what put the tone seven seconds early.
+   */
+  it('starts the tone from its beginning when playback begins inside the window', () => {
+    expect(COMPOSE).toContain('$CARD_SECONDS + $window_onset');
+    expect(COMPOSE).toContain('echo "$wav|$offset|0.000"');
+  });
+
+  it('verifies the COMPOSED file, which nothing did before', () => {
+    expect(COMPOSE).toContain('sync: does the sound land on the flashing');
+    expect(COMPOSE).toContain('silencedetect');
+  });
+
+  /**
+   * ⚠️ The detector is calibrated for full-frame phone footage. In a composed
+   * frame the flashing surface is far smaller, and at the default spread of 12
+   * it finds NOTHING in either video — which is exactly why this check could
+   * not have existed before. Measured: 12 and 6 find nothing; 3 and 2 both
+   * find 48.833s in the promo.
+   */
+  it('drops the detector threshold for the composed frame', () => {
+    expect(COMPOSE).toContain('COMPOSED_MIN_SPREAD=${COMPOSED_MIN_SPREAD:-3}');
+    expect(COMPOSE).toContain('MIN_SPREAD=$COMPOSED_MIN_SPREAD');
+  });
+
+  // One frame at 30fps, asserted as the literal it is.
+  it('allows one frame of tolerance and no more', () => {
+    expect(COMPOSE).toContain('SYNC_TOLERANCE=${SYNC_TOLERANCE:-0.034}');
+  });
+
+  /**
+   * ⚠️ It FAILS the build rather than warning. A warning in a green run is how
+   * the previous version of this problem survived to publication — and the
+   * consequence is not cosmetic: audio drifting against the picture makes the
+   * app look like it cannot keep time, on its one headline feature.
+   */
+  it('fails the build when the sound does not land', () => {
+    expect(COMPOSE).toContain('::error::The composed audio does not line up');
+    expect(COMPOSE).toMatch(/sync_failed" = "1" \]; then[\s\S]*exit 1/u);
+  });
+
+  // A video whose flashing cannot be located is NOT a pass — it is a video
+  // this check cannot vouch for, and it must say so rather than stay quiet.
+  it('treats an unlocatable flash as a failure, not a pass', () => {
+    expect(COMPOSE).toContain('SYNC UNVERIFIED');
+  });
+});

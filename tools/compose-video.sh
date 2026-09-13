@@ -167,8 +167,51 @@ trap 'rm -rf "$AUDIO_DIR" "${NORMALISED:-}"' EXIT
 #   plan_audio <normalised clip> <text> <trim start> -> "<wav>|<offset seconds>"
 plan_audio() {
   local clip=$1 text=$2 trim_start=$3
-  local onset wav offset
+  local onset wav offset window window_onset
+
+  # ⚠️ MEASURE THE WINDOW THAT WILL BE SHOWN, not the whole clip.
+  #
+  # This is the seven-second bug. The detector reports the FIRST playback in a
+  # clip; the four-up shows only the LAST $GRID_SECONDS of it. `tab-translate`
+  # plays more than once, so the first onset (109.633s in run 34714691834) is
+  # not the one on screen — the window opens around 128s. The old arithmetic
+  # therefore concluded "the flash precedes the window", seeked 18.4s into the
+  # tone and started it at $CARD_SECONDS.
+  #
+  # Measured on the composed output afterwards: the flashing begins at 9.400s
+  # and the sound at 2.120s. **The audio was 7.28 SECONDS EARLY** — placed at
+  # card-end, while the playback it belongs to was still seven seconds away.
+  #
+  # Cutting the window first and measuring THERE removes the whole class of
+  # error: there is no "before the window" case left to reason about, and the
+  # clip is still full-frame phone footage, so the detector stays inside the
+  # calibration it was tuned for.
+  window="$AUDIO_DIR/$(basename "$clip" .mp4)-window.mp4"
+  if python3 -c "import sys; sys.exit(0 if $trim_start > 0.05 else 1)"; then
+    ffmpeg -hide_banner -loglevel error -y -ss "$trim_start" -i "$clip" \
+      -c copy "$window" 2>/dev/null || window="$clip"
+  else
+    window="$clip"
+  fi
+
+  window_onset=$(tools/detect-playback-start.sh "$window" 2>/dev/null || true)
   onset=$(tools/detect-playback-start.sh "$clip" 2>/dev/null || true)
+
+  if [ -n "$window_onset" ]; then
+    # ⚠️ A playback that BEGINS inside the window, which is the common case and
+    # the one that was broken. The tone starts from its own beginning, placed
+    # where the flashing actually is.
+    wav="$AUDIO_DIR/$(basename "$clip" .mp4).wav"
+    npx -y tsx tools/render-morse-audio.ts "$text" "$PLAYBACK_WPM" "$wav" >/dev/null || return 1
+    offset=$(python3 -c "print(f'{$CARD_SECONDS + $window_onset:.3f}')")
+    echo "    $(basename "$clip"): flash at ${window_onset}s INTO THE WINDOW -> audio at ${offset}s of the output, from 0.000s into the tone" >&2
+    echo "$wav|$offset|0.000"
+    return 0
+  fi
+
+  # ⚠️ Nothing starts inside the window. Either the window opens part-way
+  # through a message that began earlier — in which case the tone has to start
+  # part-way through too — or there is no playback at all.
   [ -n "$onset" ] || { echo "    no playback found in $(basename "$clip") — leaving it silent" >&2; return 1; }
 
   wav="$AUDIO_DIR/$(basename "$clip" .mp4).wav"
@@ -392,3 +435,60 @@ for f in promo-youtube linkedin-fourup; do
     printf '  audio mean %s dB\n' "$level"
   fi
 done
+
+# ── Does the sound land on the flashing? ─────────────────────────────────────
+#
+# ⚠️ NOTHING HAS EVER CHECKED THIS, and that is how a seven-second error
+# shipped. The pipeline measured the raw clip, did arithmetic, and trusted the
+# result; `linkedin-fourup.mp4` went out with its tone 7.28s ahead of the
+# flashing it was supposed to match, and the only thing that noticed was a
+# person saying it sounded wrong five days later.
+#
+# Both onsets are measured from the COMPOSED FILE, independently — the flash by
+# oscillation, the sound by its first sample above the floor — and the delta
+# between them is the drift.
+#
+# ⚠️ MIN_SPREAD HAS TO DROP FOR THE COMPOSED FRAME. The detector is calibrated
+# for full-frame phone footage, where the flashing surface is about a sixth of
+# the picture and moves average luminance by ~24 of 255. In the four-up that
+# surface is a quarter of the size again, and letterboxing dilutes it further:
+# at the default 12 the detector finds NOTHING AT ALL in either composed video,
+# which is precisely why this check could not have existed before. Measured: 12
+# and 6 find nothing, 3 and 2 both find 48.833s in the promo.
+COMPOSED_MIN_SPREAD=${COMPOSED_MIN_SPREAD:-3}
+# One frame at 30fps is 33ms — the floor of a per-frame detector, so anything
+# inside that is as aligned as this method can prove.
+SYNC_TOLERANCE=${SYNC_TOLERANCE:-0.034}
+
+echo "--- sync: does the sound land on the flashing? ---"
+sync_failed=0
+for f in promo-youtube linkedin-fourup; do
+  v=$(MIN_SPREAD=$COMPOSED_MIN_SPREAD tools/detect-playback-start.sh "$OUT/$f.mp4" 2>/dev/null | tail -1)
+  a=$(ffmpeg -hide_banner -nostats -i "$OUT/$f.mp4" -af "silencedetect=noise=-50dB:d=0.05" \
+      -f null - 2>&1 | awk '/silence_end/{print $5; exit}')
+  # No silence_end at all means it was never silent, so the sound starts at 0.
+  [ -n "$a" ] || a=0.000
+
+  if [ -z "$v" ]; then
+    # Not a pass. A composed video whose flashing cannot be found is one this
+    # check cannot vouch for, and saying so is the point.
+    printf '%-22s ⚠️ could not locate the flashing — SYNC UNVERIFIED\n' "$f.mp4"
+    sync_failed=1
+    continue
+  fi
+
+  read -r verdict bad < <(python3 -c "
+d = $a - $v
+ok = abs(d) <= $SYNC_TOLERANCE
+print(('aligned' if ok else ('audio_LATE_%.3fs' % d if d > 0 else 'audio_EARLY_%.3fs' % -d)), 0 if ok else 1)
+")
+  printf '%-22s flash %ss  sound %ss  → %s\n' "$f.mp4" "$v" "$a" "$verdict"
+  [ "$bad" = "1" ] && sync_failed=1
+done
+
+if [ "$sync_failed" = "1" ]; then
+  echo "::error::The composed audio does not line up with the flashing. See the line above." >&2
+  echo "  Audio that drifts against the picture is worse than silence — it makes the app" >&2
+  echo "  look like it cannot keep time, on its one headline feature." >&2
+  exit 1
+fi

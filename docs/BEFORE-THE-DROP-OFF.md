@@ -1,5 +1,11 @@
 # Before the drop-off — Monday 14 September 2026
 
+⚠️ **THE MACHINE CHANGES TWICE, NOT ONCE.** Work moves to a **Windows PC on
+Sunday 14 September** — a day before this Mac goes back — and everything in
+this document has to travel there first. See
+[§0 Moving to Windows](#0-moving-to-windows) below, which is the part that
+happens first and the part with the hard limits.
+
 This Mac goes back on **Monday 14 September 2026**. Everything below exists
 **only on this disk** and is gone with it.
 
@@ -13,6 +19,62 @@ again.
 **public**. Two of the items are live credentials, and a single `git add -f`
 publishes them. Sixteen Gradle lock files reached a commit by accident on
 12 September; the risk is not theoretical.
+
+---
+
+## 0. Moving to Windows
+
+⚠️ **WINDOWS CANNOT BUILD OR SUBMIT iOS. AT ALL.** There is no Xcode, no
+`xcodebuild`, no Simulator and no `altool`. That removes, on the new machine:
+
+| Gone on Windows | Replacement, if any |
+| --- | --- |
+| `pnpm build:ipa:local` and `build:ipa:adhoc:local` | **none** — EAS cloud builds, from 1 October |
+| `pnpm submit:ios` (altool upload) | **none** locally — App Store Connect's web upload, or Transporter on a Mac |
+| iOS screenshots (`tools/capture-ios-screenshots.sh`) | the **Screenshots workflow**, which runs on GitHub's macOS runners |
+| iOS Maestro E2E locally | the **E2E workflow**, same reason |
+
+⚠️ **So every iOS binary that will exist before 1 October has to be built on
+this Mac, before Sunday.** 0.3.5 (16) is already built and uploaded to App
+Store Connect; there is no second chance at another one.
+
+**What still works on Windows:** everything else. The whole JS toolchain
+(`pnpm test`, `lint`, `lint:md`, `typecheck`, `format:check`, Stryker), Android
+builds through Gradle and `pnpm build:apk:local` / `build:aab:local` once the
+Android SDK is installed, Firebase distribution, Play Console, and all of CI —
+which is where both platforms' E2E and screenshots come from anyway.
+
+### What has to travel
+
+Everything in §§1-3 below, plus one thing that is not in this repository and
+not on any list here:
+
+⚠️ **The agent's memory directory.** It lives outside the project, at
+`~/.claude/projects/<project-path-slug>/memory/`, and it is what lets a session
+on the new machine carry on knowing what this one knows — the standing
+instructions, the deferred questions, the traps already paid for. Without it
+the next session starts from the code alone.
+
+⚠️ **Its folder name is derived from the project's absolute path**, so it will
+NOT match on Windows. Copy the `memory/` contents into whatever folder the new
+machine creates for the project, rather than copying the folder itself.
+
+### What must NOT travel
+
+- `node_modules/` — reinstall with `pnpm install --frozen-lockfile`
+- `.claude/worktrees/` — a subagent's second checkout; **740 MB** on
+  13 September
+- `android/`, `ios/`, `.expo/`, `coverage/`, `reports/`, `.gradle/` — all
+  regenerated
+- `.DS_Store` files, which mean nothing on Windows
+
+### ⚠️ The archive contains live credentials
+
+`google-services.json`, `GoogleService-Info.plist` and the Firebase
+service-account key are in it. That is the point — a fresh machine cannot build
+or distribute without them — but it makes the archive itself a secret. Move it
+directly between machines. Not email, not a public share, not a chat, and not
+this repository, which is **public**.
 
 ---
 
