@@ -100,7 +100,11 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.5 on both stores. Replace for each release; keep the shape. ⚠️ The build number is assigned by EAS at build time and is not in this repository — read it off the binary, or off the Settings screen, which shows it from 0.3.5 onward.
+For 0.3.5 on both stores. Replace for each release; keep the shape.
+
+⚠️ The build number is assigned by EAS at build time and is not in this
+repository — read it off the binary, or off the Settings screen, which shows it
+from 0.3.5 onward.
 
 ```text
 • O guia agora mostra o círculo piscando de verdade, para ver o que a saída em Tela faz.
