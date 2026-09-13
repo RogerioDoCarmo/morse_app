@@ -24,7 +24,12 @@ set -euo pipefail
 CLIPS=${1:?usage: compose-video.sh <clips-dir> <output-dir>}
 OUT=${2:?usage: compose-video.sh <clips-dir> <output-dir>}
 
-CARD=${CARD:-docs/store-listing/graphics/play-feature-graphic.png}
+# ⚠️ `store-assets/`, not `docs/store-listing/`. The folder consolidation in
+# #163 moved every asset here and this default was left behind pointing at a
+# directory that no longer exists — so the composer aborted on "No card image"
+# the first time videos were regenerated afterwards, five days later. Nothing
+# caught it because nothing regenerates videos on a schedule.
+CARD=${CARD:-store-assets/listing/graphics/play-feature-graphic.png}
 # theme.ts `ink`. The letterboxing around a portrait phone is most of the
 # frame, so it may as well be the app's own colour.
 GROUND=${GROUND:-0x101820}
@@ -80,6 +85,9 @@ TAIL_PAD=${TAIL_PAD:-4}
 # leaves a margin inside 1920 and 130px of headroom inside 1080.
 CELL_W=${CELL_W:-428}
 CELL_H=${CELL_H:-950}
+# How wide the line between two phones is. Six pixels reads as deliberate at
+# 1920 wide; two looks like a rendering seam.
+DIVIDER_W=${DIVIDER_W:-6}
 
 TABS=(tab-translate tab-speak tab-tap tab-learn)
 
@@ -392,6 +400,20 @@ pad=$CELL_W:$CELL_H:(ow-iw)/2:(oh-ih)/2:color=$GROUND,setsar=1[c$i];"
   cells="$cells[c$i]"
 done
 
+# ⚠️ A LINE BETWEEN THE PHONES. Four screenshots abutting edge to edge read as
+# one wide, confusing picture — the viewer has no cue that these are four
+# separate screens rather than one panorama. A divider in the same `ground` the
+# padding uses says "these are four" without adding a colour to the palette.
+#
+# Drawn AFTER the stack rather than padded into each cell: padding each cell
+# would shrink the phone inside it, and the cells are already sized so the
+# device fills them.
+dividers=""
+for i in 1 2 3; do
+  [ -n "$dividers" ] && dividers="$dividers,"
+  dividers="${dividers}drawbox=x=$((i * CELL_W - DIVIDER_W / 2)):y=0:w=$DIVIDER_W:h=ih:color=$GROUND@1:t=fill"
+done
+
 ffmpeg -hide_banner -loglevel error -y \
   -loop 1 -t "$CARD_SECONDS" -i "$CARD" \
   $(for t in "${TABS[@]}"; do printf -- '-sseof -%s -i %s ' "$GRID_SECONDS" "$CLIPS/$t.mp4"; done) \
@@ -400,7 +422,8 @@ ffmpeg -hide_banner -loglevel error -y \
     [0:v]$card_chain[card];
     [card]split=2[intro][outro];
     $chain
-    ${cells}hstack=inputs=4:shortest=1[row];
+    ${cells}hstack=inputs=4:shortest=1[stacked];
+    [stacked]$dividers[row];
     [row]pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=$GROUND,setsar=1,format=yuv420p[body];
     [intro][body][outro]concat=n=3:v=1:a=0[v]$AUDIO_FILTER
   " \

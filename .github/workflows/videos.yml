@@ -93,6 +93,20 @@ jobs:
           test -d clips || { echo "::error::The emulator step produced no clips directory."; exit 1; }
           tools/compose-video.sh clips video
 
+      # ⚠️ SIDECARS, not burned-in text. YouTube and LinkedIn both accept SRT,
+      # it stays editable, a typo costs a text edit rather than a re-encode, and
+      # three languages are three small files rather than three renders.
+      #
+      # ⚠️ AFTER the composer, and deliberately so: every cue time is measured
+      # from the COMPOSED file — the playback onset by the same detector the
+      # audio placement uses. Cues written against the raw clips would drift
+      # exactly the way the tone did.
+      - name: Write the subtitle sidecars
+        if: always()
+        run: |
+          test -d video || { echo "::error::No composed videos to caption."; exit 1; }
+          tools/write-video-srt.sh video
+
       - name: Upload the videos
         if: always()
         uses: actions/upload-artifact@v4

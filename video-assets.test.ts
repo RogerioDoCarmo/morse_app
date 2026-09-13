@@ -670,3 +670,120 @@ describe('the sound has to land on the flashing', () => {
     expect(COMPOSE).toContain('SYNC UNVERIFIED');
   });
 });
+
+/**
+ * ⚠️ THE CARD PATH BROKE SILENTLY AND STAYED BROKEN FOR FIVE DAYS.
+ *
+ * #163 consolidated every asset under `store-assets/` and left
+ * `compose-video.sh` defaulting to `docs/store-listing/graphics/…`, which no
+ * longer exists. `videos.yml` does not override it, so the composer aborted on
+ * "No card image" the first time videos were regenerated — and nothing caught
+ * it in between, because nothing regenerates videos on a schedule.
+ *
+ * This asserts the default points at a file that is actually in the repository.
+ */
+describe('the composer can find its card', () => {
+  it('defaults to a card path that exists', () => {
+    const match = /CARD=\$\{CARD:-([^}]+)\}/u.exec(COMPOSE);
+    expect(match).not.toBeNull();
+    const cardPath = match?.[1] ?? '';
+    expect(cardPath).toBe('store-assets/listing/graphics/play-feature-graphic.png');
+    expect(fs.existsSync(path.join(__dirname, cardPath))).toBe(true);
+  });
+
+  // ⚠️ And the card is TRACKED. `store-assets/*` is gitignored with `listing/`
+  // carved back out; a card that slipped outside that exception would vanish
+  // on a fresh clone and the composer would abort on a machine that had never
+  // seen it — which is every CI runner.
+  it('keeps the card inside the tracked exception', () => {
+    expect('store-assets/listing/graphics/play-feature-graphic.png').toMatch(
+      /^store-assets\/listing\//u,
+    );
+  });
+});
+
+/**
+ * ⚠️ FOUR PHONES ABUTTING EDGE TO EDGE READ AS ONE WIDE PICTURE. Nothing tells
+ * the viewer these are four separate screens rather than a panorama, which is
+ * the opposite of what a four-up is for.
+ */
+describe('the four-up has lines between the phones', () => {
+  it('draws three dividers, one per boundary', () => {
+    expect(COMPOSE).toContain('for i in 1 2 3; do');
+    expect(COMPOSE).toContain('drawbox=x=$((i * CELL_W - DIVIDER_W / 2))');
+  });
+
+  /**
+   * ⚠️ Drawn AFTER the stack, not padded into each cell. Padding a cell would
+   * shrink the phone inside it, and the cells are sized so the device fills
+   * them.
+   */
+  it('draws on the stacked row rather than padding each cell', () => {
+    expect(COMPOSE).toContain('hstack=inputs=4:shortest=1[stacked]');
+    expect(COMPOSE).toContain('[stacked]$dividers[row]');
+  });
+
+  // Six pixels, asserted literally: two reads as a rendering seam at 1920 wide.
+  it('is wide enough to read as deliberate', () => {
+    expect(COMPOSE).toContain('DIVIDER_W=${DIVIDER_W:-6}');
+  });
+
+  // The same `ground` the padding uses — a divider is structure, not a new
+  // colour in the palette.
+  it('uses the ground colour rather than introducing another', () => {
+    expect(COMPOSE).toContain('color=$GROUND@1:t=fill');
+  });
+});
+
+/**
+ * Subtitles as SRT sidecars, in the three languages the app ships in.
+ *
+ * ⚠️ EVERY CUE TIME IS MEASURED OR STRUCTURAL, NONE ARE GUESSED — a caption
+ * that drifts is the same failure as a tone that drifts.
+ */
+describe('subtitle sidecars', () => {
+  const SRT = fs.readFileSync(
+    path.join(__dirname, 'tools', 'write-video-srt.sh'),
+    'utf8',
+  );
+
+  it('writes all three shipping languages', () => {
+    expect(SRT).toContain('for lang in en pt es');
+  });
+
+  /**
+   * ⚠️ The playback cue is anchored to the MEASURED onset, found by the same
+   * detector — and at the same composed-frame threshold — the audio placement
+   * uses. An onset guessed from the flow would put the caption where the tone
+   * used to be: seven seconds early.
+   */
+  it('anchors the playback cue to the measured onset', () => {
+    expect(SRT).toContain('tools/detect-playback-start.sh "$video"');
+    expect(SRT).toContain('COMPOSED_MIN_SPREAD=${COMPOSED_MIN_SPREAD:-3}');
+  });
+
+  /**
+   * ⚠️ It does NOT name each tab as the tour reaches it, and that is a
+   * deliberate omission rather than an oversight. Those moments are not
+   * derivable from the footage: the app's tabs share a palette and layout
+   * shell, so a tab switch is not a scene change. Measured on the 0.3.4 promo,
+   * ffmpeg finds the SAME THREE changes at thresholds 0.25, 0.12 and 0.06 —
+   * all of them card boundaries. Per-tab cues would need the Maestro flow to
+   * record its own timestamps, which it does not do.
+   */
+  it('records why it writes no per-tab cues', () => {
+    expect(SRT).toContain('WHAT THIS DELIBERATELY DOES NOT DO');
+    expect(SRT).toContain('not a scene change');
+  });
+
+  it('writes SRT timestamps with a comma, as the format requires', () => {
+    expect(SRT).toContain("'%02d:%02d:%02d,%03d'");
+  });
+
+  it('is run by the workflow, after the composer', () => {
+    expect(WORKFLOW).toContain('tools/write-video-srt.sh video');
+    expect(WORKFLOW.indexOf('write-video-srt.sh')).toBeGreaterThan(
+      WORKFLOW.indexOf('compose-video.sh'),
+    );
+  });
+});
