@@ -12,6 +12,7 @@
 import { isAppLocale, type AppLocale } from './locale';
 import { clampUnitMs, DEFAULT_UNIT_MS } from './tapping';
 import { DEFAULT_PLAYBACK_WPM } from './timeline';
+import { isPlaybackWpmEnabled } from './featureFlags';
 
 /**
  * One key per setting rather than a single JSON blob. A blob fails as a unit:
@@ -34,8 +35,9 @@ export const SETTINGS_KEYS = Object.freeze({
  */
 export const SPEECH_FOLLOWS_INTERFACE = 'follow';
 
-/** The speeds the picker offers, in words per minute. */
-export const PLAYBACK_WPM_CHOICES: readonly number[] = Object.freeze([5, 10, 15]);
+// Re-exported so every existing importer keeps working; it is declared in
+// `timeline.ts` to keep `featureFlags.ts` out of a cycle with this file.
+export { PLAYBACK_WPM_CHOICES } from './timeline';
 
 /** Everything the user can change, as one object. */
 export type Settings = Readonly<{
@@ -82,7 +84,10 @@ export function parseTapUnitMs(raw: string | null): number {
  */
 export function parsePlaybackWpm(raw: string | null): number {
   const wpm = Number.parseInt(raw ?? '', 10);
-  return PLAYBACK_WPM_CHOICES.includes(wpm) ? wpm : DEFAULT_SETTINGS.playbackWpm;
+  // ⚠️ The FLAG, not the raw list. A speed turned off in `featureFlags.ts` is
+  // exactly the case this function guards: the picker can no longer show it,
+  // so a user stored on it could leave that setting and never return to it.
+  return isPlaybackWpmEnabled(wpm) ? wpm : DEFAULT_SETTINGS.playbackWpm;
 }
 
 /**

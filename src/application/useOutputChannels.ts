@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { isOutputChannelEnabled } from '@/core/domain/featureFlags';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePermissionGate } from '@/application/providers/PermissionGate';
 import { useMorsePlayback, type MorsePlayback } from '@/application/useMorsePlayback';
@@ -40,6 +41,8 @@ export function useOutputChannels(
   // The `translator.*` keys are the channels' names, not the Translator's —
   // they were written before there was anywhere else to show them, and
   // renaming them would churn three locale files to say the same words.
+  // ⚠️ Filtered at the end, so a withheld channel leaves no tile behind. The
+  // playback hook refuses it too — a tile is a shortcut, not the gate.
   const cells: readonly ChannelCell[] = [
     {
       channel: 'sound',
@@ -79,5 +82,8 @@ export function useOutputChannels(
     },
   ];
 
-  return { playback, cells };
+  return {
+    playback,
+    cells: cells.filter((cell) => isOutputChannelEnabled(cell.channel)),
+  };
 }
