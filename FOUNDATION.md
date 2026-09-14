@@ -264,6 +264,11 @@ grantable to other apps, and **must not be stripped** (doing so weakens security
 - Configure Dependabot to target `develop`, and **ignore Expo-SDK-curated packages**
   (`expo`, `expo-*`, `react`, `react-native`, `react-native-*`, `jest-expo`, …) — those
   must move together via `expo install` when bumping the SDK.
+- ⚠️ **The curated set is `expo/bundledNativeModules.json` in the installed SDK, not the
+  naming convention.** `@react-native-async-storage/async-storage` is curated, is pinned
+  to an exact version, and matches none of those prefixes — so it slipped the ignore list
+  and Dependabot proposed a native-module major for it. Diff the ignore list against that
+  file when bumping the SDK.
 
 ---
 

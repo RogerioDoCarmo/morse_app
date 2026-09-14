@@ -187,11 +187,22 @@ jobs:
           # pixel of the app and adds ground colour at the sides. The colour is
           # theme.ts's `ground`, so the join is invisible rather than a black
           # bar someone has to explain.
+          # ⚠️ A FIXED 2560x1440 CANVAS, not a width computed from the height.
+          # The previous filter padded to `ceil(ih*16/9/2)*2`, which cannot be
+          # exact unless the height is a multiple of 9: a 1480px-tall shot gave
+          # 2632x1480 = 1.7784, and PLAY REJECTED THE WHOLE SET —
+          # "proporção 16:9 ou 9:16". 0.0006 off is still off.
+          #
+          # 2560x1440 is exactly 16:9, both sides sit inside Play's 1080-7680,
+          # and `force_original_aspect_ratio=decrease` keeps every pixel of the
+          # app: it fits the shot inside the canvas and fills the remainder with
+          # theme.ts's `ground`, so the join is invisible rather than a black
+          # bar someone has to explain.
           if [ "${{ matrix.pad_to_16_9 }}" = "yes" ]; then
             sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
             for f in screenshots/*.png; do
               ffmpeg -hide_banner -loglevel error -y -i "$f" \
-                -vf "scale=iw:ih,pad=ceil(ih*16/9/2)*2:ih:(ow-iw)/2:0:color=0xf2f4f7" \
+                -vf "scale=2560:1440:force_original_aspect_ratio=decrease,pad=2560:1440:(ow-iw)/2:(oh-ih)/2:color=0xf2f4f7" \
                 "$f.16x9.png" && mv "$f.16x9.png" "$f"
             done
           fi
@@ -222,8 +233,16 @@ jobs:
               # the emulator ignored the skin and the app booted upright.
               if w < h:
                   sys.exit(f'::error::chromebook shots must be landscape, got {w}x{h}')
-              if abs(ratio - 16 / 9) > 0.02:
-                  sys.exit(f'::error::chromebook wants 16:9, got {ratio:.3f}')
+              # ⚠️ EXACT, by integer arithmetic. This check used to allow
+              # `abs(ratio - 16/9) > 0.02`, and that tolerance is precisely how
+              # a rejected set got certified: 2632x1480 is 0.0006 off, passed
+              # here, and PLAY REFUSED IT. A guard that is looser than the store
+              # it guards against is worse than no guard, because it is believed.
+              if w * 9 != h * 16:
+                  sys.exit(f'::error::chromebook wants EXACTLY 16:9, got {w}x{h} ({ratio:.4f})')
+              # Play's own wording: "cada lado medindo entre 1.080 e 7.680 px".
+              if min(w, h) < 1080 or max(w, h) > 7680:
+                  sys.exit(f'::error::chromebook {w}x{h} is outside Play 1080-7680px')
           PY
 
       # ⚠️ WITHOUT THIS A FAILURE TEACHES NOTHING, and three slots failed in
@@ -263,7 +282,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm

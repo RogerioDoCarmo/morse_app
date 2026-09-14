@@ -20,6 +20,9 @@ module.exports = tseslint.config(
       'reports/**',
       '.stryker-tmp/**',
       'design/**',
+      // A subagent's git worktree, with its own full checkout of this source.
+      // Without this, eslint reports ITS copy of every file as an error here.
+      '.claude/**',
     ],
   },
 

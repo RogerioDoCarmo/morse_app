@@ -28,6 +28,17 @@ appId: com.rogeriodocarmo.morse
 # Language has no tab and no gear — Settings is the only route in.
 - tapOn:
     id: 'open-settings'
+# ⚠️ WAIT FOR THE SCREEN BEFORE SCROLLING IT. `scrollUntilVisible` starts
+# immediately, and a Settings screen that is still mounting has nothing to
+# scroll — the swipe lands on whatever is underneath and the element is never
+# found. This flow failed twice on 13 September with "No visible element found:
+# id: settings-language" while the other eight flows passed on the same
+# simulator, which is the signature of a race rather than a missing element.
+#
+# `assertVisible` waits; `settings.yaml` has always done this and has never
+# failed here.
+- assertVisible:
+    id: 'settings-screen'
 - scrollUntilVisible:
     element:
       id: 'settings-language'
@@ -109,6 +120,17 @@ appId: com.rogeriodocarmo.morse
     id: 'locale-badge-pt-BR'
 - tapOn:
     id: 'open-settings'
+# ⚠️ WAIT FOR THE SCREEN BEFORE SCROLLING IT. `scrollUntilVisible` starts
+# immediately, and a Settings screen that is still mounting has nothing to
+# scroll — the swipe lands on whatever is underneath and the element is never
+# found. This flow failed twice on 13 September with "No visible element found:
+# id: settings-language" while the other eight flows passed on the same
+# simulator, which is the signature of a race rather than a missing element.
+#
+# `assertVisible` waits; `settings.yaml` has always done this and has never
+# failed here.
+- assertVisible:
+    id: 'settings-screen'
 - scrollUntilVisible:
     element:
       id: 'settings-language'

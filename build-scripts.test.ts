@@ -81,3 +81,58 @@ describe('build scripts', () => {
     expect(script).toContain('ProvisionedDevices');
   });
 });
+
+/**
+ * ⚠️ THE LAST DEPENDABOT ALERT, AND IT WAS FIXABLE AFTER ALL.
+ *
+ * `uuid` reaches this project as `expo/config-plugins` → `xcode` → `uuid`, and
+ * its only patched version (11.1.1) is ESM-only. The first attempt at the
+ * override was abandoned because three config-plugin suites died with
+ * "Unexpected token 'export'" — jest cannot parse ESM without a transform, and
+ * punching a hole in jest to clear a badge looked like the worse trade.
+ *
+ * ⚠️ But this project ALREADY maintains a `transformIgnorePatterns` exception
+ * list for exactly that, with a dozen packages in it. `uuid` sits beside
+ * `react-native` and `expo`, which are there for the same reason. It is the
+ * existing mechanism, not a new hole.
+ *
+ * ⚠️ And the check that mattered was never the tests. `xcode` uses uuid to
+ * write `project.pbxproj` during `expo prebuild` — had ESM broken it there,
+ * EVERY build would break, silently, until the next one was attempted.
+ * Verified on both platforms before this was kept: iOS wrote a valid pbxproj
+ * and an Info.plist at 0.3.5; Android wrote a manifest with all nine
+ * permissions.
+ */
+describe('the uuid override, which closes the last alert', () => {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
+  ) as { pnpm?: { overrides?: Record<string, string> } };
+  const jestConfig = fs.readFileSync(path.join(__dirname, 'jest.config.js'), 'utf8');
+
+  // The patched version as a literal — the advisory is `< 11.1.1`, and the
+  // tree carried 7.0.3 through `xcode`.
+  it('pins uuid at the patched version', () => {
+    expect(pkg.pnpm?.overrides?.['uuid@7']).toBe('^11.1.1');
+  });
+
+  it('lets jest transform it, since 11.x is ESM-only', () => {
+    expect(jestConfig).toContain('|uuid))');
+  });
+
+  /**
+   * ⚠️ The app must never import it. This is a BUILD-TIME dependency of a
+   * config plugin, which runs on a build machine and never ships in the
+   * binary — an app import would change that, and would be the one thing that
+   * turns a build-machine advisory into a shipped one.
+   */
+  it('is not imported anywhere in the app', () => {
+    const appFiles = fs
+      .readdirSync(path.join(__dirname, 'src'), { recursive: true })
+      .filter((f): f is string => typeof f === 'string' && /\.(ts|tsx)$/u.test(f))
+      .map((f) => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8'));
+    const importsUuid = appFiles.filter((body) =>
+      /from 'uuid'|require\('uuid'\)/u.test(body),
+    );
+    expect(importsUuid).toHaveLength(0);
+  });
+});

@@ -37,24 +37,38 @@ appId: com.rogeriodocarmo.morse
 
 # The carousel, swiped rather than skipped past — it is the first thing a new
 # user sees, and it introduces the output channels the rest of the tour uses.
+#
+# ⚠️ PERCENTAGES, NOT `from: <element>`. THIS FLOW BROKE BECAUSE IT NEVER GOT
+# THE FIX `first-run.yaml` ALREADY HAD. An element swipe travels a fraction of
+# that element, and a paging scroll view snaps BACK unless the drag passes half
+# a page or carries real velocity — so the pager never moved, the tour failed
+# on `assertVisible: first-run-art-surface`, and `record-video-clips.sh` kept a
+# truncated 77-second clip with no playback in it. The promo then had no flash
+# to hang its soundtrack on.
+#
+# ⚠️ It failed IDENTICALLY on two consecutive runs (34787134677, 34788313464),
+# which is what ruled out flakiness. A guess that the TapHalo animation added
+# in #171 was interfering was WRONG — the gesture was never travelling far
+# enough, on any slide.
+#
+# 45% height keeps it inside the pager on every slide — below the Skip row,
+# above the dots and the button. 12%-88% crosses three quarters of the screen.
 - repeat:
     times: 4
     commands:
       - assertVisible:
           id: 'first-run'
 - swipe:
-    from:
-      id: 'first-run-pager'
-    direction: LEFT
+    start: 88%, 45%
+    end: 12%, 45%
 - repeat:
     times: 4
     commands:
       - assertVisible:
           id: 'first-run'
 - swipe:
-    from:
-      id: 'first-run-pager'
-    direction: LEFT
+    start: 88%, 45%
+    end: 12%, 45%
 - repeat:
     times: 4
     commands:
@@ -70,9 +84,8 @@ appId: com.rogeriodocarmo.morse
 # ceiling. The clip measured 146.8s before it, so there is room — but that
 # budget is the thing to check if this tour grows again.
 - swipe:
-    from:
-      id: 'first-run-pager'
-    direction: LEFT
+    start: 88%, 45%
+    end: 12%, 45%
 - repeat:
     times: 4
     commands:
