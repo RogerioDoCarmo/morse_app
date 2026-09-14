@@ -222,3 +222,52 @@ describe('keyboard dismissals', () => {
     expect(offenders).toStrictEqual([]);
   });
 });
+
+/**
+ * ⚠️ SCROLLING A SCREEN THAT HAS NOT MOUNTED SCROLLS NOTHING.
+ *
+ * `language.yaml` tapped `open-settings` and started `scrollUntilVisible`
+ * immediately. On a slow simulator the Settings screen is still mounting, the
+ * swipe lands on whatever is underneath, and the element is never found — it
+ * failed twice on 13 September with "No visible element found: id:
+ * settings-language" while the other EIGHT flows passed on the same simulator,
+ * which is the signature of a race rather than a missing element.
+ *
+ * `assertVisible` waits. `settings.yaml` has always done this and has never
+ * failed at that point.
+ */
+describe('a screen is waited for before it is scrolled', () => {
+  const LANGUAGE = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'flows', 'language.yaml'),
+    'utf8',
+  );
+
+  it('guards every scroll that follows an open-settings tap', () => {
+    // Each `open-settings` tap must be followed by a `settings-screen`
+    // assertion before the next `scrollUntilVisible`. Counting occurrences is
+    // not enough — the flow already asserts that screen elsewhere, for its own
+    // reasons, so a total would pass while a guard was missing.
+    // ⚠️ COMMENTS STRIPPED FIRST. The guard's own comment explains the bug and
+    // names `scrollUntilVisible` in prose — searching the raw text finds that
+    // mention before the real command and reports a correct flow as broken.
+    const code = LANGUAGE.split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    const segments = code.split(/- tapOn:\s*\n\s*id: 'open-settings'/u).slice(1);
+    expect(segments.length).toBeGreaterThan(0);
+    for (const segment of segments) {
+      const guard = segment.indexOf("id: 'settings-screen'");
+      const scroll = segment.indexOf('scrollUntilVisible');
+      expect(guard).toBeGreaterThan(-1);
+      expect(guard).toBeLessThan(scroll);
+    }
+  });
+
+  // ⚠️ The order is the whole point: a guard AFTER the scroll would assert a
+  // screen the scroll had already failed on.
+  it('puts the guard between the tap and the scroll', () => {
+    expect(LANGUAGE).toMatch(
+      /id: 'open-settings'[\s\S]{0,600}?id: 'settings-screen'[\s\S]{0,200}?scrollUntilVisible/u,
+    );
+  });
+});
