@@ -92,8 +92,17 @@ appId: com.rogeriodocarmo.morse
       - assertVisible:
           id: 'first-run-art-surface'
 
+# ⚠️ `first-run-next`, NOT `first-run-skip`. THE LAST SLIDE HAS NO SKIP —
+# `FirstRunScreen` renders it as `{last ? null : (...)}` because there is
+# nothing left to skip, and the next button becomes "Start" and calls `onDone`.
+# `first-run.yaml` asserts exactly that: "Skip is gone on the last slide".
+#
+# ⚠️ THIS WAS HIDDEN BY THE SWIPE BUG. While the swipes silently did nothing
+# the tour never reached the last slide, so Skip was always still on screen and
+# the wrong selector always worked. Fixing the swipes in #187 is what exposed
+# it, one run later: "Element not found: Id matching regex: first-run-skip".
 - tapOn:
-    id: 'first-run-skip'
+    id: 'first-run-next'
 - assertNotVisible:
     id: 'first-run'
 # ⚠️ No `hideKeyboard`: the input no longer takes focus on open, and a dismiss
