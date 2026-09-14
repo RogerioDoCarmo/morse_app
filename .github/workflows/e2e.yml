@@ -239,6 +239,57 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ⚠️ BOOT THE SIMULATOR NOW, twelve minutes before a single flow runs.
+      # This looks like it is in the wrong place. It is not, and moving it back
+      # down beside the flows re-opens a bug that cost three red runs in one
+      # day.
+      #
+      # iOS posts a one-off "Apple Intelligence is ready" notification the
+      # first time a device is booted after an erase. It is a Follow Up item
+      # (`FLFollowUpItem`, requester `com.apple.icloud.gm` — `gm` for
+      # generative models, not iCloud), it is drawn as a BANNER across the top
+      # of the screen, and tapping it opens Settings at
+      # `prefs:root=SIRI&path=appleIntelligenceCFU`.
+      #
+      # A banner sits exactly where `first-run-skip` sits — y=84, just under
+      # the status bar. On 14 September Maestro aimed a tap at (363, 84) at
+      # 15:32:37.358 and the banner appeared at 15:32:37.671: 313ms later, in
+      # time to swallow it. SpringBoard opened Settings, the app lost the
+      # foreground, and `settings` — which is ALWAYS the first flow — failed on
+      # `assertVisible: settings-screen` while the other eight passed.
+      #
+      # ⚠️ Maestro reported that stolen tap as COMPLETED: "Something have
+      # changed in the UI judging by view hierarchy. Proceed." The UI had
+      # changed. It was not the app. A COMPLETED tap is not a tap that landed.
+      #
+      # Measured behaviour, on iOS 26.4: the callout fires ~4 seconds after the
+      # FIRST boot of a freshly erased device and NEVER REPEATS — a second boot
+      # of the same device produced no banner at all. So the fix is simply to
+      # spend it early. Booting here lets it fire and vanish during the ten
+      # minutes of prebuild and xcodebuild that follow, with nothing on screen
+      # to steal from. It costs no wall-clock time: the boot overlaps work that
+      # happens anyway.
+      #
+      # ⚠️ What was tried and does NOT work: pre-writing
+      # `DateOfLastAppleIntelligenceReadinessCFU` into
+      # `com.apple.generativeexperiences.corefollowup` before boot. The daemon
+      # overwrites that key when it posts, so the banner appears regardless.
+      # Editing `/var/db/os_eligibility/eligibility.plist` would work but its
+      # domains are codenames (`OS_ELIGIBILITY_DOMAIN_ALUMINUM`…) with no
+      # stability guarantee whatsoever.
+      - name: Boot a simulator early, so system callouts are spent before the flows
+        run: |
+          xcrun simctl list devices available
+          udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
+          if [ -z "$udid" ]; then
+            echo "::error::No iPhone simulator is available on this runner."
+            exit 1
+          fi
+          echo "Using simulator $udid"
+          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+
       # Not optional on iOS: @react-native-firebase/crashlytics autolinks a
       # build phase that reads GOOGLE_APP_ID out of this file, so the app fails
       # to build without it whether or not the Expo config plugins run.
@@ -287,7 +338,7 @@ jobs:
       # Pick whatever iPhone this runner image actually ships. Hardcoding a
       # model name breaks silently every time GitHub rolls the image forward —
       # "iPhone 16" was not present and simctl failed with "Invalid device".
-      - name: Boot a simulator and run flows
+      - name: Run flows on the simulator booted earlier
         env:
           # Maestro builds and launches its XCUITest driver on first use. A
           # cold runner does not manage that inside the default window, and
@@ -304,18 +355,11 @@ jobs:
           # timeout-minutes is the real backstop.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 360000
         run: |
-          xcrun simctl list devices available
-          udid=$(xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {print $2; exit}')
-          if [ -z "$udid" ]; then
-            echo "::error::No iPhone simulator is available on this runner."
-            exit 1
-          fi
-          echo "Using simulator $udid"
-          xcrun simctl boot "$udid" || true
-          xcrun simctl bootstatus "$udid" -b
-          xcrun simctl install "$udid" \
+          # Booted near the top of the job — see the long note there for why.
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          xcrun simctl install "$SIM_UDID" \
             "ios/build/Build/Products/Release-iphonesimulator/${IOS_SCHEME}.app"
-          maestro --device "$udid" test .maestro/flows/
+          maestro --device "$SIM_UDID" test .maestro/flows/
 
       - name: Upload Maestro output
         if: failure()
