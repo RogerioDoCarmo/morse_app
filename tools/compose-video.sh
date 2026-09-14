@@ -128,6 +128,24 @@ SILENT_AUDIO=(-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100)
 # found. This switch is the one that actually asks for a silent video — for a
 # platform that autoplays muted, or a cut published alongside the audio one.
 SILENT=${SILENT:-0}
+
+# ⚠️ THE FOUR-UP IS SILENT ON PURPOSE, and this is the one place that decides
+# it. It goes to LinkedIn, which AUTOPLAYS MUTED in the feed — the flashing has
+# to carry the video with the sound off, and it does.
+#
+# ⚠️ And a silent grid removes a whole class of bug rather than fixing it. The
+# four-up shows the LAST `GRID_SECONDS` of a clip whose playback began long
+# before, so the flashing is already running when the window opens: measured on
+# 14 September, cell luminance oscillates between 211 and 239 from the body's
+# first frame to its last. THERE IS NO ONSET TO FIND. Every attempt to place a
+# tone against it — the first-onset arithmetic, then the window-onset
+# arithmetic — picked an arbitrary point in a continuous oscillation, and one of
+# them shipped audio 7.28 seconds early.
+#
+# The promo is the one people watch with sound, and it is exact. Set
+# GRID_SILENT=0 only if someone has solved "which playback is on screen at the
+# window's start", which is the real problem underneath this.
+GRID_SILENT=${GRID_SILENT:-1}
 AUDIO_RATE=${AUDIO_RATE:-44100}
 AUDIO_CHANNELS=${AUDIO_CHANNELS:-2}
 AUDIO_BITRATE=${AUDIO_BITRATE:-128k}
@@ -329,10 +347,15 @@ tour_trim=$(python3 -c "print(max(0.0, $tour_norm_s - $TOUR_SECONDS))")
 tour_audio=$(plan_audio "$CLIPS/tour.mp4" "$TOUR_TEXT" "$tour_trim") || tour_audio=""
 require_audio promo-youtube "$tour_audio"
 
-grid_norm_s=$(duration_of "$CLIPS/tab-translate.mp4")
-grid_trim=$(python3 -c "print(max(0.0, $grid_norm_s - $GRID_SECONDS))")
-grid_audio=$(plan_audio "$CLIPS/tab-translate.mp4" "$TRANSLATE_TEXT" "$grid_trim") || grid_audio=""
-require_audio linkedin-fourup "$grid_audio"
+if [ "$GRID_SILENT" = "1" ]; then
+  echo "    linkedin-fourup: silent by design — LinkedIn autoplays muted, see GRID_SILENT" >&2
+  grid_audio=""
+else
+  grid_norm_s=$(duration_of "$CLIPS/tab-translate.mp4")
+  grid_trim=$(python3 -c "print(max(0.0, $grid_norm_s - $GRID_SECONDS))")
+  grid_audio=$(plan_audio "$CLIPS/tab-translate.mp4" "$TRANSLATE_TEXT" "$grid_trim") || grid_audio=""
+  require_audio linkedin-fourup "$grid_audio"
+fi
 
 # ⚠️ `adelay` then `apad`: the delay puts the tone where the flash is, and the
 # pad keeps the stream alive to the end of the video. Without the pad the audio
@@ -466,7 +489,15 @@ for f in promo-youtube linkedin-fourup; do
   if [ -z "$level" ]; then
     printf '  ⚠️ NO AUDIO STREAM\n'
   elif [ "$level" = "-inf" ] || [ "${level%.*}" -le -90 ] 2>/dev/null; then
-    printf '  ⚠️ AUDIO IS SILENT (mean %s dB)\n' "$level"
+    # ⚠️ Silent is the RIGHT answer for the four-up and the wrong one for the
+    # promo, so this reports which it is rather than warning about both. A
+    # warning on a deliberate choice is noise, and noise is what gets ignored
+    # on the day the promo goes out silent by accident.
+    if [ "$f" = "linkedin-fourup" ] && [ "$GRID_SILENT" = "1" ]; then
+      printf '  silent by design (mean %s dB)\n' "$level"
+    else
+      printf '  ⚠️ AUDIO IS SILENT (mean %s dB)\n' "$level"
+    fi
   else
     printf '  audio mean %s dB\n' "$level"
   fi
@@ -512,6 +543,14 @@ fi
 echo "--- sync: does the sound land on the flashing? ---"
 sync_failed=0
 for f in promo-youtube linkedin-fourup; do
+  # ⚠️ A video that is silent BY DESIGN has nothing to check. Asking "does the
+  # sound land on the flashing" of a deliberately silent cut is not a question,
+  # and failing the build for it would make GRID_SILENT unusable — which is the
+  # trap the SILENT=1 skip above already had to avoid once.
+  if [ "$f" = "linkedin-fourup" ] && [ "$GRID_SILENT" = "1" ]; then
+    printf '%-22s silent by design — nothing to line up\n' "$f.mp4"
+    continue
+  fi
   v=$(MIN_SPREAD=$COMPOSED_MIN_SPREAD tools/detect-playback-start.sh "$OUT/$f.mp4" 2>/dev/null | tail -1)
   a=$(ffmpeg -hide_banner -nostats -i "$OUT/$f.mp4" -af "silencedetect=noise=-50dB:d=0.05" \
       -f null - 2>&1 | awk '/silence_end/{print $5; exit}')
