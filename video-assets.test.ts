@@ -857,3 +857,40 @@ describe('the tour can actually reach the last slide', () => {
     expect(TOUR).toContain('45%');
   });
 });
+
+/**
+ * ⚠️ THE LAST SLIDE HAS NO SKIP BUTTON.
+ *
+ * `FirstRunScreen` renders it as `{last ? null : (...)}` — there is nothing
+ * left to skip, and the next button becomes "Start" and calls `onDone`.
+ * `first-run.yaml` asserts this on the app side.
+ *
+ * ⚠️ The video tour reached for `first-run-skip` anyway, and got away with it
+ * for as long as its swipes were silently failing: it never arrived at the last
+ * slide, so Skip was always still there. Fixing the swipes exposed it one run
+ * later with "Element not found: Id matching regex: first-run-skip" — a second
+ * bug that the first had been hiding.
+ */
+describe('the tour leaves the guide by the button that exists', () => {
+  const TOUR = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'video', 'tour.yaml'),
+    'utf8',
+  );
+
+  it('taps Start rather than Skip, having swiped to the last slide', () => {
+    expect(TOUR).toContain("id: 'first-run-next'");
+    expect(TOUR).not.toContain("id: 'first-run-skip'");
+  });
+
+  /**
+   * ⚠️ The pairing is what matters: a flow that swipes to the end MUST leave by
+   * Start, and one that does not may use Skip. Asserting the button alone would
+   * pass on a flow that had stopped swiping.
+   */
+  it('still swipes to the last slide before leaving', () => {
+    expect(TOUR.match(/start: 88%, 45%/gu)).toHaveLength(3);
+    expect(TOUR.indexOf("id: 'first-run-art-surface'")).toBeLessThan(
+      TOUR.indexOf("id: 'first-run-next'"),
+    );
+  });
+});
