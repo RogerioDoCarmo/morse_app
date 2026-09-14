@@ -894,3 +894,52 @@ describe('the tour leaves the guide by the button that exists', () => {
     );
   });
 });
+
+/**
+ * ⚠️ THE FOUR-UP IS SILENT ON PURPOSE.
+ *
+ * It goes to LinkedIn, which autoplays muted in the feed — the flashing has to
+ * carry it with the sound off, and it does.
+ *
+ * ⚠️ And the silence removes a bug class rather than papering over one. The
+ * four-up shows the LAST `GRID_SECONDS` of a clip whose playback began long
+ * before, so the flashing is ALREADY RUNNING when the window opens: measured on
+ * 14 September, cell luminance oscillates between 211 and 239 from the body's
+ * first frame to its last. There is no onset to find. Both attempts to place a
+ * tone against it — first-onset arithmetic, then window-onset arithmetic —
+ * picked an arbitrary point in a continuous oscillation, and one of them shipped
+ * audio 7.28 seconds early.
+ *
+ * The promo is the one people watch with sound, and it measures Δ +0.000s.
+ */
+describe('the four-up is silent by design', () => {
+  it('plans no soundtrack for the grid', () => {
+    expect(COMPOSE).toContain('GRID_SILENT=${GRID_SILENT:-1}');
+    expect(COMPOSE).toContain('silent by design — LinkedIn autoplays muted');
+  });
+
+  /**
+   * ⚠️ The sync check must SKIP it, not pass it. "Does the sound land on the
+   * flashing" has no answer without sound, and failing there would make the
+   * option unusable — the same trap the SILENT=1 skip already had to avoid.
+   */
+  it('is skipped by the sync check rather than failed', () => {
+    expect(COMPOSE).toContain('silent by design — nothing to line up');
+  });
+
+  /**
+   * ⚠️ And the level report says "by design" instead of warning. A warning on a
+   * deliberate choice is noise, and noise is what gets ignored on the day the
+   * PROMO goes out silent by accident — which is the case that must still shout.
+   */
+  it('still warns when the promo is unexpectedly silent', () => {
+    expect(COMPOSE).toContain('⚠️ AUDIO IS SILENT');
+    expect(COMPOSE).toContain('silent by design (mean');
+  });
+
+  // The stream still exists. A file with NO audio stream is rejected or
+  // silently re-encoded by several upload pipelines — silence is not absence.
+  it('keeps a real silent audio stream rather than no stream', () => {
+    expect(COMPOSE).toContain('anullsrc=channel_layout=stereo:sample_rate=44100');
+  });
+});
