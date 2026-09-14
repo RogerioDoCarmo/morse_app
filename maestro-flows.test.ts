@@ -265,8 +265,18 @@ describe('a screen is waited for before it is scrolled', () => {
 
   // ⚠️ The order is the whole point: a guard AFTER the scroll would assert a
   // screen the scroll had already failed on.
+  //
+  // ⚠️ COMMENTS STRIPPED FIRST, for the same reason as the test above — and
+  // this one learned it the hard way. The character budgets below measure
+  // DISTANCE, so every line of comment written between the tap and the scroll
+  // ate into them: explaining the flake of 14 September in the guard's own
+  // note pushed the gap past 600 and turned a correct flow red. A test that
+  // fails when someone documents the code is punishing the wrong thing.
   it('puts the guard between the tap and the scroll', () => {
-    expect(LANGUAGE).toMatch(
+    const code = LANGUAGE.split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    expect(code).toMatch(
       /id: 'open-settings'[\s\S]{0,600}?id: 'settings-screen'[\s\S]{0,200}?scrollUntilVisible/u,
     );
   });

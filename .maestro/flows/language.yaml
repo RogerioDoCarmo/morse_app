@@ -35,8 +35,14 @@ appId: com.rogeriodocarmo.morse
 # id: settings-language" while the other eight flows passed on the same
 # simulator, which is the signature of a race rather than a missing element.
 #
-# `assertVisible` waits; `settings.yaml` has always done this and has never
-# failed here.
+# `assertVisible` waits, which is why this is the right fix here.
+#
+# ⚠️ This note used to end "`settings.yaml` has always done this and has never
+# failed here." That is no longer true — settings.yaml failed three times on
+# 14 September on its own `assertVisible: settings-screen`. The cause was
+# unrelated (an OS notification banner stealing a tap; see the note in
+# settings.yaml), but the sentence read as proof that the pattern below cannot
+# fail, and no pattern here is proof against the operating system.
 - assertVisible:
     id: 'settings-screen'
 - scrollUntilVisible:
@@ -127,8 +133,14 @@ appId: com.rogeriodocarmo.morse
 # id: settings-language" while the other eight flows passed on the same
 # simulator, which is the signature of a race rather than a missing element.
 #
-# `assertVisible` waits; `settings.yaml` has always done this and has never
-# failed here.
+# `assertVisible` waits, which is why this is the right fix here.
+#
+# ⚠️ This note used to end "`settings.yaml` has always done this and has never
+# failed here." That is no longer true — settings.yaml failed three times on
+# 14 September on its own `assertVisible: settings-screen`. The cause was
+# unrelated (an OS notification banner stealing a tap; see the note in
+# settings.yaml), but the sentence read as proof that the pattern below cannot
+# fail, and no pattern here is proof against the operating system.
 - assertVisible:
     id: 'settings-screen'
 - scrollUntilVisible:
