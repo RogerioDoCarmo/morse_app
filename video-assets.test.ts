@@ -648,9 +648,34 @@ describe('the sound has to land on the flashing', () => {
     expect(COMPOSE).toContain('MIN_SPREAD=$COMPOSED_MIN_SPREAD');
   });
 
-  // One frame at 30fps, asserted as the literal it is.
-  it('allows one frame of tolerance and no more', () => {
-    expect(COMPOSE).toContain('SYNC_TOLERANCE=${SYNC_TOLERANCE:-0.034}');
+  /**
+   * ⚠️ ONE FRAME PLUS A MARGIN, asserted as the literal it is.
+   *
+   * The first version of this check used exactly one frame — 0.034 — and
+   * REJECTED A CORRECTLY ALIGNED VIDEO whose delta measured 0.034075. It
+   * failed by 75 microseconds. The two measurements have different
+   * granularities: the flash is found per FRAME, the sound per SAMPLE, so a
+   * correct result lands slightly over a frame. 50ms is one and a half frames
+   * and still far below anything a listener can hear against a flash.
+   */
+  it('allows a frame and a half, because a frame exactly was too tight', () => {
+    expect(COMPOSE).toContain('SYNC_TOLERANCE=${SYNC_TOLERANCE:-0.050}');
+  });
+
+  /**
+   * ⚠️ `REQUIRE_AUDIO=0` is NOT a silent mode, and conflating the two produced
+   * a "silent" cut with full audio at -11.9 dB. It only decides whether a
+   * MISSING soundtrack is an error; it never suppresses one that was found.
+   */
+  it('has a real silent mode, distinct from tolerating silence', () => {
+    expect(COMPOSE).toContain('SILENT=${SILENT:-0}');
+    expect(COMPOSE).toContain('SILENT=1 — no soundtrack by request');
+  });
+
+  // Nothing to verify on a deliberately silent cut — "does the sound land on
+  // the flashing" has no answer, and failing for it would make SILENT unusable.
+  it('skips the sync check for a deliberately silent cut', () => {
+    expect(COMPOSE).toContain('sync: skipped, this is a deliberately silent cut');
   });
 
   /**
@@ -785,5 +810,50 @@ describe('subtitle sidecars', () => {
     expect(WORKFLOW.indexOf('write-video-srt.sh')).toBeGreaterThan(
       WORKFLOW.indexOf('compose-video.sh'),
     );
+  });
+});
+
+/**
+ * ⚠️ THE VIDEO TOUR NEVER GOT A FIX THE E2E SUITE ALREADY HAD.
+ *
+ * `first-run.yaml` swipes the carousel by PERCENTAGES, with a comment
+ * explaining why: an element swipe travels a fraction of that element, and a
+ * paging scroll view snaps back unless the drag passes half a page. The video
+ * tour still used `from: id: first-run-pager`, so the pager never moved, the
+ * flow failed on `assertVisible: first-run-art-surface`, and the recorder kept
+ * a truncated 77-second clip with no playback in it — leaving the promo with
+ * no flash to hang its soundtrack on.
+ *
+ * It failed identically on two consecutive runs, which is what ruled out
+ * flakiness.
+ */
+describe('the tour can actually reach the last slide', () => {
+  const TOUR = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'video', 'tour.yaml'),
+    'utf8',
+  );
+
+  it('swipes the carousel by percentage, not from an element', () => {
+    expect(TOUR).not.toMatch(/swipe:\s*\n\s*from:\s*\n\s*id: 'first-run-pager'/u);
+    expect(TOUR).toContain('start: 88%, 45%');
+  });
+
+  // Three swipes for four slides — the count the carousel actually needs.
+  it('swipes exactly three times, for four slides', () => {
+    expect(TOUR.match(/start: 88%, 45%/gu)).toHaveLength(3);
+  });
+
+  /**
+   * ⚠️ The same geometry the E2E flow proved: 45% height sits inside the pager
+   * on every slide, below the Skip row and above the dots; 12%-88% crosses
+   * three quarters of the screen, which is past the half-page a pager needs.
+   */
+  it('uses the geometry the E2E flow already proved', () => {
+    const e2e = fs.readFileSync(
+      path.join(__dirname, '.maestro', 'flows', 'first-run.yaml'),
+      'utf8',
+    );
+    expect(e2e).toContain('45%');
+    expect(TOUR).toContain('45%');
   });
 });
