@@ -1,0 +1,16 @@
+1
+00:00:00,000 --> 00:00:02,000
+OmniMorse — encode, decode, learn Morse code
+
+2
+00:00:02,000 --> 00:00:59,333
+Type a message and it becomes Morse, letter by letter
+
+3
+00:00:59,333 --> 00:02:02,000
+Sound, torch, screen and vibration — it plays the message out loud
+
+4
+00:02:02,000 --> 00:02:04,000
+Nothing you type, say or key ever leaves your phone
+
