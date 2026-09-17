@@ -1904,3 +1904,50 @@ describe('finding out that the chips are pressable', () => {
     });
   });
 });
+
+/**
+ * ⚠️ THE SAMPLE IS A FIRST-RUN COURTESY, NOT A GREETING. It used to be seeded
+ * on every open, which is right for a first-time user — who needs something to
+ * press play on — and wrong for everyone else, who met a message they had not
+ * written and had to clear before typing.
+ *
+ * The shell passes the stored answer; `seedSample` defaults to true here, so
+ * every other test in this file gets a screen with something in it.
+ */
+describe('TranslatorScreen — after the first run', () => {
+  const inputProps = (): Record<string, unknown> =>
+    screen.getByTestId('translator-input').props as Record<string, unknown>;
+
+  it('opens with an empty field', () => {
+    renderWithProviders(<TranslatorScreen seedSample={false} />);
+    expect(inputProps().value).toBe('');
+  });
+
+  it('offers the placeholder in place of the sample', () => {
+    renderWithProviders(<TranslatorScreen seedSample={false} />);
+    expect(inputProps().placeholder).toBe('Type your text here');
+  });
+
+  it('says it in the interface language', () => {
+    renderWithProviders(<TranslatorScreen seedSample={false} />, { locale: 'pt-BR' });
+    expect(inputProps().placeholder).toBe('Digite seu texto aqui');
+  });
+
+  // Nothing to encode, so nothing to show — and no chips to press.
+  it('shows no Morse until something is typed', () => {
+    renderWithProviders(<TranslatorScreen seedSample={false} />);
+    expect(screen.queryAllByTestId('morse-letter')).toHaveLength(0);
+  });
+
+  // ⚠️ Still shown. The dot asks "type something", which is MORE useful on an
+  // empty field than on a seeded one, not less.
+  it('still points at the field', () => {
+    renderWithProviders(<TranslatorScreen seedSample={false} />);
+    expect(screen.getByTestId('type-hint-dot')).toBeOnTheScreen();
+  });
+
+  it('seeds when told to, which is what the first run does', () => {
+    renderWithProviders(<TranslatorScreen seedSample />);
+    expect(inputProps().value).toBe('SOS');
+  });
+});

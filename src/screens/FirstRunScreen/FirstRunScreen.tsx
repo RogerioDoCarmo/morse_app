@@ -19,6 +19,7 @@ import { useLetterHint } from '@/application/useLetterHint';
 import { useMorsePlayback } from '@/application/useMorsePlayback';
 import type { IconName } from '@/components/Icon';
 import { MorseText } from '@/components/MorseText';
+import { Toast } from '@/components/Toast';
 import { OutputChannels, type ChannelCell } from '@/components/OutputChannels';
 import { SurfaceDemo } from '@/components/SurfaceDemo';
 import { encode } from '@/core/domain/morse';
@@ -255,10 +256,18 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
           <MorseText
             message={oneLetter}
             onSelectLetter={hearLetter}
-            // Points at the first chip until one has been pressed. After that
-            // the invitation has been accepted and a ring still breathing on
-            // it would be asking for something already given.
-            hintIndex={heardOne ? null : 0}
+            // ⚠️ The MIDDLE chip, not the first. In the sample the outer two
+            // letters are identical, so a ring on the first reads as decoration
+            // on a row that starts with it — where one in the middle can only
+            // be pointing at that letter. It is also the only one of the three
+            // whose marks differ, so the sound it plays is unmistakably the one
+            // that was pressed.
+            hintIndex={heardOne ? null : 1}
+            // ⚠️ The SUMMONS, not the nudge — twenty revolutions rather than
+            // TapHalo's four breaths. Four was not enough: a tester finished
+            // 0.3.4 never discovering the chips are pressable. Confined to this
+            // slide; the app proper keeps the breathing halo.
+            hintVariant="progress"
             testID="first-run-letter"
           />
         </View>
@@ -384,6 +393,17 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
           {next}
         </>
       )}
+      {/* ⚠️ The chips on the letter slide PLAY, so this slide can be the first
+          place a muted phone is discovered — and it is the worst place to
+          discover it silently, because a chip that appears to do nothing is
+          exactly the impression the slide exists to correct. The same toast the
+          Translator uses, driven by the same hook. */}
+      <Toast
+        visible={letterPlayback.lowVolume}
+        icon="volume"
+        message={t('translator.volumeLow')}
+        onDismiss={letterPlayback.dismissLowVolume}
+      />
     </View>
   );
 }

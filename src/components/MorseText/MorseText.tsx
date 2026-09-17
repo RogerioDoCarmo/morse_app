@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChipProgressRing } from '@/components/ChipProgressRing';
 import { TapHalo } from '@/components/TapHalo';
 import type { MorseMessage } from '@/core/domain/morse';
 import { theme } from '@/theme';
@@ -26,6 +27,18 @@ type Props = Readonly<{
    * pressable that looks like a label is invisible until something moves.
    */
   hintIndex?: number | null;
+  /**
+   * Which hint the chip at {@link hintIndex} wears.
+   *
+   * `breathe` is the app's own nudge — {@link TapHalo}, four beats then rest.
+   *
+   * ⚠️ `progress` is for the FIRST-RUN GUIDE ONLY. It turns for twenty
+   * revolutions, which is a summons rather than a nudge, and it is confined to
+   * the one screen whose job is teaching that the chips are pressable. Using it
+   * in the app proper would put a travelling ring on a chip every time a
+   * message is typed.
+   */
+  hintVariant?: 'breathe' | 'progress';
   /**
    * Handed the sounding letter's own view, each time the playhead moves.
    *
@@ -55,6 +68,7 @@ export function MorseText({
   onSelectLetter,
   onSoundingLetter,
   hintIndex = null,
+  hintVariant = 'breathe',
   testID = 'morse-output',
 }: Props): React.JSX.Element {
   // Each word's starting index, computed before render rather than by mutating
@@ -112,7 +126,13 @@ export function MorseText({
                     Never while this chip is lit: the highlight is already
                     saying "this one", and two signals on one chip read as a
                     state rather than as an invitation. */}
-                {hintIndex === index && !lit ? <TapHalo /> : null}
+                {hintIndex === index && !lit ? (
+                  hintVariant === 'progress' ? (
+                    <ChipProgressRing />
+                  ) : (
+                    <TapHalo />
+                  )
+                ) : null}
                 <View style={styles.marks}>
                   {letter.symbols.map((symbol, symbolIndex) => (
                     <View

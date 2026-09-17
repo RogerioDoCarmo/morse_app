@@ -13,6 +13,7 @@ export const ptBR: TranslationMap = {
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Toque numa letra para ouvi-la',
   'translator.sample': 'SOS',
+  'translator.placeholder': 'Digite seu texto aqui',
   'translator.speak': 'Falar',
   'translator.tapItIn': 'Tocar',
   'translator.readAloud': 'Ler em voz alta',
