@@ -338,10 +338,16 @@ describe('the microphone permission stands in front of the recogniser', () => {
     });
   });
 
-  it('never starts listening when the rationale is dismissed', async () => {
+  it('never starts listening when the OS prompt says no', async () => {
     const isAvailable = jest.fn(async () => true);
     const ports = createFakePorts({}, DENIED);
     ports.speech.isAvailable = isAvailable;
+    // ⚠️ The fake GRANTS by default. What is being tested here is a refusal at
+    // the OS prompt, which since guideline 5.1.1(iv) is the only "no" there is.
+    ports.permission.request = async (kind) => {
+      ports.calls.requested.push(kind);
+      return { granted: false, canAskAgain: true };
+    };
     renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
       ports,
     });
@@ -349,7 +355,18 @@ describe('the microphone permission stands in front of the recogniser', () => {
     await waitFor(() => {
       expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    // The rationale has one action and it leads to the OS prompt — see
+    // guideline 5.1.1(iv).
+    expect(screen.queryByTestId('permission-dismiss')).toBeNull();
+    fireEvent.press(screen.getByTestId('permission-primary'));
+    // ⚠️ Wait on the REQUEST being made, not on the gate unmounting. A positive
+    // signal settles the moment it happens; a disappearance has to outlast the
+    // whole unmount, and under a loaded parallel run that outran the default
+    // waitFor timeout. Pressing here is an async round-trip to the port, which
+    // the old "Not now" press was not.
+    await waitFor(() => {
+      expect(ports.calls.requested).toContain('microphone');
+    });
     await waitFor(() => {
       expect(screen.queryByTestId('permission-microphone')).toBeNull();
     });
