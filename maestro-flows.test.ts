@@ -331,7 +331,8 @@ describe('flow selectors point at testIDs that exist', () => {
     for (const match of fs
       .readFileSync(file, 'utf8')
       .matchAll(/^\s*id:\s*['"]?([^'"\n]+)['"]?\s*$/gmu)) {
-      selectors.add(match[1].trim());
+      const id = match[1];
+      if (id !== undefined) selectors.add(id.trim());
     }
   }
 
@@ -358,7 +359,8 @@ describe('flow selectors point at testIDs that exist', () => {
   for (const file of sourceFiles) {
     for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
       if (!/\btestID\b|\blabel=/u.test(line)) continue;
-      for (const m of line.matchAll(/['"]([A-Za-z0-9._-]+)['"]/gu)) literals.add(m[1]);
+      for (const m of line.matchAll(/['"]([A-Za-z0-9._-]+)['"]/gu))
+        if (m[1] !== undefined) literals.add(m[1]);
       for (const m of line.matchAll(/`([^`]*?)\$\{/gu)) if (m[1]) prefixes.add(m[1]);
       for (const m of line.matchAll(/\}([A-Za-z0-9._-]+)`/gu))
         if (m[1]) suffixes.add(m[1]);
