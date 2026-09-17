@@ -94,6 +94,7 @@ GoogleService-Info.plist
 
 # Gradle state from building the local Expo modules.
 modules/*/android/.gradle/
+modules/*/android/build/
 
 # Agent worktrees. A subagent gets its own git worktree under here, which means
 # a full second checkout AND its own node_modules — 740MB on 13 September —

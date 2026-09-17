@@ -76,7 +76,19 @@ module.exports = () => {
   // modules, so `pod install` refuses to build them as plain static libraries.
   // Static FRAMEWORKS carry module maps, which satisfies that without moving
   // the app to dynamic linking.
-  plugins.push(['expo-build-properties', { ios: { useFrameworks: 'static' } }]);
+  //
+  // ⚠️ `android.cmakeVersion` rides along HERE rather than in app.json, because
+  // this list may hold only ONE expo-build-properties entry and app.config.test
+  // pins that. AGP defaults to CMake 3.22.1, which bundles ninja 1.10.2 — on
+  // Windows that combination dies in native compilation with "manifest
+  // 'build.ninja' still dirty after 100 tries", once pnpm's
+  // .pnpm/<name>@<version>_<hash>/ prefix pushes object paths past
+  // CMAKE_OBJECT_PATH_MAX. 3.31.6 bundles ninja 1.12.1, which fixed it. Linux
+  // never hits the limit, so CI and EAS pay only the resolve.
+  plugins.push([
+    'expo-build-properties',
+    { ios: { useFrameworks: 'static' }, android: { cmakeVersion: '3.31.6' } },
+  ]);
 
   // expo-audio is configured HERE rather than in app.json so its microphone
   // string can be read from the one place that owns it.

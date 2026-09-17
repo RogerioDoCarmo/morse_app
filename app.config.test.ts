@@ -71,7 +71,10 @@ describe('app.config', () => {
         Array.isArray(plugin) && plugin[0] === 'expo-build-properties',
     );
     expect(buildProperties).toHaveLength(1);
-    expect(buildProperties[0]?.[1]).toEqual({ ios: { useFrameworks: 'static' } });
+    expect(buildProperties[0]?.[1]).toEqual({
+      ios: { useFrameworks: 'static' },
+      android: { cmakeVersion: '3.31.6' },
+    });
   });
 
   // EAS resolves the project from owner + slug + projectId, and cannot write
