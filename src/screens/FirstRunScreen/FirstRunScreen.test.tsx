@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { elementAt } from '@/testing/elementAt';
 import { FirstRunScreen } from './FirstRunScreen';
@@ -235,17 +236,52 @@ describe('FirstRunScreen', () => {
  * playback. Same shape of fix as the circle slide, for the same reason.
  */
 describe('the letter slide demonstrates rather than describes', () => {
+  // ⚠️ The GUIDE'S ring, not the app's. `tap-halo` breathes four times and is
+  // what the Translator's chips wear; this slide wears `chip-progress-ring`,
+  // which turns twenty times because four was not enough to be noticed.
+  const rings = (): unknown[] =>
+    screen.queryAllByTestId('chip-progress-ring', { includeHiddenElements: true });
+
   const halos = (): unknown[] =>
     screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
 
   const letterChips = (): unknown[] =>
     within(screen.getByTestId('first-run-art-letter')).getAllByTestId('morse-letter');
 
+  // The MIDDLE chip: in the sample the outer two letters are identical, so a
+  // ring on the first reads as decoration on a row that begins with it.
+  it('points at the middle chip, not the first', async () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    await waitFor(() => {
+      expect(rings()).toHaveLength(1);
+    });
+    const chips = letterChips();
+    expect(chips).toHaveLength(3);
+    expect(
+      within(chips[1] as Parameters<typeof within>[0]).queryAllByTestId(
+        'chip-progress-ring',
+        { includeHiddenElements: true },
+      ),
+    ).toHaveLength(1);
+  });
+
+  // The app proper keeps the breathing halo; putting the guide's summons on
+  // every message typed would be a nag rather than a hint.
+  it('does not wear the app’s breathing halo', async () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    await waitFor(() => {
+      expect(rings()).toHaveLength(1);
+    });
+    expect(halos()).toHaveLength(0);
+  });
+
   it('points at a chip before anything has been pressed', async () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     await waitFor(() => {
-      expect(halos()).toHaveLength(1);
+      expect(rings()).toHaveLength(1);
     });
   });
 
@@ -266,12 +302,12 @@ describe('the letter slide demonstrates rather than describes', () => {
   it('stops pointing once the invitation has been taken up', async () => {
     renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     await waitFor(() => {
-      expect(halos()).toHaveLength(1);
+      expect(rings()).toHaveLength(1);
     });
 
     fireEvent.press(elementAt(letterChips()));
 
-    expect(halos()).toHaveLength(0);
+    expect(rings()).toHaveLength(0);
   });
 
   /**
@@ -290,5 +326,46 @@ describe('the letter slide demonstrates rather than describes', () => {
         value: '1',
       });
     });
+  });
+});
+
+/**
+ * ⚠️ THE FIRST PLACE A MUTED PHONE CAN BE FOUND, and the worst place to find
+ * it silently. The letter slide's whole argument is "press a chip and you will
+ * HEAR that letter" — on a muted phone it presses, nothing happens, and the
+ * slide has taught the opposite of what it set out to.
+ *
+ * The same toast the Translator shows, driven by the same playback hook, so
+ * there is one answer to "why can I not hear it" rather than two.
+ */
+describe('the letter slide on a muted phone', () => {
+  const muted = (): FakePorts => {
+    const ports = createFakePorts();
+    ports.volume.level = async () => 0.05;
+    return ports;
+  };
+
+  const letterChips = (): unknown[] =>
+    within(screen.getByTestId('first-run-art-letter')).getAllByTestId('morse-letter');
+
+  it('says so when a chip is pressed with the volume down', async () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
+
+    fireEvent.press(elementAt(letterChips()));
+
+    await waitFor(() => {
+      expect(screen.getByText('Turn the volume up')).toBeOnTheScreen();
+    });
+  });
+
+  it('says nothing while the volume is up', async () => {
+    const { ports } = renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+
+    fireEvent.press(elementAt(letterChips()));
+
+    await waitFor(() => {
+      expect(ports.calls.played).toHaveLength(1);
+    });
+    expect(screen.queryByText('Turn the volume up')).toBeNull();
   });
 });

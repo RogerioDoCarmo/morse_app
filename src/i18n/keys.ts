@@ -18,6 +18,7 @@ export type TranslationKey =
   | 'translator.morseLabel'
   | 'translator.hint'
   | 'translator.sample'
+  | 'translator.placeholder'
   | 'translator.speak'
   | 'translator.tapItIn'
   | 'translator.readAloud'

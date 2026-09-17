@@ -53,6 +53,14 @@ type Props = Readonly<{
   onSelectTab?: ((tab: TabName) => void) | undefined;
   unavailableTabs?: readonly TabName[] | undefined;
   onOpenSettings?: (() => void) | undefined;
+  /**
+   * Whether the field opens holding the sample message.
+   *
+   * ⚠️ Defaults to TRUE, which is the first-run answer. The shell passes the
+   * stored one; a test that does not care about seeding gets a screen with
+   * something in it, which is what almost every test here wants.
+   */
+  seedSample?: boolean | undefined;
 }>;
 
 type PaneProps = Readonly<{
@@ -153,13 +161,15 @@ export function TranslatorScreen({
   onSelectTab,
   unavailableTabs,
   onOpenSettings,
+  seedSample = true,
 }: Props = {}): React.JSX.Element {
   const { t, locale, setLocale } = useLocale();
   const { clipboard } = usePorts();
 
-  // ⚠️ "Untouched", not "empty". The field is SEEDED with SOS, so emptiness
-  // would never be true on open and the dot would never show; and clearing the
-  // field later is not a reason to start pointing at it again.
+  // ⚠️ "Untouched", not "empty". On the first run the field is SEEDED with SOS,
+  // so emptiness would not be true on open; and afterwards the field DOES open
+  // empty, but clearing or never filling it is not a reason to keep pointing at
+  // it once the user has already found it.
   const [touchedInput, setTouchedInput] = useState(false);
   const [localeMenu, setLocaleMenu] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -195,10 +205,28 @@ export function TranslatorScreen({
   // Seeded from the locale so the sample never contradicts the label above it,
   // and the Morse seed is derived rather than written out — the two directions
   // cannot drift apart that way.
+  /**
+   * The sample is seeded ONCE, on the first run, and never again.
+   *
+   * ⚠️ It used to seed on every open. That is right for a first-time user, who
+   * needs something to press play on, and wrong for everyone else: the field
+   * greeted them with a message they had not written and had to clear before
+   * typing. `translator.placeholder` does that job afterwards, and the pulsing
+   * dot beside the label is what invites the first tap.
+   *
+   * ⚠️ A PROP, not a storage read of its own. The answer lives in storage and
+   * arrives a beat late, and a field that starts empty and then fills would
+   * drop the sample INTO a message someone had begun typing. The shell already
+   * waits on storage before rendering anything — see `firstRun.ready` — so it
+   * reads this at the same time and hands down an answer that is already known.
+   * That also keeps this initialiser synchronous.
+   */
   const sample = t('translator.sample');
   const [direction, setDirection] = useState<Direction>('toMorse');
-  const [text, setText] = useState(sample);
-  const [morseInput, setMorseInput] = useState(() => encodeToString(sample));
+  const [text, setText] = useState(seedSample ? sample : '');
+  const [morseInput, setMorseInput] = useState(() =>
+    seedSample ? encodeToString(sample) : '',
+  );
   const [picked, setPicked] = useState<number | null>(null);
 
   const toMorse = direction === 'toMorse';
@@ -210,8 +238,10 @@ export function TranslatorScreen({
   /**
    * The dot beside the language label — shown until the field is touched.
    *
-   * Not `text.length === 0`: the field is SEEDED with SOS, so it is never
-   * empty on open and the dot would never appear.
+   * ⚠️ Still `!touchedInput` rather than `text.length === 0`, though the field
+   * can now open empty. Emptiness is not the question: someone who cleared the
+   * seeded sample has already found the field, and pointing at it again would
+   * be the app explaining something back to a user who just did it.
    */
   const showTypeHint = !touchedInput;
 
@@ -593,6 +623,10 @@ export function TranslatorScreen({
                 // saved — the seeded sample was hidden behind it. The dot
                 // beside the language label is what points here instead.
                 style={toMorse ? styles.input : styles.monoInput}
+                // The field opens empty after the first run — see the seeding
+                // effect. This is what stands in for the sample that used to
+                // be sitting there.
+                placeholder={toMorse ? t('translator.placeholder') : undefined}
                 value={toMorse ? text : morseInput}
                 onChangeText={(next) => {
                   setTouchedInput(true);

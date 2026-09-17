@@ -411,8 +411,20 @@ export function useMorsePlayback(
       if (letter === null || letter.symbols.length === 0) return;
 
       void audio.play(renderWav(toTimeline(messageOfLetter(letter)), { unitMs: unit }));
+      // ⚠️ The same reading the run takes, and for a stronger reason. A chip
+      // press is the most likely FIRST sound this app ever makes — it is what
+      // the guide's letter slide asks for, and what the Translator's chips
+      // invite — so it is the worst place to play into a muted phone and say
+      // nothing. Without this a press looks like a chip that does nothing,
+      // which is the exact impression those hints exist to correct.
+      //
+      // ⚠️ NOT gated on `live.current.sound`, unlike the run: pressing a chip
+      // IS a request for sound, whatever the output channels happen to be.
+      void volume.level().then((level) => {
+        setLowVolume(isLowVolume(level));
+      });
     },
-    [audio, message, playing, unit],
+    [audio, message, playing, unit, volume],
   );
 
   /**

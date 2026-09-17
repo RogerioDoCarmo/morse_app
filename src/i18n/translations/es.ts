@@ -13,6 +13,7 @@ export const es: TranslationMap = {
   'translator.morseLabel': 'Morse',
   'translator.hint': 'Toca una letra para oírla',
   'translator.sample': 'SOS',
+  'translator.placeholder': 'Escribe tu texto aquí',
   'translator.speak': 'Hablar',
   'translator.tapItIn': 'Pulsar',
   'translator.readAloud': 'Leer en voz alta',
