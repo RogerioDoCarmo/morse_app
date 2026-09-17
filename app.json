@@ -102,14 +102,6 @@
         }
       ],
       "expo-font",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "cmakeVersion": "3.31.6"
-          }
-        }
-      ],
       "./plugins/withCleanAndroidPermissions.js"
     ],
     "experiments": {
