@@ -1,0 +1,12 @@
+1
+00:00:00,000 --> 00:00:02,000
+OmniMorse — codifica, descodifica y aprende código morse
+
+2
+00:00:02,000 --> 00:00:18,000
+Cuatro caminos: escribe, habla, toca el ritmo o aprende el alfabeto
+
+3
+00:00:18,000 --> 00:00:20,000
+Nada de lo que escribes, dices o tocas sale de tu teléfono
+
