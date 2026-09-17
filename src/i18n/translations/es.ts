@@ -145,17 +145,15 @@ export const es: TranslationMap = {
     'Reproducir un mensaje como luz significa encender y apagar el flash de la cámara. Android e iOS ponen la linterna detrás del permiso de cámara — no hay uno aparte.',
   'permission.cameraAssurance':
     'La vista previa de la cámara nunca se abre y no se captura ninguna imagen. Solo se acciona la linterna.',
-  'permission.cameraGrant': 'Permitir acceso a la cámara',
   'permission.microphoneTitle': 'Entrada por voz',
   'permission.microphoneRationale':
     'Para convertir lo que dices en Morse, la aplicación tiene que oírte. Escribir y pulsar funcionan sin esto, así que puedes omitirlo.',
   'permission.microphoneAssurance':
     'El reconocimiento es del servicio del propio sistema, que puede enviar tu audio a sus servidores para transcribirlo. OmniMorse nunca almacena ni envía nada de eso.',
-  'permission.microphoneGrant': 'Permitir acceso al micrófono',
   'permission.blockedHint':
     'Esto seguirá desactivado hasta que concedas el acceso en los ajustes del sistema. El resto de la aplicación sigue funcionando.',
   'permission.openSettings': 'Abrir ajustes',
-  'permission.notNow': 'Ahora no',
+  'permission.continue': 'Continuar',
   'permission.cameraHeadline': 'OmniMorse necesita la linterna',
   'permission.microphoneHeadline': 'Hablar necesita el micrófono',
   'permission.cameraBlocked': 'El acceso a la cámara está desactivado',

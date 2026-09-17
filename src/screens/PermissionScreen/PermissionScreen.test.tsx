@@ -42,13 +42,18 @@ describe('asking for a permission', () => {
     expect(screen.getByText(/never stores or uploads any of it/u)).toBeOnTheScreen();
   });
 
-  it.each([
-    ['camera', 'Allow camera access'],
-    ['microphone', 'Allow microphone access'],
-  ])('offers to prompt for %s', (kind, label) => {
-    show(kind as PermissionKind);
-    expect(screen.getByTestId('permission-primary')).toHaveTextContent(label);
-  });
+  // ⚠️ "Continue", never "Allow <thing> access". App Review rejected 0.3.4 (13)
+  // under guideline 5.1.1(iv) for naming the permission on this button. The
+  // label is deliberately the same for both kinds.
+  it.each([['camera'], ['microphone']])(
+    'says Continue rather than naming the %s permission',
+    (kind) => {
+      show(kind as PermissionKind);
+      const primary = screen.getByTestId('permission-primary');
+      expect(primary).toHaveTextContent('Continue');
+      expect(primary).not.toHaveTextContent(/Allow/u);
+    },
+  );
 
   it('prompts when the primary action is taken', () => {
     const { onAllow, onOpenSettings } = show('camera');
@@ -57,12 +62,15 @@ describe('asking for a permission', () => {
     expect(onOpenSettings).not.toHaveBeenCalled();
   });
 
-  // Both permissions are optional, so there is always a way past.
-  it('offers Not now, and takes it', () => {
-    const { onDismiss } = show('camera');
-    expect(screen.getByTestId('permission-dismiss')).toHaveTextContent('Not now');
-    fireEvent.press(screen.getByTestId('permission-dismiss'));
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+  // ⚠️ THE REGRESSION GUARD FOR GUIDELINE 5.1.1(iv). A second button here let
+  // the user close the rationale and DELAY the system request, which is the
+  // other half of what App Review rejected: "The user should always proceed to
+  // the permission request after the message." The only way on is the prompt.
+  it.each([['camera'], ['microphone']])('offers no way to skip the %s prompt', (kind) => {
+    const { onDismiss } = show(kind as PermissionKind);
+    expect(screen.queryByTestId('permission-dismiss')).toBeNull();
+    expect(screen.queryByText(/Not now/u)).toBeNull();
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 });
 

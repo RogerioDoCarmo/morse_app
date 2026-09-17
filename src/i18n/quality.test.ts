@@ -60,7 +60,7 @@ const BUDGETS: Partial<Record<TranslationKey, number>> = {
   'translator.channelScreen': 10,
   'translator.channelBuzz': 10,
   'permission.openSettings': 22,
-  'permission.notNow': 16,
+  'permission.continue': 12,
 };
 
 /**

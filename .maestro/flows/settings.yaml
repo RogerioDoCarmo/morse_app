@@ -53,6 +53,28 @@ appId: com.rogeriodocarmo.morse
 
 # The only way back to the welcome guide once it has been skipped. It opens
 # over Settings and returns here, rather than dropping the user somewhere else.
+#
+# ⚠️ IF THIS SECTION GOES RED, SUSPECT THE OPERATING SYSTEM BEFORE THE APP.
+# Three runs failed here on 14 September on `assertVisible: settings-screen`,
+# and the screenshot showed iOS SETTINGS, on the Apple Intelligence & Siri
+# pane, with "◀ OmniMorse" in the status bar. The app had not failed to show
+# its Settings screen — it had lost the foreground entirely.
+#
+# What happens: iOS posts a one-off "Apple Intelligence is ready" banner the
+# first time a device boots after an erase. `first-run-skip` sits at y=84,
+# directly under the status bar, which is exactly where a banner is drawn.
+# Maestro aimed a tap at (363, 84); the banner appeared 313ms later and took
+# it; SpringBoard opened `prefs:root=SIRI&path=appleIntelligenceCFU`.
+#
+# Why only this flow: `settings` is ALWAYS first in the suite, so it is the one
+# occupying the minutes just after boot. `e2e.yml` now boots the simulator
+# twelve minutes ahead of the flows so the callout is spent on an empty screen
+# — do not move that boot back down next to the flows.
+#
+# ⚠️ `Linking.openSettings()` DOES exist in this app, in PermissionScreen, so
+# it looks guilty. It is not: no flow taps `permission-primary` (check with
+# `grep -rn permission-primary .maestro/`), and the log names SpringBoard's own
+# pid as the process that opened the URL.
 - scrollUntilVisible:
     element:
       id: 'settings-show-guide'

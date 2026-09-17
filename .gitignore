@@ -66,38 +66,35 @@ google-services.json
 play-store-credentials.json
 GoogleService-Info.plist
 
-# Generated store assets — screenshots, videos, archived cuts. All of it is
-# re-downloadable from the screenshots and videos workflows, so none of it
-# belongs in git.
+# ⚠️ `store-assets/` is TRACKED IN FULL — the screenshots, the composed videos,
+# the archived cuts and the hand-written listing copy. It was excluded until
+# 14 September 2026 on the reasoning that the screenshots re-capture
+# identically from a workflow, so only the videos were worth keeping.
 #
-# ⚠️ `listing/` is the EXCEPTION and must stay tracked: it is the store copy in
-# three languages plus the icon and feature graphic, it is written by hand, and
-# `store-listing.test.ts` fails the build when a block outgrows its field. It
-# lived in `docs/` until everything store-related was gathered here.
-store-assets/*
-!store-assets/listing/
-# ⚠️ The composed videos ARE tracked, deliberately. They are small — 2.3 MB for
-# both, against a 25 MB .git — and they are the one asset that cannot be
-# regenerated cheaply: a re-record is a different take, with different timings
-# and a different onset, so "the video we published" is only recoverable if the
-# file itself is kept. The screenshots are not tracked for the opposite reason:
-# they re-capture identically from a workflow.
+# That was half right, and the wrong half is the half that mattered. A
+# re-capture is identical only while the APP is: the 0.3.5 set already differs
+# from 0.3.4 by the letter-chip ring, so "the images actually submitted for
+# build 16" is a fact only these files record. Store review is an audit trail
+# and the repository is the only thing here that keeps one. `archive/` is kept
+# for the same reason — a superseded cut is evidence of what was replaced.
 #
-# ⚠️ Each release adds ~2.3 MB permanently, since git never forgets a binary.
-# That is affordable here and worth knowing before it becomes a habit for
-# larger assets.
+# ⚠️ `listing/` additionally cannot be regenerated at all: it is the store copy
+# in three languages, written by hand, and `store-listing.test.ts` fails the
+# build when a block outgrows its field. It lived in `docs/` until everything
+# store-related was gathered here.
 #
-# ⚠️ THE SHAPE MATTERS. Git will not re-include a file whose PARENT DIRECTORY is
-# excluded, and `store-assets/*` excludes the version folders themselves — so a
-# bare `!store-assets/*/video/**` matches nothing at all. The version
-# directories have to be re-included first so git descends into them, their
-# contents excluded again, and only then the video folders carved back out.
-!store-assets/*/
-store-assets/*/*
-!store-assets/*/video/
+# ⚠️ THE PRICE, stated plainly: ~26 MB against a 29 MB .git, and roughly 12 MB
+# more per release, PERMANENTLY — git never forgets a binary, so deleting a
+# version folder later reclaims nothing from existing clones. That is
+# affordable for phone screenshots and worth re-examining before it becomes a
+# habit for larger assets. If it ever stops being affordable, drop whole
+# superseded version folders in one deliberate commit rather than reaching for
+# a pattern again: the three-line dance that used to carve `video/` back out of
+# an excluded parent cost far more in confusion than the bytes it saved.
 
 # Gradle state from building the local Expo modules.
 modules/*/android/.gradle/
+modules/*/android/build/
 
 # Agent worktrees. A subagent gets its own git worktree under here, which means
 # a full second checkout AND its own node_modules — 740MB on 13 September —
