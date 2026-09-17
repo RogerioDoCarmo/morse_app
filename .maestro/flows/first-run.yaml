@@ -40,13 +40,21 @@ appId: com.rogeriodocarmo.morse
 # highlight already on it — and a tester finished 0.3.4 not knowing the chips
 # do anything. So one of them points at itself until it is pressed, and
 # pressing it plays that letter here, in the guide.
+#
+# ⚠️ `chip-progress-ring`, NOT `tap-halo`. The guide wears the travelling ring,
+# which turns twenty times; the app's own chips wear the halo, which breathes
+# four — see `audio-playback.yaml`, which asserts `tap-halo` on the Translator
+# and is correct to. Four beats is what the tester missed, so this slide got the
+# louder one; using it everywhere would be a nag on every message typed.
 - assertVisible:
-    id: 'tap-halo'
+    id: 'chip-progress-ring'
+# Index 0 is the FIRST chip, while the ring sits on the middle one — pressing
+# any chip spends the hint, and pressing one the ring is not on proves it.
 - tapOn:
     id: 'morse-letter'
     index: 0
 - assertNotVisible:
-    id: 'tap-halo'
+    id: 'chip-progress-ring'
 
 # ⚠️ The fourth slide DEMONSTRATES rather than describes, and it is the only
 # one that does. A tester came back from 0.3.4 confused by the flashing circle

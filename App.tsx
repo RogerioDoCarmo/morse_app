@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View } from 'react-native';
@@ -19,6 +19,7 @@ import { TapScreen } from '@/screens/TapScreen';
 import { TranslatorScreen } from '@/screens/TranslatorScreen';
 import { useAppFonts } from '@/adapters/fonts/expoFontsAdapter';
 import { useFirstRun } from '@/application/useFirstRun';
+import { useSampleSeed } from '@/application/useSampleSeed';
 import { theme } from '@/theme';
 
 /**
@@ -68,15 +69,13 @@ const UNBUILT: readonly TabName[] = [];
 
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
+  const sampleSeed = useSampleSeed();
   const [tab, setTab] = useState<TabName>('translate');
-  /**
-   * Whether the user has been anywhere yet.
-   *
-   * The Translator focuses its input on OPEN, and only on open. `autoFocus`
-   * fires on every mount and this shell unmounts a screen when the tab
-   * changes, so without this every return to Translate raised the keyboard
-   * over the tab bar that had just been tapped.
-   */
+  // Spent as soon as the answer is known and it says yes. Storage is what
+  // remembers; `sampleSeed.seed` deliberately does not move within a launch.
+  useEffect(() => {
+    if (sampleSeed.seed === true) sampleSeed.spend();
+  }, [sampleSeed]);
   // Settings is not a tab — it opens over whichever one you were on, and the
   // back arrow returns you there rather than to a fixed home.
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -91,9 +90,14 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
   const openSettings = useCallback((): void => {
     setSettingsOpen(true);
   }, []);
-  // Nothing at all until the stored answer is in: showing the Translator for a
-  // frame and then covering it is worse than a beat of empty ground.
-  if (!firstRun.ready) {
+  // Nothing at all until the stored answers are in: showing the Translator for
+  // a frame and then covering it is worse than a beat of empty ground.
+  //
+  // ⚠️ BOTH answers, not just the guide's. The Translator seeds its field from
+  // `sampleSeed` in a `useState` initialiser, so it has to be known before that
+  // screen mounts — a field that starts empty and fills a beat later would drop
+  // the sample INTO a message someone had already begun typing.
+  if (!firstRun.ready || sampleSeed.seed === null) {
     return <View style={styles.root} testID="app-loading" />;
   }
 
@@ -171,6 +175,11 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           onSelectTab={goToTab}
           unavailableTabs={UNBUILT}
           onOpenSettings={openSettings}
+          // ⚠️ Spent as it is handed over, not by the screen. This shell
+          // unmounts a screen on every tab change, so a Translator that spent
+          // it itself would re-seed on the way back from Speak — the answer is
+          // "has this device been shown it", not "is this mount the first".
+          seedSample={sampleSeed.seed}
         />
       )}
     </View>
