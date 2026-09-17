@@ -1327,6 +1327,14 @@ describe('the camera permission stands in front of the light channel', () => {
     // 5.1.1(iv). DENIED ports mean that prompt says no.
     expect(screen.queryByTestId('permission-dismiss')).toBeNull();
     fireEvent.press(screen.getByTestId('permission-primary'));
+    // ⚠️ Wait on the REQUEST being made, not on the gate unmounting. A positive
+    // signal settles the moment it happens; a disappearance has to outlast the
+    // whole unmount, and under the full parallel run that outran the default
+    // waitFor timeout. Pressing here is an async round-trip to the port, which
+    // the old "Not now" press was not.
+    await waitFor(() => {
+      expect(ports.calls.requested).toContain('camera');
+    });
     await waitFor(() => {
       expect(screen.queryByTestId('permission-camera')).toBeNull();
     });
