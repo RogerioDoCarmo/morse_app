@@ -281,3 +281,162 @@ describe('a screen is waited for before it is scrolled', () => {
     );
   });
 });
+
+/**
+ * ⚠️ TWO DIFFERENT MISTAKES, both of which cost a full red Maestro run on
+ * 17 September, and only one of which the first test below can catch.
+ *
+ * 1. A testID is DELETED or misspelled, and a flow goes on reaching for it.
+ *    `permissions.yaml` did this when the 5.1.1 fix removed the dismiss
+ *    button. The existence check catches that class.
+ *
+ * 2. A testID is RENAMED ON ONE SCREEN while the old name lives on elsewhere.
+ *    #198 moved the guide's letter slide from `tap-halo` to
+ *    `chip-progress-ring` — and `tap-halo` is still perfectly valid on the
+ *    Translator, so the existence check passes and the flow still fails on
+ *    the device. ⚠️ Nothing generic can catch this. It needs the second
+ *    test, which pins WHICH flow wears WHICH hint.
+ *
+ * Both cost ~25 minutes in CI and six seconds here.
+ */
+describe('flow selectors point at testIDs that exist', () => {
+  /** Every directory the app's own testIDs can be declared in. */
+  const SOURCE_ROOTS = ['src'];
+  const SOURCE_FILES = [path.join(__dirname, 'App.tsx')];
+
+  const walk = (dir: string): readonly string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        return /node_modules|android|ios|coverage/u.test(full) ? [] : walk(full);
+      }
+      return [full];
+    });
+
+  const sourceFiles = [
+    ...SOURCE_ROOTS.flatMap((root) => walk(path.join(__dirname, root))),
+    ...SOURCE_FILES,
+  ].filter((f) => /\.tsx?$/u.test(f) && !/\.test\./u.test(f));
+
+  const flowFiles = walk(path.join(__dirname, '.maestro')).filter((f) =>
+    /\.ya?ml$/u.test(f),
+  );
+
+  /**
+   * The ids the flows reach for. Maestro writes them unquoted or quoted, one
+   * per `id:` key.
+   */
+  const selectors = new Set<string>();
+  for (const file of flowFiles) {
+    for (const match of fs
+      .readFileSync(file, 'utf8')
+      .matchAll(/^\s*id:\s*['"]?([^'"\n]+)['"]?\s*$/gmu)) {
+      const id = match[1];
+      if (id !== undefined) selectors.add(id.trim());
+    }
+  }
+
+  /**
+   * ⚠️ A testID is NOT always a bare string literal, and a check that assumed
+   * so reported 41 false positives against 97 selectors — useless, and the
+   * kind of guard that gets deleted rather than fixed. Four constructions are
+   * real, all of them in the app today:
+   *
+   *   testID="translator-screen"                       a literal
+   *   testID = 'chip-progress-ring'                    a default prop
+   *   testID={toMorse ? 'speak-input' : 'tap-input'}   a ternary
+   *   testID={`channel-${cell.channel}`}               a template
+   *
+   * …plus `IconButton`, whose `label` prop IS the selector — it renders
+   * `testID={testID ?? label}` and says so in its own doc comment.
+   *
+   * Templates contribute a prefix or a suffix rather than a whole name, since
+   * the middle is a runtime value.
+   */
+  const literals = new Set<string>();
+  const prefixes = new Set<string>();
+  const suffixes = new Set<string>();
+  for (const file of sourceFiles) {
+    for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+      if (!/\btestID\b|\blabel=/u.test(line)) continue;
+      for (const m of line.matchAll(/['"]([A-Za-z0-9._-]+)['"]/gu))
+        if (m[1] !== undefined) literals.add(m[1]);
+      for (const m of line.matchAll(/`([^`]*?)\$\{/gu)) if (m[1]) prefixes.add(m[1]);
+      for (const m of line.matchAll(/\}([A-Za-z0-9._-]+)`/gu))
+        if (m[1]) suffixes.add(m[1]);
+    }
+  }
+
+  const resolves = (id: string): boolean =>
+    literals.has(id) ||
+    [...prefixes].some((p) => id.startsWith(p)) ||
+    [...suffixes].some((s) => id.endsWith(s));
+
+  it('finds a testID in the app for every id the flows reach for', () => {
+    const unresolved = [...selectors].filter((id) => !resolves(id)).sort();
+    // The message carries the names, because "expected 1 to be 0" on a list
+    // of 97 tells whoever broke it nothing about which one.
+    expect(unresolved).toEqual([]);
+  });
+
+  it('is actually looking at the flows and the app, not at nothing', () => {
+    // ⚠️ Without this, deleting the .maestro directory would make the test
+    // above PASS — an empty set has no unresolved members. A guard that goes
+    // quiet when its input disappears is the shape of the 0.02 tolerance that
+    // certified the rejected Chromebook images.
+    // ⚠️ FLOORS, deliberately well below the real counts (97 selectors, 95
+    // literals, 9 flows when this was written). Pinning the exact numbers was
+    // tried and reverted: removing ONE selector from ONE flow — an ordinary
+    // edit — failed this test as well as the real one, which trains people to
+    // update the number rather than read the failure. These catch the thing
+    // that actually matters, which is the scanner reading nothing at all.
+    expect(selectors.size).toBeGreaterThanOrEqual(80);
+    expect(literals.size).toBeGreaterThanOrEqual(80);
+    expect(flowFiles.length).toBeGreaterThanOrEqual(9);
+  });
+
+  it('rejects a name that no longer exists', () => {
+    // The negative control. `chip-progress-ring` is real; one letter out is
+    // not, and the check has to be able to tell.
+    expect(resolves('chip-progress-ring')).toBe(true);
+    expect(resolves('chip-progress-rng')).toBe(false);
+  });
+});
+
+describe('the guide wears the ring, the app wears the halo', () => {
+  /**
+   * ⚠️ COMMENTS STRIPPED FIRST, for the same reason the language guard above
+   * strips them — and this test proved the point by failing on its first run.
+   * `first-run.yaml` carries a comment reading '`chip-progress-ring`, NOT
+   * `tap-halo`', so the raw file contains the very name the flow must not use,
+   * and searching it reports a correct flow as broken.
+   */
+  const steps = (name: string): string =>
+    fs
+      .readFileSync(path.join(__dirname, '.maestro', 'flows', name), 'utf8')
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+
+  const FIRST_RUN = steps('first-run.yaml');
+  const AUDIO = steps('audio-playback.yaml');
+
+  /**
+   * ⚠️ THIS is the test that would have caught #198. Both names exist in the
+   * app, so no existence check can separate them — the only thing that can is
+   * saying out loud which screen wears which.
+   *
+   * The guide's letter slide turns twenty times to be noticed once; the
+   * Translator's chips breathe four times so they are not a nag on every
+   * message typed. Swapping them is a real change and should fail here first.
+   */
+  it('makes the guide assert the travelling ring', () => {
+    expect(FIRST_RUN).toContain('chip-progress-ring');
+    expect(FIRST_RUN).not.toContain('tap-halo');
+  });
+
+  it('leaves the Translator flow on the breathing halo', () => {
+    expect(AUDIO).toContain('tap-halo');
+    expect(AUDIO).not.toContain('chip-progress-ring');
+  });
+});

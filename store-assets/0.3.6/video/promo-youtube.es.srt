@@ -1,0 +1,16 @@
+1
+00:00:00,000 --> 00:00:02,000
+OmniMorse — codifica, descodifica y aprende código morse
+
+2
+00:00:02,000 --> 00:00:46,900
+Escribe un mensaje y se convierte en morse, letra a letra
+
+3
+00:00:46,900 --> 00:02:02,000
+Sonido, linterna, pantalla y vibración — el mensaje suena de verdad
+
+4
+00:02:02,000 --> 00:02:04,000
+Nada de lo que escribes, dices o tocas sale de tu teléfono
+

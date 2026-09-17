@@ -1,7 +1,9 @@
 // The signing profile decides which channel an iOS build can reach, and the
 // two are mutually exclusive. Picking the wrong script costs a whole build and
 // fails at INSTALL time, on a tester's phone, rather than at build time.
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 const scripts = (
@@ -134,5 +136,132 @@ describe('the uuid override, which closes the last alert', () => {
       /from 'uuid'|require\('uuid'\)/u.test(body),
     );
     expect(importsUuid).toHaveLength(0);
+  });
+});
+
+/**
+ * ⚠️ `tools/patch-android-release.js` exists because this machine cannot run
+ * `eas build --local` at all — EAS refuses Windows outright — and EAS cloud
+ * credits do not reset until 1 October. Gradle runs natively, so the AAB is
+ * still buildable, but three things EAS does inside its builder have to be
+ * done by hand, and the worst one is silent:
+ *
+ * The Expo template ships `release { signingConfig signingConfigs.debug }`.
+ * A debug-signed AAB builds, uploads, and is REFUSED by Play, because its
+ * certificate is not the upload certificate Play holds. Nothing local catches
+ * that — the file looks perfectly good until the console rejects it.
+ */
+describe('patch-android-release.js', () => {
+  const version = (
+    JSON.parse(fs.readFileSync(path.join(__dirname, 'app.json'), 'utf8')) as {
+      expo: { version: string };
+    }
+  ).expo.version;
+
+  /** The shape prebuild produces, reduced to the parts the script rewrites. */
+  const template = (versionName: string): string =>
+    [
+      'android {',
+      '    defaultConfig {',
+      '        versionCode 1',
+      `        versionName "${versionName}"`,
+      '    }',
+      '    signingConfigs {',
+      '        debug {',
+      "            storeFile file('debug.keystore')",
+      "            storePassword 'android'",
+      '        }',
+      '    }',
+      '    buildTypes {',
+      '        debug {',
+      '            signingConfig signingConfigs.debug',
+      '        }',
+      '        release {',
+      '            // Caution! In production, you need to generate your own keystore file.',
+      '            signingConfig signingConfigs.debug',
+      '            minifyEnabled enableMinifyInReleaseBuilds',
+      '        }',
+      '    }',
+      '}',
+      '',
+    ].join('\n');
+
+  function run(gradle: string, code: string): { status: number; text: string } {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'morse-gradle-'));
+    const file = path.join(dir, 'build.gradle');
+    fs.writeFileSync(file, gradle);
+    let status = 0;
+    try {
+      execFileSync(
+        process.execPath,
+        [path.join(__dirname, 'tools', 'patch-android-release.js'), code],
+        {
+          env: { ...process.env, MORSE_GRADLE_FILE: file },
+          stdio: 'pipe',
+        },
+      );
+    } catch {
+      status = 1;
+    }
+    return { status, text: fs.readFileSync(file, 'utf8') };
+  }
+
+  it('stops the release build being signed with the debug keystore', () => {
+    const { status, text } = run(template(version), '14');
+
+    expect(status).toBe(0);
+    // The release block, and only the release block, moves to the upload key.
+    expect(text).toMatch(/release \{[\s\S]*?signingConfig signingConfigs\.upload/u);
+    expect(text).not.toMatch(/release \{[\s\S]*?signingConfig signingConfigs\.debug/u);
+  });
+
+  // ⚠️ Repointing the debug config instead of adding a new one would make every
+  // local install fail on a signature mismatch against what is on the device.
+  it('leaves debug builds on the debug keystore', () => {
+    const { text } = run(template(version), '14');
+
+    expect(text).toMatch(/debug \{\n\s*signingConfig signingConfigs\.debug/u);
+    expect(text).toContain("storePassword 'android'");
+  });
+
+  it('writes the versionCode it was given, since prebuild always writes 1', () => {
+    const { text } = run(template(version), '14');
+
+    expect(text).toContain('versionCode 14');
+    expect(text).not.toContain('versionCode 1\n');
+  });
+
+  // The passwords belong to Gradle, which opens the properties file itself.
+  it('never writes a secret into android/', () => {
+    const { text } = run(template(version), '14');
+
+    expect(text).toContain("keystoreProperties['storePassword']");
+    expect(text).toContain('MORSE_KEYSTORE_PROPERTIES');
+  });
+
+  // ⚠️ android/ is gitignored, so nothing else in the repository notices when
+  // it is a version behind — and a stale one silently ships the old native
+  // config under the new version's name.
+  it('refuses a stale android/ rather than patching it', () => {
+    const { status } = run(template('0.0.1-stale'), '14');
+
+    expect(status).toBe(1);
+  });
+
+  it('accepts being run again with a different versionCode', () => {
+    const once = run(template(version), '14');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'morse-gradle-again-'));
+    const file = path.join(dir, 'build.gradle');
+    fs.writeFileSync(file, once.text);
+    execFileSync(
+      process.execPath,
+      [path.join(__dirname, 'tools', 'patch-android-release.js'), '15'],
+      {
+        env: { ...process.env, MORSE_GRADLE_FILE: file },
+        stdio: 'pipe',
+      },
+    );
+
+    expect(fs.readFileSync(file, 'utf8')).toContain('versionCode 15');
   });
 });

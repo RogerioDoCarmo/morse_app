@@ -32,15 +32,27 @@ SRC_W=1320 SRC_H=2868
 DST_W=1284 DST_H=2778
 GROUND=0xf2f4f7
 
-# ⚠️ COMMAND SUBSTITUTION, not `read < <(...)`. `sips | awk printf` emits no
-# trailing newline, so `read` returns non-zero on EOF — and under `set -e` that
-# killed this script silently, mid-loop, having produced nothing and having
-# printed nothing at all. It looked like success.
+# ⚠️ COMMAND SUBSTITUTION, not `read < <(...)`. The reader emits no trailing
+# newline, so `read` returns non-zero on EOF — and under `set -e` that killed
+# this script silently, mid-loop, having produced nothing and having printed
+# nothing at all. It looked like success.
+#
+# ⚠️ ffprobe, NOT `sips`. `sips` ships only with macOS, so this script could not
+# run on the Windows machine at all — for a set that exists precisely because
+# no simulator can capture it, on the platform that has no simulator either.
+# ffprobe comes with the ffmpeg this script already requires, so it costs no
+# new dependency and works on both.
 dimensions() {
-  sips -g pixelWidth -g pixelHeight "$1" | awk '/pixelWidth/{w=$2} /pixelHeight/{h=$2} END{print w, h}'
+  # ⚠️ `csv=p=0` then `tr`, rather than `csv=p=0:s=' '`. ffprobe 9 rejects a
+  # space as the separator — "Failed to parse option string" — and the failure
+  # is not fatal: it prints nothing, the caller reads empty dimensions, and the
+  # size check then reports the file as "x" instead of saying what went wrong.
+  ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
+    -of csv=p=0 "$1" | tr ',' ' '
 }
 
 command -v ffmpeg >/dev/null || { echo "::error::ffmpeg is required" >&2; exit 1; }
+command -v ffprobe >/dev/null || { echo "::error::ffprobe is required" >&2; exit 1; }
 [ -d "$SRC" ] || { echo "::error::no such directory: $SRC" >&2; exit 1; }
 mkdir -p "$DST"
 

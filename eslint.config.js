@@ -188,5 +188,16 @@ module.exports = tseslint.config(
     rules: { ...tseslint.configs.disableTypeChecked.rules },
   },
 
+  // ⚠️ Command-line scripts, which PRINT. Every other `.js` in this repository
+  // is a config file that is read rather than run, so `console` is deliberately
+  // absent above — a config file logging on import is a bug. A CLI tool saying
+  // what it patched is not, and `tools/build-aab-local.sh` reads that output.
+  {
+    files: ['tools/**/*.js'],
+    languageOptions: {
+      globals: { console: 'readonly' },
+    },
+  },
+
   prettier,
 );
