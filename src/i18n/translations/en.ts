@@ -147,17 +147,15 @@ export const en: TranslationMap = {
     'Playing a message as light means switching the camera flash on and off. Android and iOS both put the torch behind the camera permission — there is no separate one.',
   'permission.cameraAssurance':
     'The camera preview is never opened and no image is ever captured. Only the torch is switched.',
-  'permission.cameraGrant': 'Allow camera access',
   'permission.microphoneTitle': 'Speech input',
   'permission.microphoneRationale':
     'To turn what you say into Morse, the app has to hear you. Typing and tap input work without this, so you can skip it.',
   'permission.microphoneAssurance':
     'Recognition is handled by the platform, which may send your audio to its servers to transcribe. OmniMorse itself never stores or uploads any of it.',
-  'permission.microphoneGrant': 'Allow microphone access',
   'permission.blockedHint':
     'This stays off until you grant access in the system settings. Everything else in the app keeps working.',
   'permission.openSettings': 'Open Settings',
-  'permission.notNow': 'Not now',
+  'permission.continue': 'Continue',
   'permission.cameraHeadline': 'OmniMorse needs the torch',
   'permission.microphoneHeadline': 'Speaking needs the microphone',
   'permission.cameraBlocked': 'Camera access is off',

@@ -21,7 +21,6 @@ const COPY: Readonly<
       headline: TranslationKey;
       body: TranslationKey;
       assurance: TranslationKey;
-      grant: TranslationKey;
       blocked: TranslationKey;
     }>
   >
@@ -32,7 +31,6 @@ const COPY: Readonly<
     headline: 'permission.cameraHeadline',
     body: 'permission.cameraRationale',
     assurance: 'permission.cameraAssurance',
-    grant: 'permission.cameraGrant',
     blocked: 'permission.cameraBlocked',
   },
   microphone: {
@@ -41,7 +39,6 @@ const COPY: Readonly<
     headline: 'permission.microphoneHeadline',
     body: 'permission.microphoneRationale',
     assurance: 'permission.microphoneAssurance',
-    grant: 'permission.microphoneGrant',
     blocked: 'permission.microphoneBlocked',
   },
 };
@@ -65,7 +62,19 @@ type Props = Readonly<{
  * first, in the app's own words, is what makes the prompt answerable.
  *
  * Both permissions are optional. Everything the app does without them keeps
- * working, and every state here has a way out that is not "grant".
+ * working — but the way past is the OS dialog, not a button here.
+ *
+ * ⚠️ BEFORE the prompt there is exactly ONE action, and it leads to the prompt.
+ * App Review rejected 0.3.4 (13) under guideline 5.1.1(iv) for the two things
+ * that used to be here: a primary button reading "Allow microphone access"
+ * (Apple asks for "Continue" or "Next"), and a "Not now" button that let the
+ * user close this screen and DELAY the system request. Apple's words: "The user
+ * should always proceed to the permission request after the message."
+ *
+ * The blocked state is different and keeps its second button: the OS will not
+ * show a prompt once a permission is blocked, so "Open Settings" plus a way
+ * back is the only thing that can be offered — and it is what Apple's own
+ * guidance suggests for that case.
  */
 export function PermissionScreen({
   kind,
@@ -120,22 +129,27 @@ export function PermissionScreen({
           onPress={blocked ? onOpenSettings : onAllow}
           style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
         >
+          {/* ⚠️ "Continue", not "Allow <thing> access" — guideline 5.1.1(iv)
+              asks for a neutral word here, and the same button is used for
+              both permissions because the label no longer names one. */}
           <Text style={styles.primaryLabel}>
-            {blocked ? t('permission.openSettings') : t(copy.grant)}
+            {blocked ? t('permission.openSettings') : t('permission.continue')}
           </Text>
         </Pressable>
 
-        <Pressable
-          testID="permission-dismiss"
-          accessibilityRole="button"
-          accessibilityLabel="permission-dismiss"
-          onPress={onDismiss}
-          style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-        >
-          <Text style={styles.secondaryLabel}>
-            {blocked ? t('permission.goBack') : t('permission.notNow')}
-          </Text>
-        </Pressable>
+        {/* Blocked only — see the note above the component. A second button
+            BEFORE the prompt is what guideline 5.1.1(iv) rejected. */}
+        {blocked ? (
+          <Pressable
+            testID="permission-dismiss"
+            accessibilityRole="button"
+            accessibilityLabel="permission-dismiss"
+            onPress={onDismiss}
+            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+          >
+            <Text style={styles.secondaryLabel}>{t('permission.goBack')}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

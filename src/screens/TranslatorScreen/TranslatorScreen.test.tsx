@@ -1310,13 +1310,31 @@ describe('the camera permission stands in front of the light channel', () => {
     });
   });
 
-  it('leaves the channel off when the rationale is dismissed', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: createFakePorts({}, DENIED) });
+  it('leaves the channel off when the OS prompt says no', async () => {
+    const ports = createFakePorts({}, DENIED);
+    // ⚠️ The fake GRANTS by default. What is being tested here is a refusal at
+    // the OS prompt, which since guideline 5.1.1(iv) is the only "no" there is.
+    ports.permission.request = async (kind) => {
+      ports.calls.requested.push(kind);
+      return { granted: false, canAskAgain: true };
+    };
+    renderWithProviders(<TranslatorScreen />, { ports });
     pressLight();
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    // The rationale has one action and it leads to the prompt — guideline
+    // 5.1.1(iv). DENIED ports mean that prompt says no.
+    expect(screen.queryByTestId('permission-dismiss')).toBeNull();
+    fireEvent.press(screen.getByTestId('permission-primary'));
+    // ⚠️ Wait on the REQUEST being made, not on the gate unmounting. A positive
+    // signal settles the moment it happens; a disappearance has to outlast the
+    // whole unmount, and under the full parallel run that outran the default
+    // waitFor timeout. Pressing here is an async round-trip to the port, which
+    // the old "Not now" press was not.
+    await waitFor(() => {
+      expect(ports.calls.requested).toContain('camera');
+    });
     await waitFor(() => {
       expect(screen.queryByTestId('permission-camera')).toBeNull();
     });

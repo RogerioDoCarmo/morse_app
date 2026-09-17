@@ -1,10 +1,16 @@
 # Selectors are stable accessibility labels, never localised text — this app
 # ships in three languages and the CI device locale is not guaranteed.
 #
-# This flow deliberately never taps "Allow". That would hand control to a
-# system dialog, which is the OS's to draw and not this app's to assert on.
-# What is being tested is the half that belongs to the app: the rationale
-# shown BEFORE the OS is ever asked, and the way out of it.
+# ⚠️ This flow deliberately never taps the primary action. Since guideline
+# 5.1.1(iv) that button is the ONLY action, and it leads straight to the system
+# dialog — which is the OS's to draw and not this app's to assert on. What is
+# tested here is the half that belongs to the app: the rationale shown BEFORE
+# the OS is asked, and the fact that it offers no way to skip the prompt.
+#
+# ⚠️ Each gate needs its own launch. The gate covers the app while it is up, so
+# once a rationale is on screen there is nowhere to navigate to without
+# answering the OS. That is the intended behaviour, not a limitation of this
+# flow.
 appId: com.rogeriodocarmo.morse
 ---
 # ⚠️ Wrapped in a retry because the EMULATOR loses this, not the app — see the
@@ -28,24 +34,24 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'permission-primary'
 
-# Both permissions are optional, so there is always a way past.
-- tapOn:
-    id: 'permission-dismiss'
+# ⚠️ THE REGRESSION GUARD FOR GUIDELINE 5.1.1(iv). App Review rejected
+# 0.3.4 (13) partly because a "Not now" button here let the user close the
+# rationale and DELAY the system request. Apple: "The user should always
+# proceed to the permission request after the message." One action, and it
+# leads to the prompt.
 - assertNotVisible:
-    id: 'permission-camera'
-- assertVisible:
-    id: 'translator-screen'
-
-# The channel stayed off, so pressing it asks again rather than silently
-# doing nothing.
-- tapOn:
-    id: 'channel-light'
-- assertVisible:
-    id: 'permission-camera'
-- tapOn:
     id: 'permission-dismiss'
 
-# The microphone gate, reached from the Speak tab.
+# The microphone gate, reached from the Speak tab. Same shape, same guard —
+# and a fresh launch, because the camera gate above is still up.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+          permissions:
+            all: unset
+      - runFlow: ../dismiss-first-run.yaml
 - tapOn:
     id: 'tab-speak'
 - assertVisible:
@@ -54,15 +60,28 @@ appId: com.rogeriodocarmo.morse
     id: 'mic-button'
 - assertVisible:
     id: 'permission-microphone'
-- tapOn:
-    id: 'permission-dismiss'
-- assertNotVisible:
-    id: 'permission-microphone'
 - assertVisible:
-    id: 'speech-screen'
+    id: 'permission-primary'
+- assertNotVisible:
+    id: 'permission-dismiss'
 
 # And the app is still usable with neither permission granted, which is the
-# promise both rationale screens make.
+# promise both rationale screens make. Neither gate was answered above, so
+# nothing has been granted.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+          permissions:
+            all: unset
+      - runFlow: ../dismiss-first-run.yaml
+- assertVisible:
+    id: 'translator-screen'
+- tapOn:
+    id: 'tab-speak'
+- assertVisible:
+    id: 'speech-screen'
 - tapOn:
     id: 'tab-translate'
 - assertVisible:

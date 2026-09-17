@@ -139,7 +139,15 @@ describe('when the permission has not been asked for', () => {
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    // The only way past the rationale is the OS prompt — guideline 5.1.1(iv).
+    // A denial closes the gate just as a grant does.
+    fireEvent.press(screen.getByTestId('permission-primary'));
+    // ⚠️ Wait on the ANSWER, not on the gate unmounting. A positive signal
+    // settles the moment it happens; a disappearance has to outlast the whole
+    // unmount, and under a loaded parallel run that outran the default timeout.
+    await waitFor(() => {
+      expect(screen.getByTestId('answer')).toHaveTextContent('true');
+    });
     await waitFor(() => {
       expect(screen.queryByTestId('permission-camera')).toBeNull();
     });
@@ -161,18 +169,23 @@ describe('when the permission has not been asked for', () => {
     expect(screen.queryByTestId('permission-camera')).toBeNull();
   });
 
-  it('answers no on Not now, without ever prompting', async () => {
-    const ports = portsAnswering(UNASKED);
+  // ⚠️ THE GATE-LEVEL GUARD FOR GUIDELINE 5.1.1(iv). This used to assert the
+  // opposite — that "Not now" answered no WITHOUT ever prompting. App Review
+  // rejected 0.3.4 (13) for exactly that: "The user should always proceed to
+  // the permission request after the message." A no is now the OS's no.
+  it('cannot answer no without the OS being asked', async () => {
+    const ports = portsAnswering(UNASKED, UNASKED);
     mount(ports);
     fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-dismiss'));
+    expect(screen.queryByTestId('permission-dismiss')).toBeNull();
+    fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('answer')).toHaveTextContent('false');
     });
-    expect(ports.calls.requested).toEqual([]);
+    expect(ports.calls.requested).toEqual(['camera']);
   });
 
   // Denying with asks left is an ordinary no: the screen closes and the app
