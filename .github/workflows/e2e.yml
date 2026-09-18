@@ -220,7 +220,16 @@ jobs:
     runs-on: macos-latest
     # Prebuild, CocoaPods, xcodebuild, then nine flows. The run that passed
     # eight of nine took about 25 minutes end to end.
-    timeout-minutes: 50
+    #
+    # ⚠️ RAISED FROM 50 ON 17 SEPTEMBER, because 50 began failing GOOD runs.
+    # On #201 this job was killed at 50m34s with the flows still passing; the
+    # IDENTICAL commit had passed on the push run at 41m11s, and the retry then
+    # passed with about three minutes to spare. Three runs of the same code
+    # spanning 41 to 50+ minutes is the shared macOS runner's variance, not a
+    # stuck build — and a cap sitting inside that spread turns a green suite
+    # into a coin toss, which is how a team learns to re-run rather than read.
+    # 60 clears the observed spread and keeps the backstop meaningful.
+    timeout-minutes: 60
     # Skipped for Dependabot and for forks, whose PRs GitHub deliberately
     # denies secrets. Without this the job cannot write the Firebase
     # credentials, fails on the secret guard within seconds, and leaves a red
