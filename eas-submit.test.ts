@@ -1,6 +1,7 @@
 // `eas submit` reads eas.json and does what it says without asking twice. The
 // two values below decide where a release lands and where its credential comes
 // from, and neither failure is visible until it has already happened.
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -64,4 +65,40 @@ describe('eas submit — android', () => {
       expect(GITIGNORE).toContain(pattern);
     },
   );
+});
+
+/**
+ * ⚠️ `eas credentials` → "Download credentials from EAS to credentials.json"
+ * writes the keystore PASSWORDS into the repository root, in plaintext, as a
+ * side effect of fetching the keystore. This repository is PUBLIC.
+ *
+ * `*.jks` covers the keystore file and catches nothing here: the secret is the
+ * JSON beside it. Found on 17 September while fetching the upload keystore to
+ * build an AAB outside the EAS builder — the file was one `git add -A` from
+ * being staged, and nothing in the repository would have objected.
+ */
+describe('the credentials download cannot be committed', () => {
+  // Exactly the paths `eas credentials` writes.
+  const WRITTEN_BY_EAS = [
+    'credentials.json',
+    'credentials/android/keystore.jks',
+    'credentials/ios/dist.p12',
+  ];
+
+  it.each(WRITTEN_BY_EAS)('ignores %s', (file) => {
+    // git is the authority, not a substring search: a pattern can appear in
+    // the file and still not match, and a parent rule can match without the
+    // name being written anywhere.
+    const ignored = execFileSync('git', ['check-ignore', '--no-index', '-q', file], {
+      cwd: __dirname,
+      // check-ignore exits 1 for "not ignored", which is a result, not a crash.
+      stdio: 'pipe',
+    });
+
+    expect(ignored.toString()).toBe('');
+  });
+
+  it('names the JSON itself, not just the keystore beside it', () => {
+    expect(GITIGNORE).toMatch(/^credentials\.json$/mu);
+  });
 });

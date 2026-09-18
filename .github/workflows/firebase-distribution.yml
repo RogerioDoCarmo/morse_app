@@ -117,11 +117,61 @@ jobs:
       # "--output is allowed only for local builds" — from the day it was
       # written until a version bump first fired it. A finished cloud build is
       # fetched from the URL it reports.
+      # ⚠️ RUNNING OUT OF BUILD CREDITS IS NOT A BUILD FAILURE, and this step
+      # used to report it as one. On 17 September both platforms went red on a
+      # release PR with "Build a preview binary — failure", which reads exactly
+      # like the app not compiling. Nothing was wrong with the app: the EAS free
+      # allowance for the month was spent, and it does not reset until the
+      # billing period rolls over.
+      #
+      # A red check that means "the balance is zero" is worse than no check,
+      # because it is indistinguishable from the one that means "this code is
+      # broken" — and the cure for a check people learn to ignore is not a
+      # better explanation in a comment somewhere, it is not going red.
+      #
+      # ⚠️ ONLY this one condition is forgiven. Any other non-zero exit from
+      # `eas build` still fails the job, loudly. The point is to tell an empty
+      # wallet apart from a broken build, not to stop noticing broken builds.
       - name: Build a preview binary
+        id: build
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          # ⚠️ `set +e` around the build ONLY. With `set -e` the step dies on
+          # eas's exit code before anything can look at WHY it exited.
+          set +e
           eas build --platform ${{ matrix.platform }} --profile preview \
-            --non-interactive --wait --json > build.json
+            --non-interactive --wait --json > build.json 2> build.err
+          status=$?
+          set -e
+
+          if [ "$status" -ne 0 ]; then
+            # Always show it: a skipped distribution still has to be readable.
+            cat build.err >&2
+            if grep -qiE 'included build credits|builds from the Free plan|New builds are blocked' build.err; then
+              # e.g. "will reset in 13 days (on Thu Oct 01 2026)"
+              reset=$(grep -oiE 'will reset in [^.)]*\)?' build.err | head -1)
+              {
+                echo "### ⏸️ Distribution skipped — no EAS build credits"
+                echo
+                echo "**The app is fine. The allowance is not.** No binary was built and"
+                echo "nothing was sent to Firebase App Distribution, so testers do not have"
+                echo "\`v${{ needs.gate.outputs.version }}\` on **${{ matrix.platform }}**."
+                echo
+                [ -n "$reset" ] && echo "EAS says the balance ${reset}."
+                echo
+                echo "Re-running this will not help — it is a balance, not a flake."
+                echo "When credits return, dispatch this workflow for the platform that"
+                echo "needs it (\`workflow_dispatch\` → \`platform\`) rather than bumping the"
+                echo "version again, and rather than rebuilding both sides."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Distribution skipped::No EAS build credits — ${{ matrix.platform }} was not built or distributed. ${reset}"
+              echo "skipped=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::eas build exited ${status}. This is a real build failure, not the credit balance."
+            exit 1
+          fi
+
           # The field has moved between EAS versions, so take the first URL the
           # payload offers rather than naming one path through it.
           url=$(jq -r '[.. | objects
@@ -136,7 +186,11 @@ jobs:
           curl -fsSL -o "${{ matrix.artifact }}" "$url"
           ls -lh "${{ matrix.artifact }}"
 
+      # ⚠️ There is no binary when the build was skipped, and this action would
+      # fail on the missing file — turning the red check we just removed into a
+      # red check one step later.
       - name: Distribute to testers
+        if: steps.build.outputs.skipped != 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets[matrix.app_id_secret] }}

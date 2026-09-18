@@ -18,6 +18,14 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# ⚠️ `eas credentials` → "Download credentials from EAS to credentials.json"
+# writes the keystore PASSWORDS here, in plaintext, at the repository root.
+# `*.jks` above covers the keystore file itself and catches nothing here — the
+# secret is the JSON, and this repository is PUBLIC. Found on 17 September while
+# fetching the upload keystore to build an AAB outside the EAS builder.
+credentials.json
+credentials/
+
 # Metro
 .metro-health-check*
 
