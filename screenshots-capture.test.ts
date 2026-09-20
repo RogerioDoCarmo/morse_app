@@ -8,6 +8,16 @@ const WORKFLOW = fs.readFileSync(
   path.join(__dirname, '.github', 'workflows', 'screenshots.yml'),
   'utf8',
 );
+/**
+ * ⚠️ The Android locale loop lives in its own script, not in the workflow.
+ * `android-emulator-runner` runs its `script:` block ONE LINE AT A TIME, each
+ * in its own `sh -c`, so a multi-line `for` is split across shells and dies on
+ * "Syntax error: end of file unexpected (expecting done)".
+ */
+const ANDROID_LOCALES = fs.readFileSync(
+  path.join(__dirname, 'tools', 'capture-android-locales.sh'),
+  'utf8',
+);
 const CAPTURE = fs.readFileSync(
   path.join(__dirname, 'tools', 'capture-ios-screenshots.sh'),
   'utf8',
@@ -312,13 +322,16 @@ describe('the collectors find the names the flow writes', () => {
   }
 
   it('finds a collector in each file, and captures to check it against', () => {
-    expect(globsIn(WORKFLOW).length).toBeGreaterThan(0);
+    // ⚠️ The Android collector lives in capture-android-locales.sh, NOT in the
+    // workflow — the loop had to move there because the emulator action runs
+    // its script one line at a time, and the glob went with it.
+    expect(globsIn(ANDROID_LOCALES).length).toBeGreaterThan(0);
     expect(globsIn(CAPTURE).length).toBeGreaterThan(0);
     expect(shots.length).toBeGreaterThanOrEqual(6);
   });
 
-  it('matches every capture from the workflow', () => {
-    const globs = globsIn(WORKFLOW);
+  it('matches every capture from the Android script', () => {
+    const globs = globsIn(ANDROID_LOCALES);
     const missed = shots.filter((s) => !globs.some((g) => toRegExp(g).test(s + '.png')));
 
     expect(missed).toEqual([]);
@@ -334,7 +347,7 @@ describe('the collectors find the names the flow writes', () => {
   // The negative control: proves the two assertions above are doing work
   // rather than passing on a glob that happens to match anything.
   it('would reject the numbered names these globs used to expect', () => {
-    for (const glob of globsIn(WORKFLOW).concat(globsIn(CAPTURE))) {
+    for (const glob of globsIn(ANDROID_LOCALES).concat(globsIn(CAPTURE))) {
       expect(toRegExp(glob).test('00-welcome.png')).toBe(false);
     }
   });
@@ -393,7 +406,20 @@ describe('screenshots are captured in every published language', () => {
   });
 
   it.each(PAIRS)('runs %s and files it under %s on Android', (app, store) => {
-    expect(WORKFLOW).toContain(`"${app}:${store}"`);
+    expect(ANDROID_LOCALES).toContain(`"${app}:${store}"`);
+  });
+
+  /**
+   * ⚠️ THE LOOP MUST NOT MOVE BACK INTO THE WORKFLOW.
+   * `android-emulator-runner` runs its `script:` block one line at a time, each
+   * in its own `sh -c`. A `for` written there is split across shells and fails
+   * instantly — and because that step carries `continue-on-error`, the job
+   * limps on and reports "no screenshots" two minutes later, pointing at the
+   * collector rather than at the thing that never ran.
+   */
+  it('keeps the Android loop in a script the workflow calls', () => {
+    expect(WORKFLOW).toContain('tools/capture-android-locales.sh');
+    expect(WORKFLOW).not.toContain('for pair in');
   });
 
   it.each(PAIRS)('runs %s and files it under %s on iOS', (app, store) => {
@@ -409,7 +435,7 @@ describe('screenshots are captured in every published language', () => {
     ['the Android workflow', 'WORKFLOW'],
     ['the iOS script', 'CAPTURE'],
   ])('clears Maestro output between locales in %s', (_label, which) => {
-    const source = which === 'WORKFLOW' ? WORKFLOW : CAPTURE;
+    const source = which === 'WORKFLOW' ? ANDROID_LOCALES : CAPTURE;
     const loop = source.indexOf('for pair in');
     const clear = source.indexOf('rm -rf "$HOME/.maestro/tests"', loop);
     const run = source.indexOf('maestro', clear);
@@ -422,7 +448,7 @@ describe('screenshots are captured in every published language', () => {
   it('fails the job when a language captured nothing', () => {
     // A missing folder means one language silently keeps whatever is already
     // on the listing — the quiet failure this whole file exists to prevent.
-    expect(WORKFLOW).toContain('No screenshots for $store.');
+    expect(ANDROID_LOCALES).toContain('no screenshots for ${store}.');
     expect(CAPTURE).toContain('produced no screenshots for $store.');
   });
 });
