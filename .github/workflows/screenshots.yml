@@ -161,7 +161,13 @@ jobs:
           # first attempt did not know — it looked in the repository root,
           # found nothing, and threw away six perfectly good screenshots while
           # reporting that none had been produced.
-          find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} screenshots/ \;
+          # ⚠️ A LETTER PREFIX, not digits. This read `[0-9][0-9]-*.png` and
+          # matched nothing the moment the captures were renamed `a-` … `f-` for
+          # Play's upload ordering: the job would have run its full twenty
+          # minutes, produced every image, and then reported that none had been
+          # produced. The single-letter shape is asserted in
+          # screenshots-capture.test.ts so this and the flow cannot drift apart.
+          find "$HOME/.maestro/tests" -name '[a-z]-*.png' -exec cp {} screenshots/ \;
           ls -la screenshots/
           test -n "$(ls -A screenshots/)" || {
             echo "::error::The flow produced no screenshots."; exit 1;

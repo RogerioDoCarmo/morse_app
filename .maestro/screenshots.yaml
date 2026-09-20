@@ -6,8 +6,11 @@
 #
 #     pnpm screenshots
 #
-# The names match the store slots, so the output drops straight into Play
-# Console and App Store Connect in order.
+# ⚠️ THE NAMES ARE LETTERED, NOT NUMBERED, and that is not cosmetic. Play
+# Console orders a multi-file upload by the browser's own file ordering, which
+# did NOT follow `00-`, `01-`, `02-` — the images arrived shuffled and had to be
+# dragged back into place by hand, guessing which was which. Letters survive
+# that ordering. Renamed on 20 September, after it happened.
 #
 # ⚠️ The point of capturing rather than mocking: a store screenshot has to show
 # the app as it actually is. The previous mockups were rendered from the design
@@ -26,7 +29,7 @@ appId: com.rogeriodocarmo.morse
 
 # The welcome carousel is worth a shot of its own: it is the first thing a new
 # user sees, and it explains the output channels the store copy talks about.
-- takeScreenshot: 00-welcome
+- takeScreenshot: a-welcome
 
 - tapOn:
     id: 'first-run-skip'
@@ -62,34 +65,39 @@ appId: com.rogeriodocarmo.morse
 # in a shot taken on a freshly cleared device — which is every shot here.
 - waitForAnimationToEnd:
     timeout: 12000
-- takeScreenshot: 01-translator
 
 # The channel strip switched on, which is the feature the listing leads with.
 # Screen and Vibrate only: Light raises the camera permission, and a system
 # dialog in a store screenshot is a rejection waiting to happen.
+#
+# ⚠️ A SHOT WAS TAKEN HERE AND HAS BEEN DROPPED. It was this same screen with
+# the strip still off, and on a store listing the two were indistinguishable —
+# pixel-identical except for three toggles changing colour — so the pair spent
+# two of eight slots saying one thing. The wait above still earns its keep: it
+# is what stops the pulsing hint being caught mid-sweep in THIS shot.
 - tapOn:
     id: 'channel-screen'
 - tapOn:
     id: 'channel-buzz'
-- takeScreenshot: 02-output-channels
+- takeScreenshot: b-translator
 
 - tapOn:
     id: 'tab-speak'
 - assertVisible:
     id: 'speech-screen'
-- takeScreenshot: 03-speech
+- takeScreenshot: c-speech
 
 - tapOn:
     id: 'tab-tap'
 - assertVisible:
     id: 'tap-screen'
-- takeScreenshot: 04-tap-decode
+- takeScreenshot: d-tap-decode
 
 - tapOn:
     id: 'tab-learn'
 - assertVisible:
     id: 'learn-screen'
-- takeScreenshot: 05-learn
+- takeScreenshot: e-learn
 
 - tapOn:
     id: 'tab-translate'
@@ -102,4 +110,4 @@ appId: com.rogeriodocarmo.morse
     id: 'open-settings'
 - assertVisible:
     id: 'settings-screen'
-- takeScreenshot: 06-settings
+- takeScreenshot: f-settings

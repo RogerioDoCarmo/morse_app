@@ -62,7 +62,11 @@ xcrun simctl install "$udid" "$APP"
 maestro --device "$udid" test "$FLOW"
 
 mkdir -p "$OUT"
-find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} "$OUT/" \;
+# ⚠️ A LETTER PREFIX, not digits. This read `[0-9][0-9]-*.png` and matched
+# nothing the moment the captures were renamed `a-` … `f-` for Play's upload
+# ordering — a silent empty set after a full simulator build. The shape is
+# asserted in screenshots-capture.test.ts so this and the flow stay in step.
+find "$HOME/.maestro/tests" -name '[a-z]-*.png' -exec cp {} "$OUT/" \;
 
 # ⚠️ The size the store actually wants, REPORTED rather than assumed. A run
 # that quietly produced the wrong dimensions is worse than one that failed,
