@@ -339,3 +339,90 @@ describe('the collectors find the names the flow writes', () => {
     }
   });
 });
+
+/**
+ * ⚠️ THE LISTING IS PUBLISHED IN THREE LANGUAGES AND THE SHOTS WERE ALL
+ * ENGLISH. The flow captured whatever locale the emulator booted in, so a
+ * Portuguese shopper read translated copy beside screenshots of an English app.
+ *
+ * ⚠️ AND THE TAGS DO NOT MATCH. The app speaks `en`, `pt-BR` and `es`; the
+ * stores want `en-US`, `pt-BR` and `es-419`. Only the middle one is the same
+ * string — which is exactly why the other two are easy to get wrong, and why
+ * the wrong one is found at upload rather than here.
+ */
+describe('screenshots are captured in every published language', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+
+  /** app tag → store folder. Written out, not derived: the mapping IS the risk. */
+  const PAIRS = [
+    ['en', 'en-US'],
+    ['pt-BR', 'pt-BR'],
+    ['es', 'es-419'],
+  ] as const;
+
+  it('takes the locale from a variable rather than the emulator default', () => {
+    expect(FLOW).toContain('LOCALE');
+    expect(FLOW).toContain("id: 'interface-${LOCALE}'");
+  });
+
+  /**
+   * ⚠️ `interface-*` sets the app's language. `locale-option-*` is the
+   * Translator's own input picker — it changes the badge above the text field
+   * and leaves every label in English, which looks like it worked.
+   */
+  it('uses the interface picker, not the translator input picker', () => {
+    expect(FLOW).not.toContain('locale-option-${LOCALE}');
+  });
+
+  /**
+   * ⚠️ The guide appears on first launch, BEFORE Settings can be reached, so a
+   * shot taken where it naturally appears is English whatever LOCALE says.
+   * Relaunching with clearState to see it again would reset the language too.
+   */
+  it('replays the guide so the welcome shot is localised as well', () => {
+    const setLocale = FLOW.indexOf("id: 'interface-${LOCALE}'");
+    const replay = FLOW.indexOf("id: 'settings-show-guide'");
+    const welcome = FLOW.indexOf('takeScreenshot: a-welcome');
+
+    expect(setLocale).toBeGreaterThan(-1);
+    expect(replay).toBeGreaterThan(setLocale);
+    expect(welcome).toBeGreaterThan(replay);
+  });
+
+  it.each(PAIRS)('runs %s and files it under %s on Android', (app, store) => {
+    expect(WORKFLOW).toContain(`"${app}:${store}"`);
+  });
+
+  it.each(PAIRS)('runs %s and files it under %s on iOS', (app, store) => {
+    expect(CAPTURE).toContain(`"${app}:${store}"`);
+  });
+
+  /**
+   * ⚠️ Maestro reuses `~/.maestro/tests` for every run. Without clearing it
+   * between passes the second locale collects the first one's images — an
+   * English set filed as Portuguese, at dimensions that look perfectly right.
+   */
+  it.each([
+    ['the Android workflow', 'WORKFLOW'],
+    ['the iOS script', 'CAPTURE'],
+  ])('clears Maestro output between locales in %s', (_label, which) => {
+    const source = which === 'WORKFLOW' ? WORKFLOW : CAPTURE;
+    const loop = source.indexOf('for pair in');
+    const clear = source.indexOf('rm -rf "$HOME/.maestro/tests"', loop);
+    const run = source.indexOf('maestro', clear);
+
+    expect(loop).toBeGreaterThan(-1);
+    expect(clear).toBeGreaterThan(loop);
+    expect(run).toBeGreaterThan(clear);
+  });
+
+  it('fails the job when a language captured nothing', () => {
+    // A missing folder means one language silently keeps whatever is already
+    // on the listing — the quiet failure this whole file exists to prevent.
+    expect(WORKFLOW).toContain('No screenshots for $store.');
+    expect(CAPTURE).toContain('produced no screenshots for $store.');
+  });
+});
