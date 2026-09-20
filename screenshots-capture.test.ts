@@ -452,3 +452,71 @@ describe('screenshots are captured in every published language', () => {
     expect(CAPTURE).toContain('produced no screenshots for $store.');
   });
 });
+
+/**
+ * ⚠️ A CAPTURE THAT NEVER RAN MUST FAIL THE STEP THAT RAN IT.
+ *
+ * `Run flows on an emulator` carried `continue-on-error: true` until
+ * 20 September. It was added for a good reason — a flow failing on its last
+ * shot should still hand over the earlier ones — but the steps below already
+ * do that with `if: always()`, so it was protecting nothing.
+ *
+ * What it did instead was hide three separate failures in one evening, each
+ * surfacing two steps later as "No screenshots for en-US", which reads as a
+ * broken collector rather than a capture that never started.
+ *
+ * ⚠️ And it silently disabled the debug capture: `Keep the Maestro output when
+ * the flow failed` is `if: failure()`, which can never be true while the step
+ * before it swallows its own failure.
+ */
+describe('a capture that never ran fails loudly', () => {
+  /** The Android emulator step, up to the start of the next step. */
+  const emulatorStep = (): string => {
+    const start = WORKFLOW.indexOf('- name: Run flows on an emulator');
+    const next = WORKFLOW.indexOf('- name: Collect the screenshots');
+    expect(start).toBeGreaterThan(-1);
+    expect(next).toBeGreaterThan(start);
+    return WORKFLOW.slice(start, next);
+  };
+
+  it('does not let the emulator step swallow its own failure', () => {
+    expect(emulatorStep()).not.toContain('continue-on-error');
+  });
+
+  /**
+   * The reason the flag could go: these two run regardless, so a flow that
+   * fails late still hands over what it captured. Removing `if: always()` from
+   * either would make the removal above destructive.
+   */
+  it.each(['Collect the screenshots', 'Upload the screenshots'])(
+    'keeps %s running whatever the capture did',
+    (step) => {
+      const start = WORKFLOW.indexOf(`- name: ${step}`);
+      expect(start).toBeGreaterThan(-1);
+      expect(WORKFLOW.slice(start, start + 120)).toContain('if: always()');
+    },
+  );
+
+  // Now reachable for the first time, because the step before it can fail.
+  it('keeps the Maestro debug capture on failure', () => {
+    const start = WORKFLOW.indexOf(
+      '- name: Keep the Maestro output when the flow failed',
+    );
+    expect(start).toBeGreaterThan(-1);
+    expect(WORKFLOW.slice(start, start + 120)).toContain('if: failure()');
+  });
+
+  /**
+   * ⚠️ The iOS job keeps its two flags ON PURPOSE, and they are not the same
+   * thing. iPhone and iPad are separate steps in one job: without the flag, an
+   * iPhone failure would skip the iPad capture entirely and Apple requires
+   * both. That is sequencing, not masking.
+   */
+  it('leaves the iOS captures able to fail independently', () => {
+    const iphone = WORKFLOW.indexOf('- name: Capture on a 6.9-inch iPhone');
+    const ipad = WORKFLOW.indexOf('- name: Capture on a 13-inch iPad');
+
+    expect(WORKFLOW.slice(iphone, iphone + 120)).toContain('continue-on-error: true');
+    expect(WORKFLOW.slice(ipad, ipad + 120)).toContain('continue-on-error: true');
+  });
+});
