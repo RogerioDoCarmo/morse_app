@@ -145,29 +145,13 @@ jobs:
             adb shell input keyevent KEYCODE_BACK || true
             adb shell input keyevent KEYCODE_HOME || true
 
-            # ⚠️ ONE PASS PER LOCALE, and the mapping is not the identity. The
-            # app speaks `en`, `pt-BR` and `es`; Play's folders are `en-US`,
-            # `pt-BR` and `es-419`. Only the middle one is the same string, and
-            # writing the app tag into a store folder is the kind of thing that
-            # is found at upload.
-            #
-            # ⚠️ `rm -rf` BETWEEN passes. Maestro writes every run into the same
-            # directory, so without it the second locale's folder collects the
-            # first one's images too — an English set filed as Portuguese, which
-            # nothing downstream would question because the dimensions are right.
-            # `capture-ios-screenshots.sh` already learned this the hard way.
-            set -e
-            for pair in "en:en-US" "pt-BR:pt-BR" "es:es-419"; do
-              app="${pair%%:*}"; store="${pair##*:}"
-              echo "::group::$store (app locale $app)"
-              rm -rf "$HOME/.maestro/tests"
-              maestro test -e LOCALE="$app" .maestro/screenshots.yaml
-              mkdir -p "screenshots/$store"
-              find "$HOME/.maestro/tests" -name '[a-z]-*.png' \
-                -exec cp {} "screenshots/$store/" \;
-              echo "$store: $(ls -1 "screenshots/$store" | wc -l) images"
-              echo "::endgroup::"
-            done
+            # ⚠️ A SCRIPT, not a loop written here. This action runs its
+            # `script:` block ONE LINE AT A TIME, each in its own `sh -c`, so a
+            # multi-line `for` was split across shells and died on
+            # "Syntax error: end of file unexpected (expecting done)". Every
+            # other line in this block happens to be self-contained, which is
+            # why nothing had ever revealed it.
+            tools/capture-android-locales.sh
 
       # ⚠️ `if: always()`, not `if: failure()`. In the E2E workflow the Maestro
       # output is evidence for a failure; here the images ARE the job, and a
