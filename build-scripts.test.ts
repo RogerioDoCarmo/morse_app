@@ -265,3 +265,48 @@ describe('patch-android-release.js', () => {
     expect(fs.readFileSync(file, 'utf8')).toContain('versionCode 15');
   });
 });
+
+/**
+ * ⚠️ EVERY SHELL SCRIPT IN `tools/` MUST BE EXECUTABLE IN GIT, and on Windows
+ * that does not happen by itself.
+ *
+ * This machine has `core.filemode=false`, so `chmod +x` is recorded as nothing.
+ * Every script written on the Mac is mode 100755; the two written on Windows
+ * were committed 100644 and neither `git status` nor any check said a word.
+ *
+ * `capture-android-locales.sh` then failed in CI with
+ * `/usr/bin/sh: 1: tools/capture-android-locales.sh: Permission denied` — after
+ * building the app and booting an emulator, seven minutes in.
+ * `build-aab-local.sh` had the same defect and had simply never been run the
+ * way its own header documents.
+ *
+ * The fix is `git update-index --chmod=+x <file>`; this is the guard that says
+ * when it was forgotten.
+ */
+describe('shell scripts are executable in the index', () => {
+  /** `<mode> <sha> <stage>\t<path>` for every tracked file under tools/. */
+  const entries = execFileSync('git', ['ls-files', '-s', 'tools'], {
+    cwd: __dirname,
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+    .map((line) => {
+      const [meta, file] = line.split('\t');
+      return { mode: (meta as string).split(' ')[0] as string, file: file as string };
+    });
+
+  const scripts = entries.filter((e) => e.file.endsWith('.sh'));
+
+  it('finds the scripts it is checking', () => {
+    // Without this a change to the path or to `ls-files` would make the
+    // assertion below vacuously true.
+    expect(scripts.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('records every .sh as mode 100755', () => {
+    const notExecutable = scripts.filter((s) => s.mode !== '100755').map((s) => s.file);
+
+    expect(notExecutable).toEqual([]);
+  });
+});
