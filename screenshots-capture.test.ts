@@ -271,3 +271,71 @@ describe('screenshot names carry their own upload order', () => {
     expect(names.length).toBeLessThanOrEqual(8);
   });
 });
+
+/**
+ * ⚠️ THE COLLECTORS HAVE TO MATCH THE NAMES, and nothing else checks that.
+ *
+ * Both the workflow and the iOS script fish the captures out of Maestro's own
+ * debug directory with a `find -name` glob. Both read `[0-9][0-9]-*.png`, which
+ * matched nothing the moment the shots were renamed `a-` … `f-`. The failure
+ * mode is the expensive kind: the emulator boots, the app builds, the flow runs
+ * its full twenty minutes and produces every image — and then the collector
+ * reports that none were produced.
+ *
+ * The screenshots workflow is `workflow_dispatch` only, so no PR would have
+ * caught it either.
+ */
+describe('the collectors find the names the flow writes', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+  const shots = [...FLOW.matchAll(/^- takeScreenshot:\s*(\S+)\s*$/gmu)].map(
+    (m) => m[1] as string,
+  );
+
+  /** The `find -name '<glob>'` pattern used by a collector. */
+  function globsIn(source: string): string[] {
+    return [...source.matchAll(/-name\s+'([^']+\.png)'/gu)].map((m) => m[1] as string);
+  }
+
+  /**
+   * A shell glob as `find` reads it: `[a-z]` stays a character class, `*`
+   * becomes any run, and a literal dot is written `[.]` — which escapes it
+   * without a backslash, so this line survives being moved between a shell
+   * heredoc and a file. The first version used backslash escapes and arrived
+   * with them collapsed, leaving an unterminated regex.
+   */
+  function toRegExp(glob: string): RegExp {
+    const escaped = glob.split('.').join('[.]').split('*').join('.*');
+    return new RegExp('^' + escaped + '$', 'u');
+  }
+
+  it('finds a collector in each file, and captures to check it against', () => {
+    expect(globsIn(WORKFLOW).length).toBeGreaterThan(0);
+    expect(globsIn(CAPTURE).length).toBeGreaterThan(0);
+    expect(shots.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('matches every capture from the workflow', () => {
+    const globs = globsIn(WORKFLOW);
+    const missed = shots.filter((s) => !globs.some((g) => toRegExp(g).test(s + '.png')));
+
+    expect(missed).toEqual([]);
+  });
+
+  it('matches every capture from the iOS script', () => {
+    const globs = globsIn(CAPTURE);
+    const missed = shots.filter((s) => !globs.some((g) => toRegExp(g).test(s + '.png')));
+
+    expect(missed).toEqual([]);
+  });
+
+  // The negative control: proves the two assertions above are doing work
+  // rather than passing on a glob that happens to match anything.
+  it('would reject the numbered names these globs used to expect', () => {
+    for (const glob of globsIn(WORKFLOW).concat(globsIn(CAPTURE))) {
+      expect(toRegExp(glob).test('00-welcome.png')).toBe(false);
+    }
+  });
+});
