@@ -75,7 +75,12 @@ for pair in "en:en-US" "pt-BR:pt-BR" "es:es-419"; do
   echo "--- $chosen · $store (app locale $app) ---"
 
   rm -rf "$HOME/.maestro/tests"
-  maestro --device "$udid" -e LOCALE="$app" test "$FLOW"
+  # ⚠️ `-e` GOES AFTER `test`, not before it. `maestro --device X -e K=V test
+  # flow` makes Maestro print its help and exit 0-ish with no flow run and no
+  # error worth the name — which reads as "the flow produced nothing" two steps
+  # later. Caught by running it by hand on Windows; the Android script had the
+  # order right and this one did not.
+  maestro --device "$udid" test -e LOCALE="$app" "$FLOW"
 
   mkdir -p "$OUT/$store"
   # ⚠️ A LETTER PREFIX, not digits. This read `[0-9][0-9]-*.png` and matched

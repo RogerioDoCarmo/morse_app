@@ -29,9 +29,21 @@
 # Play's slots are `en-US`, `pt-BR` and `es-419`. Only the middle one matches.
 # This variable is the APP tag because it is typed straight into a testID; the
 # workflow owns the mapping to store folders.
+# ⚠️ NO `env:` DEFAULT FOR LOCALE, and that is not an omission.
+#
+# This file declared `env: { LOCALE: en }` as a "default". In Maestro 2.10 the
+# flow's own `env:` block WINS over `-e` on the command line — so every pass
+# tapped `interface-en` and all three locales came out identical English, at
+# the right dimensions, with six files in each folder. Every automated check
+# passed. It was caught by opening a Portuguese screenshot and reading
+# "App language: English" in it.
+#
+# Proven rather than guessed: a flow asserting `${LOCALE == 'pt-BR'}`, run with
+# `-e LOCALE=pt-BR` against a header default of `en`, FAILS.
+#
+# With no default, `-e` is the only source and a run that forgets it fails
+# loudly instead of quietly producing the wrong language.
 appId: com.rogeriodocarmo.morse
-env:
-  LOCALE: en
 ---
 - retry:
     maxRetries: 2
