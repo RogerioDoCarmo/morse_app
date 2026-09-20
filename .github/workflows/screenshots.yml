@@ -100,12 +100,29 @@ jobs:
         with:
           google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
-      # ⚠️ `continue-on-error`, so a flow that fails on its last step still
-      # hands over what it captured. The first run failed on the seventh
-      # screenshot and discarded the six before it; the collect step below is
-      # what decides whether the job passed, because images are the point.
+      # ⚠️ NO `continue-on-error`, and it was here until 20 September.
+      #
+      # It was added so a flow failing on its last shot still handed over the
+      # six before it — a real problem, but one the steps below already solve:
+      # `Collect the screenshots` and `Upload the screenshots` both carry
+      # `if: always()` and run whatever this step does. The flag was protecting
+      # something that no longer needed protecting.
+      #
+      # What it DID do was hide three separate failures in one evening. A
+      # capture that never started reported success here, and the job died two
+      # steps later at "No screenshots for en-US" — which reads as a broken
+      # collector. Each time, the real error was twenty lines earlier in a step
+      # that had been told its failure did not count:
+      #   1. the locale loop split across shells by the emulator action
+      #   2. `Permission denied` on a script committed without its +x bit
+      #   3. …and the third was only found by reading the log anyway
+      #
+      # ⚠️ AND IT KILLED THE DEBUG CAPTURE. `Keep the Maestro output when the
+      # flow failed` is `if: failure()`, which is never true while this step
+      # swallows its own failure — so the one step that exists to preserve
+      # evidence has never once run. That is why none of those three failures
+      # left a Maestro artefact behind.
       - name: Run flows on an emulator
-        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         env:
           # The driver install is the slow part even with KVM; the default is
