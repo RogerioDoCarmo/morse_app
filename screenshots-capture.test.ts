@@ -217,3 +217,57 @@ describe('deriving the 6.5-inch iPhone set, which no simulator can capture', () 
     expect(DERIVE).toContain('expected ${DST_W}x${DST_H}');
   });
 });
+
+/**
+ * ⚠️ PLAY CONSOLE DOES NOT SORT A MULTI-FILE UPLOAD THE WAY THE FILENAMES DO.
+ *
+ * The captures were `00-welcome`, `01-translator`, `02-output-channels` … and
+ * they arrived at the console shuffled, leaving someone to drag seven
+ * near-identical phone screenshots back into an order they had to guess. The
+ * numbers looked like they were doing the job and were not.
+ *
+ * Letters survive that ordering, which is the whole reason for the naming.
+ */
+describe('screenshot names carry their own upload order', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+
+  /** Capture names, in the order the flow takes them. */
+  const names = [...FLOW.matchAll(/^- takeScreenshot:\s*(\S+)\s*$/gmu)].map(
+    (m) => m[1] as string,
+  );
+
+  it('finds the captures it is reasoning about', () => {
+    // Without this, a rename of the YAML key would make every assertion below
+    // vacuously true.
+    expect(names.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('prefixes every shot with a single letter', () => {
+    const wrong = names.filter((n) => !/^[a-z]-/u.test(n));
+
+    expect(wrong).toEqual([]);
+  });
+
+  // ⚠️ The failure this prevents is subtle: a numbered name still sorts
+  // correctly in a shell and in git, so nothing local complains. It only shows
+  // up in the console, after the upload.
+  it('leaves no numeric prefix behind', () => {
+    const numbered = names.filter((n) => /^\d/u.test(n));
+
+    expect(numbered).toEqual([]);
+  });
+
+  it('puts them in alphabetical order, so upload order matches capture order', () => {
+    expect(names).toStrictEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+
+  // Play takes 2–8 phone screenshots. Six is comfortable; the guard is against
+  // someone trimming the set below what the store will accept.
+  it('keeps enough shots for the store to accept the listing', () => {
+    expect(names.length).toBeGreaterThanOrEqual(2);
+    expect(names.length).toBeLessThanOrEqual(8);
+  });
+});
