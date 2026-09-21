@@ -416,10 +416,28 @@ const styles = StyleSheet.create({
   // Side by side, capped so neither half becomes an unreadable measure on a
   // wider iPad. Without this the carousel is a phone screen with empty bands
   // above and below it.
+  // ⚠️ `stretch`, NOT `center`. This read `alignItems: 'center'`, and that made
+  // the ILLUSTRATION DISAPPEAR on every tablet, in every language, on both
+  // platforms — the blank left half of every 10-inch, Chromebook and iPad
+  // screenshot that reached the stores.
+  //
+  // `center` sizes a row's children to their CONTENT height. The copy column
+  // survives it, because text has an intrinsic height. The pager does not: its
+  // ScrollView is left with no definite height, `stage`'s `flex: 1` resolves
+  // against nothing, and the illustration collapses to zero and renders as
+  // empty ground.
+  //
+  // `stretch` gives both columns the row's full height. The copy stays
+  // vertically centred because `side` centres its own content — which is the
+  // job `center` looked like it was doing.
+  //
+  // ⚠️ NO UNIT TEST CAN CATCH THIS. `getByTestId('first-run-art-chips')` passes
+  // on a zero-height element: React Native Testing Library lays nothing out. It
+  // was found by holding a tablet screenshot next to a phone one.
   columns: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'center',
     gap: 64,
     paddingHorizontal: 72,
