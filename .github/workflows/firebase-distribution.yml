@@ -74,8 +74,8 @@ jobs:
           set -euo pipefail
           want='${{ inputs.platform || 'all' }}'
           all='{"include":[
-            {"platform":"android","artifact":"build.apk","app_id_secret":"FIREBASE_ANDROID_APP_ID"},
-            {"platform":"ios","artifact":"build.ipa","app_id_secret":"FIREBASE_IOS_APP_ID"}
+            {"platform":"android","artifact":"build.apk"},
+            {"platform":"ios","artifact":"build.ipa"}
           ]}'
           if [ "$want" = "all" ]; then
             matrix=$(jq -c . <<<"$all")
@@ -193,7 +193,25 @@ jobs:
         if: steps.build.outputs.skipped != 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: ${{ secrets[matrix.app_id_secret] }}
+          # ⚠️ TWO STATIC REFERENCES, NOT `secrets[matrix.app_id_secret]`.
+          # The dynamic form read the secret NAME out of the matrix, and
+          # GitHub cannot know at parse time which key an expression will ask
+          # for -- so it made the ENTIRE secrets context available to this
+          # step. Every organization and repository secret, to a step that
+          # needs one Firebase app id. CodeQL called it "Excessive Secrets
+          # Exposure" and was right.
+          #
+          # ⚠️ IT MATTERS BECAUSE OF WHAT THIS STEP RUNS: a third-party action
+          # on a MOVING TAG (@v1). Nothing has leaked; the point is blast
+          # radius. If that tag were ever repointed, the difference between
+          # "it can see one app id" and "it can see FIREBASE_SERVICE_ACCOUNT,
+          # GOOGLE_SERVICES_JSON and SONAR_TOKEN" is this line.
+          #
+          # Both branches are static, so only these two secrets are
+          # materialised. `platform` is present on every matrix entry -- the
+          # plan step's jq filter selects ON it -- and the job name already
+          # depends on it.
+          appId: ${{ matrix.platform == 'android' && secrets.FIREBASE_ANDROID_APP_ID || secrets.FIREBASE_IOS_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
           file: ${{ matrix.artifact }}

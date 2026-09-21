@@ -79,3 +79,64 @@ describe('a scanner outage does not fail the test suite', () => {
     expect(CI.match(/continue-on-error/gu)).toHaveLength(1);
   });
 });
+
+/**
+ * ⚠️ `secrets[expr]` HANDS THE WHOLE SECRETS CONTEXT TO A STEP.
+ *
+ * `secrets.FOO` is static: the expression compiler knows at parse time which
+ * one secret is wanted, and materialises only that. `secrets[expr]` indexes
+ * the context with a value that does not exist until the job is running, so
+ * GitHub cannot predict the key and makes EVERY organization and repository
+ * secret available to that step instead.
+ *
+ * `firebase-distribution.yml` did exactly this — it read the secret NAME out
+ * of its matrix — to pass one Firebase app id to a THIRD-PARTY ACTION ON A
+ * MOVING TAG. Nothing leaked; the point is blast radius. CodeQL alert #1,
+ * "Excessive Secrets Exposure", open from 9 September.
+ *
+ * The fix is a static reference per branch. This test is here because the
+ * dynamic form is the tidier-looking one, and the next person adding a third
+ * platform will reach for it.
+ */
+describe('no workflow indexes the secrets context dynamically', () => {
+  const WORKFLOWS = fs
+    .readdirSync(path.join(__dirname, '.github', 'workflows'))
+    .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
+
+  /**
+   * ⚠️ COMMENTS FIRST, and this file has already been bitten twice without it.
+   * The note explaining the fix necessarily CONTAINS `secrets[matrix.…]`, so a
+   * raw scan reports the fixed workflow as broken — the same way the tap-halo
+   * guard failed on a comment saying "NOT tap-halo", and the Maestro gap test
+   * measured the length of its own explanation.
+   */
+  const stripComments = (yaml: string): string =>
+    yaml
+      .split('\n')
+      .map((line) => line.replace(/(^|\s)#.*$/u, '').trimEnd())
+      .join('\n');
+
+  it.each(WORKFLOWS)('%s uses static secret references', (name) => {
+    const body = stripComments(workflow(name));
+    expect(body).not.toMatch(/secrets\s*\[/u);
+  });
+
+  /**
+   * The guard above is worthless if `stripComments` quietly empties the file,
+   * so this pins that it removes the comment and keeps the code on the very
+   * line the fix lives on.
+   */
+  it('strips the comment without eating the expression beside it', () => {
+    const sample = "          appId: ${{ matrix.platform == 'android' }} # secrets[x]";
+    expect(stripComments(sample)).toBe(
+      "          appId: ${{ matrix.platform == 'android' }}",
+    );
+    expect(stripComments('  # secrets[matrix.app_id_secret]')).toBe('');
+  });
+
+  it('still sees the distribution step it is meant to be guarding', () => {
+    expect(stripComments(workflow('firebase-distribution.yml'))).toContain(
+      'secrets.FIREBASE_ANDROID_APP_ID',
+    );
+  });
+});
