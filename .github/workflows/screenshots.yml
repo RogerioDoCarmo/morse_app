@@ -463,3 +463,63 @@ jobs:
           name: store-screenshots-ipad
           path: screenshots-ipad/
           retention-days: 30
+
+  # ⚠️ THE CHECK THAT LOOKS AT THE PICTURE. Everything above measures names,
+  # counts and dimensions. 0.3.6 shipped nine sets that passed all of it with
+  # the SOS illustration missing from every welcome slide — right size, right
+  # text, blank left half — because `alignItems: 'center'` sized the row's
+  # children to their content height and the pager collapsed to zero.
+  #
+  # ⚠️ AND IT IS A JOB, NOT A STEP IN EACH CAPTURE. The obvious place was
+  # inside the jobs above, and it does not work: the iPad is checked too, the
+  # iOS job runs on macOS, and macOS HAS NO FFMPEG — `videos.yml` says so and
+  # picked ubuntu for the same reason. Installing a second decoder there means
+  # two decoders, and the whole check turns on a nine-grey-level gap between a
+  # white card and near-white ground. A decoder that quantises differently
+  # closes that gap silently. One job, one decoder, every slot.
+  verify-the-art-rendered:
+    name: Verify the illustration rendered
+    needs: [android, ios]
+    # ⚠️ `always()`, so a set that captured but failed a LATER check is still
+    # examined. Without it, one failing slot hides the state of the other four.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y --no-install-recommends ffmpeg
+
+      # Every set, by pattern — a missing one is then a named failure below
+      # rather than a step that dies before the others are looked at.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: store-screenshots-*
+          path: captured/
+
+      - name: Check the two-column slots
+        run: |
+          # ⚠️ TWO-COLUMN SLOTS ONLY. Below 1024dp the app is single column and
+          # puts the art at the TOP of the screen, so the band this measures is
+          # legitimately empty copy: the phone, the 7-inch and both iPhone
+          # slots would all fail a check they should pass. `play-tablet-7` is
+          # 600dp and was correct throughout the 0.3.6 breakage — the bug was
+          # never iPad-specific, it was every slot over the threshold.
+          fail=0
+          for slot in store-screenshots-android-tablet10 \
+                      store-screenshots-android-chromebook \
+                      store-screenshots-ipad; do
+            if [ ! -d "captured/$slot" ]; then
+              echo "::error::$slot produced no artifact to check"
+              fail=1
+              continue
+            fi
+            echo "::group::$slot"
+            # ⚠️ The welcome slide only. It is the one two-column screen with a
+            # standalone illustration; the others carry their art inside the
+            # copy column, where this band would not find it.
+            tools/check-two-column-art.sh "captured/$slot"/*/a-welcome.png || fail=1
+            echo "::endgroup::"
+          done
+          exit $fail
