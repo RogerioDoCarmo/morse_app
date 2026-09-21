@@ -583,3 +583,59 @@ describe('a capture that never ran fails loudly', () => {
     expect(WORKFLOW.slice(ipad, ipad + 120)).toContain('continue-on-error: true');
   });
 });
+
+/**
+ * ⚠️ THE SLOT LIST IS THE PART THAT WILL BE GOT WRONG LATER. Checking the
+ * wrong slots is worse than checking none: run the blank-band measurement on
+ * a PHONE and it fails every time, because below 1024dp the app is single
+ * column and puts its art at the top, leaving that band as ordinary copy. A
+ * check that cries wolf on a correct image gets switched off, and then the
+ * two-column slots go unwatched again.
+ *
+ * `play-tablet-7` is the one to notice: it is a TABLET and it must NOT be
+ * checked, because 600dp is below the threshold. It rendered correctly all
+ * through the 0.3.6 breakage — the bug was never iPad-specific or even
+ * tablet-specific, it was every slot over 1024dp.
+ */
+describe('the illustration check watches the two-column slots and only those', () => {
+  const JOB = WORKFLOW.slice(WORKFLOW.indexOf('verify-the-art-rendered:'));
+
+  it('runs as its own job, because macOS has no ffmpeg to decode the iPad set', () => {
+    expect(JOB).toContain('runs-on: ubuntu-latest');
+    expect(JOB).toContain('needs: [android, ios]');
+  });
+
+  it.each([
+    ['store-screenshots-android-tablet10'],
+    ['store-screenshots-android-chromebook'],
+    ['store-screenshots-ipad'],
+  ])('checks %s, which is two columns wide', (artifact) => {
+    expect(JOB).toContain(artifact);
+  });
+
+  it.each([
+    ['store-screenshots-android-tablet7'],
+    ['store-screenshots-android\n'],
+    ['store-screenshots-ios'],
+  ])('does not check %j, which is single column', (artifact) => {
+    expect(JOB).not.toContain(artifact);
+  });
+
+  it('measures the welcome slide, the one two-column screen with standalone art', () => {
+    expect(JOB).toContain('a-welcome.png');
+  });
+
+  /**
+   * A missing artifact must be a named failure, not a step that dies before
+   * the other slots are looked at — one broken capture hiding the state of
+   * the other two is how a bad set reaches a store.
+   */
+  it('names a slot that produced nothing rather than stopping at it', () => {
+    expect(JOB).toContain('produced no artifact to check');
+    expect(JOB).toContain('continue');
+  });
+
+  it('runs even when a capture job failed, or one slot hides the rest', () => {
+    expect(JOB).toContain('if: always()');
+  });
+});
