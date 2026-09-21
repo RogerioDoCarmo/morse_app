@@ -411,3 +411,76 @@ describe('measure-left-band-ink.py', () => {
     expect(ink(8, rect(0, 0.45, 0.2, 0.8, 255))).toBe(1);
   });
 });
+
+/**
+ * ⚠️ A TEXTUAL MERGE CAN BREAK THE LOCKFILE WITHOUT A CONFLICT.
+ *
+ * Four Dependabot PRs were merged in a row on 21 September. Each added the
+ * same `'@types/node@26.6.2':` entry, git merged the texts without complaint
+ * because they do not overlap, and the result had the key FOUR TIMES in each
+ * section — invalid YAML. `pnpm install --frozen-lockfile` then fails with
+ * ERR_PNPM_BROKEN_LOCKFILE on every job of every workflow, and `develop` is
+ * red for everyone until someone notices.
+ *
+ * ⚠️ AND NOTHING WARNED. The merges were clean, the PRs were green when they
+ * were checked, and the breakage only exists in the MERGE RESULT — which no
+ * PR's own CI ever runs. It surfaced on the next unrelated branch, looking
+ * like that branch's fault.
+ *
+ * This will happen again the next time two dependency PRs land together.
+ */
+describe('pnpm-lock.yaml survived its merges', () => {
+  const LOCK = fs
+    .readFileSync(path.join(__dirname, 'pnpm-lock.yaml'), 'utf8')
+    .split('\n');
+
+  /** Top-level `  'name@version':` entries, with their indented bodies. */
+  const entries: { key: string; body: string[]; start: number; end: number }[] = [];
+  for (let i = 0; i < LOCK.length; i += 1) {
+    // `noUncheckedIndexedAccess` is on, so indexing gives `string | undefined`
+    // and every read has to say what it does with the gap.
+    const line = LOCK[i] ?? '';
+    if (line.startsWith("  '") && line.trimEnd().endsWith(':')) {
+      let j = i + 1;
+      while (j < LOCK.length && /^ {4}/u.test(LOCK[j] ?? '')) j += 1;
+      entries.push({ key: line.trim(), body: LOCK.slice(i, j), start: i, end: j });
+      i = j - 1;
+    }
+  }
+
+  it('reads the lockfile it is meant to be checking', () => {
+    // A parser that found nothing would make every assertion below vacuous.
+    expect(entries.length).toBeGreaterThan(500);
+  });
+
+  it('has no entry repeated back to back', () => {
+    const duplicated = entries
+      .filter((entry, n) => {
+        const prev = entries[n - 1];
+        if (!prev) return false;
+        const between = LOCK.slice(prev.end, entry.start);
+        return (
+          prev.body.join('\n') === entry.body.join('\n') &&
+          between.every((line) => line.trim() === '')
+        );
+      })
+      .map((entry) => `${entry.key} (line ${entry.start + 1})`);
+
+    expect(duplicated).toEqual([]);
+  });
+
+  /**
+   * The duplicates above are the symptom that has actually bitten. This is the
+   * broader invariant: within one section a key appears once, so across the
+   * two sections pnpm writes (`packages:` and `snapshots:`) it appears twice.
+   */
+  it('names each package at most twice, once per section', () => {
+    const counts = new Map<string, number>();
+    for (const entry of entries) counts.set(entry.key, (counts.get(entry.key) ?? 0) + 1);
+    const excessive = [...counts.entries()]
+      .filter(([, n]) => n > 2)
+      .map(([key, n]) => `${key} x${n}`);
+
+    expect(excessive).toEqual([]);
+  });
+});
