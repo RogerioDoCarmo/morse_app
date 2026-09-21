@@ -59,21 +59,49 @@ rm -rf "$HOME/.maestro/tests"
 xcrun simctl boot "$udid" || true
 xcrun simctl bootstatus "$udid" -b
 xcrun simctl install "$udid" "$APP"
-maestro --device "$udid" test "$FLOW"
 
-mkdir -p "$OUT"
-find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} "$OUT/" \;
+# ⚠️ ONE PASS PER LOCALE, and the mapping is NOT the identity. The app speaks
+# `en`, `pt-BR` and `es`; the stores want `en-US`, `pt-BR` and `es-419`. Only
+# the middle one is the same string. The app tag goes into a testID, the store
+# tag names the folder, and confusing the two is found at upload.
+#
+# ⚠️ `rm -rf` between passes as well as before the first. Maestro reuses its
+# run directory, so without it the second locale's folder collects the first
+# one's images — an English set filed as Portuguese, at dimensions that look
+# perfectly right.
+for pair in "en:en-US" "pt-BR:pt-BR" "es:es-419"; do
+  app=${pair%%:*}
+  store=${pair##*:}
+  echo "--- $chosen · $store (app locale $app) ---"
 
-# ⚠️ The size the store actually wants, REPORTED rather than assumed. A run
-# that quietly produced the wrong dimensions is worse than one that failed,
-# because it is only found at upload — which is how a full set of Android
-# screenshots reached the listing at 320x640.
-echo "--- $chosen ---"
-for f in "$OUT"/*.png; do
-  printf '%s  %s\n' \
-    "$(sips -g pixelWidth -g pixelHeight "$f" | awk -F': ' '/pixel/{printf "%sx", $2}')" \
-    "$(basename "$f")"
+  rm -rf "$HOME/.maestro/tests"
+  # ⚠️ `-e` GOES AFTER `test`, not before it. `maestro --device X -e K=V test
+  # flow` makes Maestro print its help and exit 0-ish with no flow run and no
+  # error worth the name — which reads as "the flow produced nothing" two steps
+  # later. Caught by running it by hand on Windows; the Android script had the
+  # order right and this one did not.
+  maestro --device "$udid" test -e LOCALE="$app" "$FLOW"
+
+  mkdir -p "$OUT/$store"
+  # ⚠️ A LETTER PREFIX, not digits. This read `[0-9][0-9]-*.png` and matched
+  # nothing the moment the captures were renamed `a-` … `f-` for Play's upload
+  # ordering — a silent empty set after a full simulator build. The shape is
+  # asserted in screenshots-capture.test.ts so this and the flow stay in step.
+  find "$HOME/.maestro/tests" -name '[a-z]-*.png' -exec cp {} "$OUT/$store/" \;
+
+  # ⚠️ The size the store actually wants, REPORTED rather than assumed. A run
+  # that quietly produced the wrong dimensions is worse than one that failed,
+  # because it is only found at upload — which is how a full set of Android
+  # screenshots reached the listing at 320x640.
+  for f in "$OUT/$store"/*.png; do
+    printf '%s  %s\n' \
+      "$(sips -g pixelWidth -g pixelHeight "$f" | awk -F': ' '/pixel/{printf "%sx", $2}')" \
+      "$store/$(basename "$f")"
+  done
+
+  test -n "$(ls -A "$OUT/$store")" || {
+    echo "::error::The flow produced no screenshots for $store."; exit 1;
+  }
 done
-test -n "$(ls -A "$OUT")" || { echo "::error::The flow produced no screenshots."; exit 1; }
 
 xcrun simctl shutdown "$udid" || true

@@ -6,14 +6,43 @@
 #
 #     pnpm screenshots
 #
-# The names match the store slots, so the output drops straight into Play
-# Console and App Store Connect in order.
+# ⚠️ THE NAMES ARE LETTERED, NOT NUMBERED, and that is not cosmetic. Play
+# Console orders a multi-file upload by the browser's own file ordering, which
+# did NOT follow `00-`, `01-`, `02-` — the images arrived shuffled and had to be
+# dragged back into place by hand, guessing which was which. Letters survive
+# that ordering. Renamed on 20 September, after it happened.
 #
 # ⚠️ The point of capturing rather than mocking: a store screenshot has to show
 # the app as it actually is. The previous mockups were rendered from the design
 # canvas and drifted — they showed "Hello world" where the app seeds SOS, a
 # "Flash it" button where it says "Signal", and no output-channel strip at all,
 # which is the app's main control.
+#
+# ⚠️ ONE LOCALE PER RUN, chosen by `LOCALE`. The listing is published in three
+# languages and this captured whatever the emulator booted in, which was always
+# English — so Portuguese and Spanish shoppers saw an English app in every
+# screenshot while the copy beside it was translated.
+#
+#     maestro test -e LOCALE=pt-BR .maestro/screenshots.yaml
+#
+# ⚠️ THE APP'S TAG, NOT THE STORE'S. The app speaks `en`, `pt-BR` and `es`;
+# Play's slots are `en-US`, `pt-BR` and `es-419`. Only the middle one matches.
+# This variable is the APP tag because it is typed straight into a testID; the
+# workflow owns the mapping to store folders.
+# ⚠️ NO `env:` DEFAULT FOR LOCALE, and that is not an omission.
+#
+# This file declared `env: { LOCALE: en }` as a "default". In Maestro 2.10 the
+# flow's own `env:` block WINS over `-e` on the command line — so every pass
+# tapped `interface-en` and all three locales came out identical English, at
+# the right dimensions, with six files in each folder. Every automated check
+# passed. It was caught by opening a Portuguese screenshot and reading
+# "App language: English" in it.
+#
+# Proven rather than guessed: a flow asserting `${LOCALE == 'pt-BR'}`, run with
+# `-e LOCALE=pt-BR` against a header default of `en`, FAILS.
+#
+# With no default, `-e` is the only source and a run that forgets it fails
+# loudly instead of quietly producing the wrong language.
 appId: com.rogeriodocarmo.morse
 ---
 - retry:
@@ -24,10 +53,6 @@ appId: com.rogeriodocarmo.morse
       - assertVisible:
           id: 'first-run'
 
-# The welcome carousel is worth a shot of its own: it is the first thing a new
-# user sees, and it explains the output channels the store copy talks about.
-- takeScreenshot: 00-welcome
-
 - tapOn:
     id: 'first-run-skip'
 - assertNotVisible:
@@ -36,6 +61,64 @@ appId: com.rogeriodocarmo.morse
 # there is no keyboard covering this shot — and a dismiss with nothing to
 # dismiss goes looking for somewhere to tap, which cost this flow a run once.
 
+- assertVisible:
+    id: 'translator-screen'
+
+# ─── Set the interface language ───────────────────────────────────────────────
+#
+# ⚠️ `interface-*`, NOT `locale-option-*`. The second is the Translator's own
+# input-language picker and changes the badge above the text field while
+# leaving every label in English — which looks like it worked.
+- tapOn:
+    id: 'open-settings'
+- assertVisible:
+    id: 'settings-screen'
+# ⚠️ Scrolled to, not tapped blind. The row sits below the fold on a phone, and
+# `language.yaml` already pays for this lesson twice over.
+- scrollUntilVisible:
+    element:
+      id: 'settings-language'
+    direction: DOWN
+- tapOn:
+    id: 'settings-language'
+- assertVisible:
+    id: 'language-screen'
+- tapOn:
+    id: 'interface-${LOCALE}'
+- tapOn:
+    id: 'language-back'
+- assertVisible:
+    id: 'settings-screen'
+
+# ─── The welcome carousel, now in that language ───────────────────────────────
+#
+# ⚠️ IT HAS TO BE REPLAYED, and this is the whole reason the flow is shaped this
+# way. The guide shows on first launch, BEFORE Settings can be reached — so a
+# shot taken where it naturally appears is always English, whatever `LOCALE`
+# says. Relaunching with `clearState` to see it again would reset the language
+# with it. `settings-show-guide` is the only way to see the carousel in a
+# language the app was not started in.
+- scrollUntilVisible:
+    element:
+      id: 'settings-show-guide'
+    direction: DOWN
+- tapOn:
+    id: 'settings-show-guide'
+- assertVisible:
+    id: 'first-run'
+# The first thing a new user sees, and it explains the output channels the
+# store copy talks about.
+- takeScreenshot: a-welcome
+- tapOn:
+    id: 'first-run-skip'
+- assertNotVisible:
+    id: 'first-run'
+# Dismissing the guide lands back on Settings, because that is where it was
+# opened from — not on the Translator.
+- assertVisible:
+    id: 'settings-screen'
+- tapOn:
+    id: 'settings-back'
 - assertVisible:
     id: 'translator-screen'
 
@@ -62,34 +145,39 @@ appId: com.rogeriodocarmo.morse
 # in a shot taken on a freshly cleared device — which is every shot here.
 - waitForAnimationToEnd:
     timeout: 12000
-- takeScreenshot: 01-translator
 
 # The channel strip switched on, which is the feature the listing leads with.
 # Screen and Vibrate only: Light raises the camera permission, and a system
 # dialog in a store screenshot is a rejection waiting to happen.
+#
+# ⚠️ A SHOT WAS TAKEN HERE AND HAS BEEN DROPPED. It was this same screen with
+# the strip still off, and on a store listing the two were indistinguishable —
+# pixel-identical except for three toggles changing colour — so the pair spent
+# two of eight slots saying one thing. The wait above still earns its keep: it
+# is what stops the pulsing hint being caught mid-sweep in THIS shot.
 - tapOn:
     id: 'channel-screen'
 - tapOn:
     id: 'channel-buzz'
-- takeScreenshot: 02-output-channels
+- takeScreenshot: b-translator
 
 - tapOn:
     id: 'tab-speak'
 - assertVisible:
     id: 'speech-screen'
-- takeScreenshot: 03-speech
+- takeScreenshot: c-speech
 
 - tapOn:
     id: 'tab-tap'
 - assertVisible:
     id: 'tap-screen'
-- takeScreenshot: 04-tap-decode
+- takeScreenshot: d-tap-decode
 
 - tapOn:
     id: 'tab-learn'
 - assertVisible:
     id: 'learn-screen'
-- takeScreenshot: 05-learn
+- takeScreenshot: e-learn
 
 - tapOn:
     id: 'tab-translate'
@@ -102,4 +190,4 @@ appId: com.rogeriodocarmo.morse
     id: 'open-settings'
 - assertVisible:
     id: 'settings-screen'
-- takeScreenshot: 06-settings
+- takeScreenshot: f-settings

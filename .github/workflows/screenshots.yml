@@ -100,12 +100,29 @@ jobs:
         with:
           google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
-      # ⚠️ `continue-on-error`, so a flow that fails on its last step still
-      # hands over what it captured. The first run failed on the seventh
-      # screenshot and discarded the six before it; the collect step below is
-      # what decides whether the job passed, because images are the point.
+      # ⚠️ NO `continue-on-error`, and it was here until 20 September.
+      #
+      # It was added so a flow failing on its last shot still handed over the
+      # six before it — a real problem, but one the steps below already solve:
+      # `Collect the screenshots` and `Upload the screenshots` both carry
+      # `if: always()` and run whatever this step does. The flag was protecting
+      # something that no longer needed protecting.
+      #
+      # What it DID do was hide three separate failures in one evening. A
+      # capture that never started reported success here, and the job died two
+      # steps later at "No screenshots for en-US" — which reads as a broken
+      # collector. Each time, the real error was twenty lines earlier in a step
+      # that had been told its failure did not count:
+      #   1. the locale loop split across shells by the emulator action
+      #   2. `Permission denied` on a script committed without its +x bit
+      #   3. …and the third was only found by reading the log anyway
+      #
+      # ⚠️ AND IT KILLED THE DEBUG CAPTURE. `Keep the Maestro output when the
+      # flow failed` is `if: failure()`, which is never true while this step
+      # swallows its own failure — so the one step that exists to preserve
+      # evidence has never once run. That is why none of those three failures
+      # left a Maestro artefact behind.
       - name: Run flows on an emulator
-        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         env:
           # The driver install is the slow part even with KVM; the default is
@@ -144,7 +161,14 @@ jobs:
             # That stops the NEXT one; anything already up needs dismissing.
             adb shell input keyevent KEYCODE_BACK || true
             adb shell input keyevent KEYCODE_HOME || true
-            maestro test .maestro/screenshots.yaml
+
+            # ⚠️ A SCRIPT, not a loop written here. This action runs its
+            # `script:` block ONE LINE AT A TIME, each in its own `sh -c`, so a
+            # multi-line `for` was split across shells and died on
+            # "Syntax error: end of file unexpected (expecting done)". Every
+            # other line in this block happens to be self-contained, which is
+            # why nothing had ever revealed it.
+            tools/capture-android-locales.sh
 
       # ⚠️ `if: always()`, not `if: failure()`. In the E2E workflow the Maestro
       # output is evidence for a failure; here the images ARE the job, and a
@@ -155,17 +179,28 @@ jobs:
       - name: Collect the screenshots
         if: always()
         run: |
-          mkdir -p screenshots
-          # ⚠️ `~/.maestro/tests/`, not the working directory. `takeScreenshot`
-          # writes into Maestro's own debug directory for the run, which the
-          # first attempt did not know — it looked in the repository root,
-          # found nothing, and threw away six perfectly good screenshots while
-          # reporting that none had been produced.
-          find "$HOME/.maestro/tests" -name '[0-9][0-9]-*.png' -exec cp {} screenshots/ \;
-          ls -la screenshots/
-          test -n "$(ls -A screenshots/)" || {
-            echo "::error::The flow produced no screenshots."; exit 1;
-          }
+          # ⚠️ The images were already copied per locale by the emulator script,
+          # into `screenshots/<store-tag>/`. They have to be, because Maestro
+          # reuses `~/.maestro/tests` for every run and the passes would collect
+          # each other. A sweep here would have nothing left to find.
+          #
+          # ⚠️ `~/.maestro/tests/`, not the working directory — `takeScreenshot`
+          # writes into Maestro's own debug directory. The first attempt looked
+          # in the repository root, found nothing, and threw away six perfectly
+          # good screenshots while reporting that none had been produced.
+          #
+          # ⚠️ A LETTER PREFIX, not digits. The collectors read
+          # `[0-9][0-9]-*.png` and matched nothing the moment the captures were
+          # renamed `a-` … `f-` for Play's upload ordering. The single-letter
+          # shape is asserted in screenshots-capture.test.ts.
+          ls -R screenshots/ || true
+          # Every locale, or the set is not shippable — a missing folder means
+          # one language silently keeps whatever is already on the listing.
+          for store in en-US pt-BR es-419; do
+            test -n "$(ls -A "screenshots/$store" 2>/dev/null)" || {
+              echo "::error::No screenshots for $store."; exit 1;
+            }
+          done
           # ⚠️ Print the SIZE. A profile name the emulator does not recognise
           # falls back to a default rather than failing, and a 320x640 set is
           # what that looks like — accepted by Play, and unusable. This is the
@@ -179,7 +214,7 @@ jobs:
           # follows, so it reports 226px of "bar" on a 1080x2400 shot.
           if [ "${{ matrix.strip_taskbar }}" = "yes" ]; then
             sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
-            for f in screenshots/*.png; do tools/strip-system-bar.sh "$f"; done
+            for f in screenshots/*/*.png; do tools/strip-system-bar.sh "$f"; done
           fi
 
           # ⚠️ Padded, not cropped. Cropping 2560x1600 to 16:9 would cut 160px
@@ -200,7 +235,7 @@ jobs:
           # bar someone has to explain.
           if [ "${{ matrix.pad_to_16_9 }}" = "yes" ]; then
             sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null 2>&1 || true
-            for f in screenshots/*.png; do
+            for f in screenshots/*/*.png; do
               ffmpeg -hide_banner -loglevel error -y -i "$f" \
                 -vf "scale=2560:1440:force_original_aspect_ratio=decrease,pad=2560:1440:(ow-iw)/2:(oh-ih)/2:color=0xf2f4f7" \
                 "$f.16x9.png" && mv "$f.16x9.png" "$f"
@@ -211,7 +246,7 @@ jobs:
           import glob, os, struct, sys
 
           slot = os.environ['SLOT']
-          shots = sorted(glob.glob('screenshots/*.png'))
+          shots = sorted(glob.glob('screenshots/*/*.png'))
           if not shots:
               sys.exit('::error::no screenshots to measure')
 
@@ -377,15 +412,24 @@ jobs:
       - name: Check something was captured
         if: always()
         run: |
+          # ⚠️ PER LOCALE, not per directory. These now hold one folder per
+          # store tag, so `ls -A screenshots-ios` is non-empty the moment a
+          # single language captured — and an empty `es-419` beside a full
+          # `en-US` would have passed, leaving Spanish shoppers on whatever is
+          # already on the listing.
           for dir in screenshots-ios screenshots-ipad; do
-            if [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
-              echo "$dir: $(ls "$dir" | wc -l | tr -d ' ') images"
-            else
-              echo "::warning::$dir is empty."
-            fi
+            for store in en-US pt-BR es-419; do
+              if [ -n "$(ls -A "$dir/$store" 2>/dev/null)" ]; then
+                echo "$dir/$store: $(ls "$dir/$store" | wc -l | tr -d ' ') images"
+              else
+                echo "::warning::$dir/$store is empty."
+              fi
+            done
           done
-          test -n "$(ls -A screenshots-ios 2>/dev/null)" \
-            || { echo "::error::The iPhone capture produced nothing."; exit 1; }
+          for store in en-US pt-BR es-419; do
+            test -n "$(ls -A "screenshots-ios/$store" 2>/dev/null)" \
+              || { echo "::error::The iPhone capture produced nothing for $store."; exit 1; }
+          done
 
           # ⚠️ While `supportsTablet` is true, App Store Connect REQUIRES the
           # iPad set — so an empty one has to fail the job, not warn.
@@ -396,10 +440,12 @@ jobs:
           # Android screenshots sitting at 320x640 for a week: a green tick
           # over a missing or wrong asset, found at upload.
           if node -e "process.exit(require('./app.json').expo.ios.supportsTablet ? 0 : 1)"; then
-            test -n "$(ls -A screenshots-ipad 2>/dev/null)" || {
-              echo "::error::app.json declares supportsTablet, so Apple requires an iPad set — and none was captured."
-              exit 1
-            }
+            for store in en-US pt-BR es-419; do
+              test -n "$(ls -A "screenshots-ipad/$store" 2>/dev/null)" || {
+                echo "::error::app.json declares supportsTablet, so Apple requires an iPad set — and none was captured for $store."
+                exit 1
+              }
+            done
           fi
 
       - name: Upload the iPhone screenshots

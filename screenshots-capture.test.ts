@@ -8,6 +8,16 @@ const WORKFLOW = fs.readFileSync(
   path.join(__dirname, '.github', 'workflows', 'screenshots.yml'),
   'utf8',
 );
+/**
+ * ⚠️ The Android locale loop lives in its own script, not in the workflow.
+ * `android-emulator-runner` runs its `script:` block ONE LINE AT A TIME, each
+ * in its own `sh -c`, so a multi-line `for` is split across shells and dies on
+ * "Syntax error: end of file unexpected (expecting done)".
+ */
+const ANDROID_LOCALES = fs.readFileSync(
+  path.join(__dirname, 'tools', 'capture-android-locales.sh'),
+  'utf8',
+);
 const CAPTURE = fs.readFileSync(
   path.join(__dirname, 'tools', 'capture-ios-screenshots.sh'),
   'utf8',
@@ -215,5 +225,361 @@ describe('deriving the 6.5-inch iPhone set, which no simulator can capture', () 
 
   it('verifies what it produced rather than trusting ffmpeg', () => {
     expect(DERIVE).toContain('expected ${DST_W}x${DST_H}');
+  });
+});
+
+/**
+ * ⚠️ PLAY CONSOLE DOES NOT SORT A MULTI-FILE UPLOAD THE WAY THE FILENAMES DO.
+ *
+ * The captures were `00-welcome`, `01-translator`, `02-output-channels` … and
+ * they arrived at the console shuffled, leaving someone to drag seven
+ * near-identical phone screenshots back into an order they had to guess. The
+ * numbers looked like they were doing the job and were not.
+ *
+ * Letters survive that ordering, which is the whole reason for the naming.
+ */
+describe('screenshot names carry their own upload order', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+
+  /** Capture names, in the order the flow takes them. */
+  const names = [...FLOW.matchAll(/^- takeScreenshot:\s*(\S+)\s*$/gmu)].map(
+    (m) => m[1] as string,
+  );
+
+  it('finds the captures it is reasoning about', () => {
+    // Without this, a rename of the YAML key would make every assertion below
+    // vacuously true.
+    expect(names.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('prefixes every shot with a single letter', () => {
+    const wrong = names.filter((n) => !/^[a-z]-/u.test(n));
+
+    expect(wrong).toEqual([]);
+  });
+
+  // ⚠️ The failure this prevents is subtle: a numbered name still sorts
+  // correctly in a shell and in git, so nothing local complains. It only shows
+  // up in the console, after the upload.
+  it('leaves no numeric prefix behind', () => {
+    const numbered = names.filter((n) => /^\d/u.test(n));
+
+    expect(numbered).toEqual([]);
+  });
+
+  it('puts them in alphabetical order, so upload order matches capture order', () => {
+    expect(names).toStrictEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+
+  // Play takes 2–8 phone screenshots. Six is comfortable; the guard is against
+  // someone trimming the set below what the store will accept.
+  it('keeps enough shots for the store to accept the listing', () => {
+    expect(names.length).toBeGreaterThanOrEqual(2);
+    expect(names.length).toBeLessThanOrEqual(8);
+  });
+});
+
+/**
+ * ⚠️ THE COLLECTORS HAVE TO MATCH THE NAMES, and nothing else checks that.
+ *
+ * Both the workflow and the iOS script fish the captures out of Maestro's own
+ * debug directory with a `find -name` glob. Both read `[0-9][0-9]-*.png`, which
+ * matched nothing the moment the shots were renamed `a-` … `f-`. The failure
+ * mode is the expensive kind: the emulator boots, the app builds, the flow runs
+ * its full twenty minutes and produces every image — and then the collector
+ * reports that none were produced.
+ *
+ * The screenshots workflow is `workflow_dispatch` only, so no PR would have
+ * caught it either.
+ */
+describe('the collectors find the names the flow writes', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+  const shots = [...FLOW.matchAll(/^- takeScreenshot:\s*(\S+)\s*$/gmu)].map(
+    (m) => m[1] as string,
+  );
+
+  /** The `find -name '<glob>'` pattern used by a collector. */
+  function globsIn(source: string): string[] {
+    return [...source.matchAll(/-name\s+'([^']+\.png)'/gu)].map((m) => m[1] as string);
+  }
+
+  /**
+   * A shell glob as `find` reads it: `[a-z]` stays a character class, `*`
+   * becomes any run, and a literal dot is written `[.]` — which escapes it
+   * without a backslash, so this line survives being moved between a shell
+   * heredoc and a file. The first version used backslash escapes and arrived
+   * with them collapsed, leaving an unterminated regex.
+   */
+  function toRegExp(glob: string): RegExp {
+    const escaped = glob.split('.').join('[.]').split('*').join('.*');
+    return new RegExp('^' + escaped + '$', 'u');
+  }
+
+  it('finds a collector in each file, and captures to check it against', () => {
+    // ⚠️ The Android collector lives in capture-android-locales.sh, NOT in the
+    // workflow — the loop had to move there because the emulator action runs
+    // its script one line at a time, and the glob went with it.
+    expect(globsIn(ANDROID_LOCALES).length).toBeGreaterThan(0);
+    expect(globsIn(CAPTURE).length).toBeGreaterThan(0);
+    expect(shots.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('matches every capture from the Android script', () => {
+    const globs = globsIn(ANDROID_LOCALES);
+    const missed = shots.filter((s) => !globs.some((g) => toRegExp(g).test(s + '.png')));
+
+    expect(missed).toEqual([]);
+  });
+
+  it('matches every capture from the iOS script', () => {
+    const globs = globsIn(CAPTURE);
+    const missed = shots.filter((s) => !globs.some((g) => toRegExp(g).test(s + '.png')));
+
+    expect(missed).toEqual([]);
+  });
+
+  // The negative control: proves the two assertions above are doing work
+  // rather than passing on a glob that happens to match anything.
+  it('would reject the numbered names these globs used to expect', () => {
+    for (const glob of globsIn(ANDROID_LOCALES).concat(globsIn(CAPTURE))) {
+      expect(toRegExp(glob).test('00-welcome.png')).toBe(false);
+    }
+  });
+});
+
+/**
+ * ⚠️ THE LISTING IS PUBLISHED IN THREE LANGUAGES AND THE SHOTS WERE ALL
+ * ENGLISH. The flow captured whatever locale the emulator booted in, so a
+ * Portuguese shopper read translated copy beside screenshots of an English app.
+ *
+ * ⚠️ AND THE TAGS DO NOT MATCH. The app speaks `en`, `pt-BR` and `es`; the
+ * stores want `en-US`, `pt-BR` and `es-419`. Only the middle one is the same
+ * string — which is exactly why the other two are easy to get wrong, and why
+ * the wrong one is found at upload rather than here.
+ */
+describe('screenshots are captured in every published language', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+
+  /** app tag → store folder. Written out, not derived: the mapping IS the risk. */
+  const PAIRS = [
+    ['en', 'en-US'],
+    ['pt-BR', 'pt-BR'],
+    ['es', 'es-419'],
+  ] as const;
+
+  it('takes the locale from a variable rather than the emulator default', () => {
+    expect(FLOW).toContain('LOCALE');
+    expect(FLOW).toContain("id: 'interface-${LOCALE}'");
+  });
+
+  /**
+   * ⚠️ `interface-*` sets the app's language. `locale-option-*` is the
+   * Translator's own input picker — it changes the badge above the text field
+   * and leaves every label in English, which looks like it worked.
+   */
+  it('uses the interface picker, not the translator input picker', () => {
+    expect(FLOW).not.toContain('locale-option-${LOCALE}');
+  });
+
+  /**
+   * ⚠️ The guide appears on first launch, BEFORE Settings can be reached, so a
+   * shot taken where it naturally appears is English whatever LOCALE says.
+   * Relaunching with clearState to see it again would reset the language too.
+   */
+  it('replays the guide so the welcome shot is localised as well', () => {
+    const setLocale = FLOW.indexOf("id: 'interface-${LOCALE}'");
+    const replay = FLOW.indexOf("id: 'settings-show-guide'");
+    const welcome = FLOW.indexOf('takeScreenshot: a-welcome');
+
+    expect(setLocale).toBeGreaterThan(-1);
+    expect(replay).toBeGreaterThan(setLocale);
+    expect(welcome).toBeGreaterThan(replay);
+  });
+
+  it.each(PAIRS)('runs %s and files it under %s on Android', (app, store) => {
+    expect(ANDROID_LOCALES).toContain(`"${app}:${store}"`);
+  });
+
+  /**
+   * ⚠️ THE LOOP MUST NOT MOVE BACK INTO THE WORKFLOW.
+   * `android-emulator-runner` runs its `script:` block one line at a time, each
+   * in its own `sh -c`. A `for` written there is split across shells and fails
+   * instantly — and because that step carries `continue-on-error`, the job
+   * limps on and reports "no screenshots" two minutes later, pointing at the
+   * collector rather than at the thing that never ran.
+   */
+  it('keeps the Android loop in a script the workflow calls', () => {
+    expect(WORKFLOW).toContain('tools/capture-android-locales.sh');
+    expect(WORKFLOW).not.toContain('for pair in');
+  });
+
+  it.each(PAIRS)('runs %s and files it under %s on iOS', (app, store) => {
+    expect(CAPTURE).toContain(`"${app}:${store}"`);
+  });
+
+  /**
+   * ⚠️ Maestro reuses `~/.maestro/tests` for every run. Without clearing it
+   * between passes the second locale collects the first one's images — an
+   * English set filed as Portuguese, at dimensions that look perfectly right.
+   */
+  it.each([
+    ['the Android workflow', 'WORKFLOW'],
+    ['the iOS script', 'CAPTURE'],
+  ])('clears Maestro output between locales in %s', (_label, which) => {
+    const source = which === 'WORKFLOW' ? ANDROID_LOCALES : CAPTURE;
+    const loop = source.indexOf('for pair in');
+    const clear = source.indexOf('rm -rf "$HOME/.maestro/tests"', loop);
+    const run = source.indexOf('maestro', clear);
+
+    expect(loop).toBeGreaterThan(-1);
+    expect(clear).toBeGreaterThan(loop);
+    expect(run).toBeGreaterThan(clear);
+  });
+
+  it('fails the job when a language captured nothing', () => {
+    // A missing folder means one language silently keeps whatever is already
+    // on the listing — the quiet failure this whole file exists to prevent.
+    expect(ANDROID_LOCALES).toContain('no screenshots for ${store}.');
+    expect(CAPTURE).toContain('produced no screenshots for $store.');
+  });
+});
+
+/**
+ * ⚠️ TWO BUGS THAT BOTH PRODUCED "SIX IMAGES PER LOCALE" AND WERE BOTH WRONG.
+ *
+ * 1. The flow declared `env: { LOCALE: en }` as a default. In Maestro 2.10 the
+ *    flow's own `env:` block WINS over `-e` on the command line, so every pass
+ *    tapped `interface-en`. Three locales, identical English, right
+ *    dimensions, six files each — every check in this file passed.
+ *
+ *    Proven, not guessed: a flow asserting `${LOCALE == 'pt-BR'}` run with
+ *    `-e LOCALE=pt-BR` against a header default of `en` FAILS.
+ *
+ * 2. `capture-ios-screenshots.sh` put `-e` BEFORE `test`. Maestro prints its
+ *    help and runs nothing, which surfaces as an empty output directory.
+ *
+ * Neither was caught by a test. Both were caught by opening a Portuguese
+ * screenshot and reading "App language: English" in it.
+ */
+describe('the locale actually reaches the app', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+
+  /**
+   * The header above `---`, WITH COMMENTS STRIPPED.
+   *
+   * ⚠️ Comments first, or this fails on itself: the header now explains the
+   * `env: LOCALE: en` that was removed, so a raw search finds the very string
+   * it is checking is absent. The same trap the flow guards above already
+   * document, and it caught this test on its first run.
+   */
+  const header = FLOW.slice(0, FLOW.indexOf('\n---'))
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+
+  it('declares no default for LOCALE, which would outrank -e', () => {
+    // A default here is not a fallback — it is an override, and a silent one.
+    expect(header).not.toMatch(/^env:/mu);
+    expect(header).not.toMatch(/LOCALE:/u);
+  });
+
+  it.each([
+    ['capture-android-locales.sh', 'ANDROID'],
+    ['capture-ios-screenshots.sh', 'IOS'],
+  ])('passes -e after the test subcommand in %s', (_file, which) => {
+    const source = which === 'ANDROID' ? ANDROID_LOCALES : CAPTURE;
+
+    // The command itself, not a comment mentioning one.
+    const line = source
+      .split('\n')
+      .map((l) => l.trim())
+      .find((l) => !l.startsWith('#') && l.startsWith('maestro') && l.includes('-e '));
+
+    expect(line).toBeDefined();
+    const cmd = line as string;
+    // ⚠️ The whole bug: `-e` before `test` makes Maestro print its help, run
+    // nothing, and leave an empty output directory behind.
+    expect(cmd.indexOf(' test')).toBeGreaterThan(-1);
+    expect(cmd.indexOf('-e ')).toBeGreaterThan(cmd.indexOf(' test'));
+  });
+});
+
+/**
+ * ⚠️ A CAPTURE THAT NEVER RAN MUST FAIL THE STEP THAT RAN IT.
+ *
+ * `Run flows on an emulator` carried `continue-on-error: true` until
+ * 20 September. It was added for a good reason — a flow failing on its last
+ * shot should still hand over the earlier ones — but the steps below already
+ * do that with `if: always()`, so it was protecting nothing.
+ *
+ * What it did instead was hide three separate failures in one evening, each
+ * surfacing two steps later as "No screenshots for en-US", which reads as a
+ * broken collector rather than a capture that never started.
+ *
+ * ⚠️ And it silently disabled the debug capture: `Keep the Maestro output when
+ * the flow failed` is `if: failure()`, which can never be true while the step
+ * before it swallows its own failure.
+ */
+describe('a capture that never ran fails loudly', () => {
+  /** The Android emulator step, up to the start of the next step. */
+  const emulatorStep = (): string => {
+    const start = WORKFLOW.indexOf('- name: Run flows on an emulator');
+    const next = WORKFLOW.indexOf('- name: Collect the screenshots');
+    expect(start).toBeGreaterThan(-1);
+    expect(next).toBeGreaterThan(start);
+    return WORKFLOW.slice(start, next);
+  };
+
+  it('does not let the emulator step swallow its own failure', () => {
+    expect(emulatorStep()).not.toContain('continue-on-error');
+  });
+
+  /**
+   * The reason the flag could go: these two run regardless, so a flow that
+   * fails late still hands over what it captured. Removing `if: always()` from
+   * either would make the removal above destructive.
+   */
+  it.each(['Collect the screenshots', 'Upload the screenshots'])(
+    'keeps %s running whatever the capture did',
+    (step) => {
+      const start = WORKFLOW.indexOf(`- name: ${step}`);
+      expect(start).toBeGreaterThan(-1);
+      expect(WORKFLOW.slice(start, start + 120)).toContain('if: always()');
+    },
+  );
+
+  // Now reachable for the first time, because the step before it can fail.
+  it('keeps the Maestro debug capture on failure', () => {
+    const start = WORKFLOW.indexOf(
+      '- name: Keep the Maestro output when the flow failed',
+    );
+    expect(start).toBeGreaterThan(-1);
+    expect(WORKFLOW.slice(start, start + 120)).toContain('if: failure()');
+  });
+
+  /**
+   * ⚠️ The iOS job keeps its two flags ON PURPOSE, and they are not the same
+   * thing. iPhone and iPad are separate steps in one job: without the flag, an
+   * iPhone failure would skip the iPad capture entirely and Apple requires
+   * both. That is sequencing, not masking.
+   */
+  it('leaves the iOS captures able to fail independently', () => {
+    const iphone = WORKFLOW.indexOf('- name: Capture on a 6.9-inch iPhone');
+    const ipad = WORKFLOW.indexOf('- name: Capture on a 13-inch iPad');
+
+    expect(WORKFLOW.slice(iphone, iphone + 120)).toContain('continue-on-error: true');
+    expect(WORKFLOW.slice(ipad, ipad + 120)).toContain('continue-on-error: true');
   });
 });
