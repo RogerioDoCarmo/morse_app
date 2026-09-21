@@ -454,6 +454,69 @@ describe('screenshots are captured in every published language', () => {
 });
 
 /**
+ * ⚠️ TWO BUGS THAT BOTH PRODUCED "SIX IMAGES PER LOCALE" AND WERE BOTH WRONG.
+ *
+ * 1. The flow declared `env: { LOCALE: en }` as a default. In Maestro 2.10 the
+ *    flow's own `env:` block WINS over `-e` on the command line, so every pass
+ *    tapped `interface-en`. Three locales, identical English, right
+ *    dimensions, six files each — every check in this file passed.
+ *
+ *    Proven, not guessed: a flow asserting `${LOCALE == 'pt-BR'}` run with
+ *    `-e LOCALE=pt-BR` against a header default of `en` FAILS.
+ *
+ * 2. `capture-ios-screenshots.sh` put `-e` BEFORE `test`. Maestro prints its
+ *    help and runs nothing, which surfaces as an empty output directory.
+ *
+ * Neither was caught by a test. Both were caught by opening a Portuguese
+ * screenshot and reading "App language: English" in it.
+ */
+describe('the locale actually reaches the app', () => {
+  const FLOW = fs.readFileSync(
+    path.join(__dirname, '.maestro', 'screenshots.yaml'),
+    'utf8',
+  );
+
+  /**
+   * The header above `---`, WITH COMMENTS STRIPPED.
+   *
+   * ⚠️ Comments first, or this fails on itself: the header now explains the
+   * `env: LOCALE: en` that was removed, so a raw search finds the very string
+   * it is checking is absent. The same trap the flow guards above already
+   * document, and it caught this test on its first run.
+   */
+  const header = FLOW.slice(0, FLOW.indexOf('\n---'))
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
+
+  it('declares no default for LOCALE, which would outrank -e', () => {
+    // A default here is not a fallback — it is an override, and a silent one.
+    expect(header).not.toMatch(/^env:/mu);
+    expect(header).not.toMatch(/LOCALE:/u);
+  });
+
+  it.each([
+    ['capture-android-locales.sh', 'ANDROID'],
+    ['capture-ios-screenshots.sh', 'IOS'],
+  ])('passes -e after the test subcommand in %s', (_file, which) => {
+    const source = which === 'ANDROID' ? ANDROID_LOCALES : CAPTURE;
+
+    // The command itself, not a comment mentioning one.
+    const line = source
+      .split('\n')
+      .map((l) => l.trim())
+      .find((l) => !l.startsWith('#') && l.startsWith('maestro') && l.includes('-e '));
+
+    expect(line).toBeDefined();
+    const cmd = line as string;
+    // ⚠️ The whole bug: `-e` before `test` makes Maestro print its help, run
+    // nothing, and leave an empty output directory behind.
+    expect(cmd.indexOf(' test')).toBeGreaterThan(-1);
+    expect(cmd.indexOf('-e ')).toBeGreaterThan(cmd.indexOf(' test'));
+  });
+});
+
+/**
  * ⚠️ A CAPTURE THAT NEVER RAN MUST FAIL THE STEP THAT RAN IT.
  *
  * `Run flows on an emulator` carried `continue-on-error: true` until
