@@ -29,8 +29,13 @@ IMG=${1:?usage: strip-system-bar.sh <image.png>}
 # something has gone wrong. Both real tablets measure 6-8%.
 MAX_FRACTION=${MAX_FRACTION:-0.12}
 
+# ⚠️ `tr -d '\r'` — on Windows ffprobe ends its line with CRLF, so `H` arrives
+# as `1920\r`. That survives every comparison below and then dies in
+# `$((H - BAR))` with "arithmetic syntax error (error token is "")", which
+# points at the arithmetic rather than at the invisible character in the value.
+# Harmless on Linux and macOS, where there is no CR to delete.
 read -r W H < <(ffprobe -v error -select_streams v:0 \
-  -show_entries stream=width,height -of csv=p=0 "$IMG" | tr ',' ' ')
+  -show_entries stream=width,height -of csv=p=0 "$IMG" | tr -d '\r' | tr ',' ' ')
 
 BAR=$(ffmpeg -hide_banner -loglevel error -i "$IMG" -f rawvideo -pix_fmt gray - 2>/dev/null |
   W="$W" H="$H" python3 -c "
@@ -44,14 +49,20 @@ y = h - 2
 while y > 0 and abs(px(edge, y) - bg) <= 2:
     y -= 1
 print(h - 1 - y)
-")
+" | tr -d '\r')
 
 if [ "$BAR" -eq 0 ]; then
   echo "    $(basename "$IMG"): no system bar found, left alone" >&2
   exit 0
 fi
 
-LIMIT=$(python3 -c "print(int($H * $MAX_FRACTION))")
+# ⚠️ `tr -d '\r'` on every python3 output, here and above. Python on Windows
+# prints CRLF, so the value arrives as `120\r` — which survives the `-eq` and
+# `-gt` comparisons above and then dies in `$((H - BAR))` with
+# "arithmetic syntax error (error token is "")", pointing at the arithmetic
+# rather than at the newline. Harmless on Linux and macOS, where there is no CR
+# to delete.
+LIMIT=$(python3 -c "print(int($H * $MAX_FRACTION))" | tr -d '\r')
 if [ "$BAR" -gt "$LIMIT" ]; then
   echo "::error::$(basename "$IMG"): measured a ${BAR}px bar on a ${W}x${H} shot," \
        "past the ${LIMIT}px sanity limit. That is not a taskbar — refusing to crop." >&2
