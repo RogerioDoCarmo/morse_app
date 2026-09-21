@@ -437,10 +437,13 @@ describe('pnpm-lock.yaml survived its merges', () => {
   /** Top-level `  'name@version':` entries, with their indented bodies. */
   const entries: { key: string; body: string[]; start: number; end: number }[] = [];
   for (let i = 0; i < LOCK.length; i += 1) {
-    if (LOCK[i].startsWith("  '") && LOCK[i].trimEnd().endsWith(':')) {
+    // `noUncheckedIndexedAccess` is on, so indexing gives `string | undefined`
+    // and every read has to say what it does with the gap.
+    const line = LOCK[i] ?? '';
+    if (line.startsWith("  '") && line.trimEnd().endsWith(':')) {
       let j = i + 1;
-      while (j < LOCK.length && /^(?: {4}|\t)/u.test(LOCK[j])) j += 1;
-      entries.push({ key: LOCK[i].trim(), body: LOCK.slice(i, j), start: i, end: j });
+      while (j < LOCK.length && /^ {4}/u.test(LOCK[j] ?? '')) j += 1;
+      entries.push({ key: line.trim(), body: LOCK.slice(i, j), start: i, end: j });
       i = j - 1;
     }
   }
@@ -453,8 +456,8 @@ describe('pnpm-lock.yaml survived its merges', () => {
   it('has no entry repeated back to back', () => {
     const duplicated = entries
       .filter((entry, n) => {
-        if (n === 0) return false;
         const prev = entries[n - 1];
+        if (!prev) return false;
         const between = LOCK.slice(prev.end, entry.start);
         return (
           prev.body.join('\n') === entry.body.join('\n') &&
