@@ -310,3 +310,104 @@ describe('shell scripts are executable in the index', () => {
     expect(notExecutable).toEqual([]);
   });
 });
+
+/**
+ * ⚠️ THIS IS THE CHECK THAT WOULD HAVE CAUGHT THE BLANK TABLET SCREENSHOTS.
+ *
+ * Every welcome slide on the 10-inch, Chromebook and iPad slots shipped with
+ * the SOS illustration missing, in three languages, on both stores. The images
+ * had the right names, the right count, the right dimensions and the right
+ * text; the only thing wrong with them was a picture that was not there. No
+ * unit test could see it -- React Native Testing Library resolves the tree
+ * without laying anything out, so `getByTestId` passes on a zero-height
+ * element, and all 35 FirstRun tests were green throughout.
+ *
+ * So the check is on the pixels, and these tests are on the check. They feed
+ * the measurement raw bytes rather than a PNG, because ubuntu-latest has no
+ * ffmpeg and a test that needed one would have skipped in CI -- which is the
+ * same kind of nothing as the tests that already passed.
+ */
+describe('measure-left-band-ink.py', () => {
+  const MEASURE = path.join(__dirname, 'tools', 'measure-left-band-ink.py');
+  const W = 200;
+  const H = 100;
+
+  /** Runs the measurement over a frame built by `paint`. */
+  function ink(diff: number, paint: (frame: Buffer) => void): number {
+    // 246 is the app's actual near-white ground, the value both the broken and
+    // the fixed captures measure as their background.
+    const frame = Buffer.alloc(W * H, 246);
+    paint(frame);
+    return Number(
+      execFileSync('python3', [MEASURE], {
+        input: frame,
+        env: { ...process.env, WIDTH: String(W), HEIGHT: String(H), DIFF: String(diff) },
+      })
+        .toString()
+        .trim(),
+    );
+  }
+
+  /** Fills a rectangle, in fractions of the frame, with one grey value. */
+  const rect =
+    (x0: number, x1: number, y0: number, y1: number, value: number) =>
+    (frame: Buffer) => {
+      for (let y = Math.round(y0 * H); y < Math.round(y1 * H); y += 1) {
+        frame.fill(value, y * W + Math.round(x0 * W), y * W + Math.round(x1 * W));
+      }
+    };
+
+  it('reports exactly zero for a uniform frame, which is what the broken captures measure', () => {
+    expect(ink(8, () => {})).toBe(0);
+  });
+
+  it('ignores art outside the band, because the right column is only ever copy', () => {
+    // The full height of the RIGHT half: this is where the title, body and
+    // Next button live, and they must not be mistaken for the illustration.
+    expect(ink(8, rect(0.5, 1, 0, 1, 0))).toBe(0);
+  });
+
+  it('ignores art above the band, where a single-column layout puts its art', () => {
+    expect(ink(8, rect(0, 0.45, 0, 0.19, 0))).toBe(0);
+  });
+
+  /**
+   * ⚠️ THE NUMBER THAT WAS WRONG THE FIRST TIME. The illustration is a white
+   * card on the near-white ground -- 255 against 246, nine levels apart. A
+   * threshold of 12, which sounds conservative, steps straight over the card
+   * and scored a CORRECTLY RENDERED tablet capture at 0.0065: blank, said the
+   * check, about an image with the picture plainly in it.
+   */
+  it.each([
+    [2, 1],
+    [4, 1],
+    [6, 1],
+    [8, 1],
+    [12, 0],
+  ])('at diff=%d the white card counts as %d of the band', (diff, expected) => {
+    expect(ink(diff, rect(0, 0.45, 0.2, 0.8, 255))).toBe(expected);
+  });
+
+  it('excludes a pixel exactly DIFF from the background, not just beyond it', () => {
+    expect(ink(8, rect(0, 0.45, 0.2, 0.8, 246 - 8))).toBe(0);
+    expect(ink(8, rect(0, 0.45, 0.2, 0.8, 246 - 9))).toBe(1);
+  });
+
+  /**
+   * ⚠️ THE INVERSION GUARD, and the reason the background is taken from the
+   * WHOLE FRAME rather than from the band.
+   *
+   * Measured against the band's own commonest value, art covering more than
+   * half the band becomes the background itself: the ground around it is then
+   * counted as the "art", and a band filled edge to edge with illustration
+   * measures ZERO -- indistinguishable from a blank one, for exactly the
+   * opposite reason. These two pin the behaviour at 90% and at 100%.
+   */
+  it('reads heavy art as art rather than adopting it as the background', () => {
+    expect(ink(8, rect(0, 0.45, 0.2, 0.74, 255))).toBe(0.9);
+  });
+
+  it('reads a band filled edge to edge as entirely art, not as empty', () => {
+    expect(ink(8, rect(0, 0.45, 0.2, 0.8, 255))).toBe(1);
+  });
+});
