@@ -106,14 +106,49 @@ CocoaPods dependencies and fails at link time.
 
 ### 7. Signing
 
-In Xcode: select the **OmniMorse** target → **Signing & Capabilities**.
+⚠️ **Check the Apple ID FIRST.** This step cost a round of confusing errors on
+22 September, and "choose your Team" is the instruction that allowed it.
+
+**Xcode → Settings → Accounts.** The Apple ID that owns the App Store
+listing must be listed and selected. A different Apple ID was signed in on that Mac, and the team it
+offered could not own the app.
+
+Then, in the target's **Signing & Capabilities**:
 
 - Tick **Automatically manage signing**
-- Choose your **Team**
+- Team: the **Apple Developer Program** team, **never `(Personal Team)`**
 - Bundle identifier must read **`com.rogeriodocarmo.morse`**
 
+#### ⚠️ If you see "Failed Registering Bundle Identifier"
+
+> The app identifier "com.rogeriodocarmo.morse" cannot be registered to your
+> development team because it is not available.
+>
+> No profiles for 'com.rogeriodocarmo.morse' were found.
+
+This is a **team** problem, not a certificate problem. The identifier is not
+unavailable in general — it is *already registered*, to the paid team behind
+App Store Connect app `6805992452`. The selected team is simply not that team.
+
+Two causes, in order of likelihood:
+
+1. **The selected team is the free `(Personal Team)`.** Xcode lists one for any
+   signed-in Apple ID. It cannot register an App Store identifier and cannot do
+   App Store distribution at all.
+2. **The signed-in Apple ID is the wrong one** — which is what it was.
+
+Pick the developer-program team and the errors clear without changing anything
+else: that team already owns the identifier, so Xcode downloads the existing
+profile instead of trying to create one.
+
+⚠️⚠️ **DO NOT CHANGE THE BUNDLE IDENTIFIER.** Xcode's own suggestion — *"Change
+your bundle identifier to a unique string to try again"* — is the standard
+advice and is **wrong here**. `com.rogeriodocarmo.morse` is the shipped app's
+identity on both stores. Changing it produces a binary App Store Connect
+rejects as belonging to no known app, and it no longer matches `app.json`.
+
 ⚠️ **The signing certificates live in EAS, not on this Mac.** Xcode will create
-or download its own Apple Distribution certificate for your account. That is
+or download its own Apple Distribution certificate for the account. That is
 expected and fine — Apple allows more than one — but it means the first archive
 may prompt for your Apple ID and for keychain access.
 

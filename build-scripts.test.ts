@@ -484,3 +484,77 @@ describe('pnpm-lock.yaml survived its merges', () => {
     expect(excessive).toEqual([]);
   });
 });
+
+/**
+ * ⚠️ THIS REPOSITORY IS PUBLIC, AND A PERSONAL ADDRESS WAS IN IT.
+ *
+ * It sat in three tracked files until 22 September: as the `APPLE_ID` default
+ * in `tools/submit-ios.sh`, in a `COMMANDS.md` example, and in the iOS
+ * checklist. None of them needed it — the instructions work with a placeholder,
+ * and a stranger reading a public repository has no use for it.
+ *
+ * ⚠️ THE GUARD CANNOT NAME THE ADDRESS IT IS GUARDING AGAINST. A test that
+ * searched for that string would have to CONTAIN it, putting it straight back
+ * into the repository it is meant to keep it out of. So this works the other
+ * way round: it finds every email-shaped string in every tracked text file and
+ * allows only a short, deliberate list. Anything else fails, including an
+ * address nobody has thought of yet.
+ *
+ * ⚠️ This says nothing about commit AUTHORSHIP, which is where the address
+ * mostly lives — 169 commits carry it, and only a history rewrite would remove
+ * that. `git config user.email` decides future ones.
+ */
+describe('no personal email reaches a public repository', () => {
+  /** Addresses that are allowed to appear, and why each one is. */
+  const ALLOWED = [
+    'contact@rogeriodocarmo.com', // the public contact address, used deliberately
+    'noreply@anthropic.com', // commit co-author trailer
+  ];
+
+  /** Domains whose addresses are never personal. */
+  const ALLOWED_DOMAINS = [
+    'users.noreply.github.com', // dependabot and GitHub noreply
+    'example.com', // documentation placeholders
+  ];
+
+  /** Binary files match the pattern by coincidence; they carry no text. */
+  const BINARY =
+    /\.(png|jpe?g|gif|webp|mp4|mov|mp3|wav|ttf|otf|woff2?|ico|icns|aab|apk|ipa|jar|keystore|jks|zip|pdf)$/iu;
+
+  const tracked = execFileSync('git', ['ls-files', '-z'], {
+    cwd: __dirname,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  })
+    .split('\0')
+    .filter((f) => f && !BINARY.test(f) && f !== 'pnpm-lock.yaml');
+
+  const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/gu;
+
+  const offenders = tracked.flatMap((file) => {
+    let text: string;
+    try {
+      text = fs.readFileSync(path.join(__dirname, file), 'utf8');
+    } catch {
+      return [];
+    }
+    return (text.match(EMAIL) ?? [])
+      .filter((address) => !ALLOWED.includes(address))
+      .filter(
+        (address) =>
+          !ALLOWED_DOMAINS.some(
+            (d) => address.endsWith(`@${d}`) || address.endsWith(`.${d}`),
+          ),
+      )
+      .map((address) => `${file}: ${address}`);
+  });
+
+  it('reads the files it is meant to be checking', () => {
+    // A listing that found nothing would make the assertion below vacuous.
+    expect(tracked.length).toBeGreaterThan(100);
+  });
+
+  it('finds no address outside the allowed list', () => {
+    expect(offenders).toEqual([]);
+  });
+});

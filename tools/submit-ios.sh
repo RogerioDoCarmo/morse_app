@@ -24,7 +24,15 @@
 # appears in the process list where any other process could read it.
 set -euo pipefail
 
-APPLE_ID=${APPLE_ID:-rogerio.carmo02@gmail.com}
+# ⚠️ NO DEFAULT. This used to carry a personal address, in a PUBLIC
+# repository. Set it in the environment or answer the prompt: the script asks
+# whose account this is rather than assuming.
+APPLE_ID=${APPLE_ID:-}
+[ -n "$APPLE_ID" ] || {
+  printf 'Apple ID: ' >&2
+  read -r APPLE_ID
+}
+[ -n "$APPLE_ID" ] || { echo "::error::No Apple ID given." >&2; exit 1; }
 KEYCHAIN_ITEM=${KEYCHAIN_ITEM:-omnimorse-altool}
 
 # ── Which file ──────────────────────────────────────────────────────────────
