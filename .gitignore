@@ -110,3 +110,7 @@ modules/*/android/build/
 # happily commit all of it, and the linters below walk into it and report its
 # copy of the source as this one's errors.
 .claude/
+
+# Generated intermediates. Kept INSIDE the repo deliberately — an artifact
+# outside the project is invisible from the project — but not committed.
+.work/
