@@ -146,3 +146,57 @@ describe('store listing copy', () => {
     },
   );
 });
+
+/**
+ * ⚠️ THE FEATURE GRAPHIC CARRIES COPY, SO IT HAS A LANGUAGE.
+ *
+ * It shipped English-only until 22 September and nothing objected — the listing
+ * copy was translated three ways, the screenshots were captured three ways, and
+ * the one image with a sentence on it stayed in English. An English-only asset
+ * looks finished; nothing about it says the other locales are missing, which is
+ * the same failure shape as the blank tablet illustration.
+ *
+ * ⚠️ `play-feature-graphic.png` IS the en-US one and is deliberately NOT
+ * suffixed: `tools/compose-video.sh` opens it by that exact path as the video's
+ * card, and `video-assets.test.ts` pins the path. Renaming it would break the
+ * promo build for the sake of symmetry.
+ */
+describe('the feature graphic exists in every language', () => {
+  const GRAPHICS = path.join(DIRECTORY, 'graphics');
+
+  /** The file for a locale — en-US is the unsuffixed default, see above. */
+  const graphic = (locale: string): string =>
+    path.join(
+      GRAPHICS,
+      locale === 'en-US'
+        ? 'play-feature-graphic.png'
+        : `play-feature-graphic.${locale}.png`,
+    );
+
+  /** Width and height from a PNG's IHDR, without decoding the image. */
+  const size = (file: string): { width: number; height: number } => {
+    const head = fs.readFileSync(file).subarray(16, 24);
+    return { width: head.readUInt32BE(0), height: head.readUInt32BE(4) };
+  };
+
+  it.each(LOCALES)('has a feature graphic for %s', (locale) => {
+    expect(fs.existsSync(graphic(locale))).toBe(true);
+  });
+
+  // Play rejects anything else outright, and it rejects at upload time.
+  it.each(LOCALES)('sizes the %s feature graphic at exactly 1024x500', (locale) => {
+    expect(size(graphic(locale))).toEqual({ width: 1024, height: 500 });
+  });
+
+  /**
+   * Three identical files would pass every check above while meaning the
+   * translations were never made — which is precisely what "it exists" checks
+   * missed the first time.
+   */
+  it('gives each language its own artwork rather than three copies of one', () => {
+    const digests = LOCALES.map((locale) =>
+      fs.readFileSync(graphic(locale)).toString('base64'),
+    );
+    expect(new Set(digests).size).toBe(LOCALES.length);
+  });
+});
