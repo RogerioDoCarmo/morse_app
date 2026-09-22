@@ -291,7 +291,7 @@ once.
 because it is convenient, not because it is safe. Store it once instead:
 
 ```bash
-security add-generic-password -a "rogerio.carmo02@gmail.com" \
+security add-generic-password -a "<your-apple-id>" \
   -s omnimorse-altool -w '<the app-specific password>'
 ```
 

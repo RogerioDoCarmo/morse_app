@@ -109,8 +109,8 @@ CocoaPods dependencies and fails at link time.
 ⚠️ **Check the Apple ID FIRST.** This step cost a round of confusing errors on
 22 September, and "choose your Team" is the instruction that allowed it.
 
-**Xcode → Settings → Accounts.** `rogerio.carmo02@gmail.com` must be listed and
-selected. A different Apple ID was signed in on that Mac, and the team it
+**Xcode → Settings → Accounts.** The Apple ID that owns the App Store
+listing must be listed and selected. A different Apple ID was signed in on that Mac, and the team it
 offered could not own the app.
 
 Then, in the target's **Signing & Capabilities**:
