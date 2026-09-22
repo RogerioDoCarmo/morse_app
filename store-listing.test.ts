@@ -2,6 +2,7 @@
 // field at a time, in a browser. These limits are cheap to check here and slow
 // to discover there — and the copy exists in three languages, so the one that
 // overflows is rarely the one that was edited.
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -198,5 +199,38 @@ describe('the feature graphic exists in every language', () => {
       fs.readFileSync(graphic(locale)).toString('base64'),
     );
     expect(new Set(digests).size).toBe(LOCALES.length);
+  });
+});
+
+/**
+ * ⚠️ THE VERSION FOLDER IS GENERATED, AND THIS IS WHAT KEEPS IT HONEST.
+ *
+ * `store-assets/<version>/listing/` holds paste-ready copy split by console,
+ * because the two take different fields — App Store Connect has Subtitle,
+ * Keywords and Promotional Text and no Short description; Play is the reverse.
+ * Reading past inapplicable fields while pasting into a browser is how the
+ * wrong text ends up in the wrong box.
+ *
+ * But a second copy of the copy is exactly what `store-assets/listing/*.md`
+ * warns against in its own header: "copy kept twice is copy that disagrees
+ * with itself eventually". So it is DERIVED, and this test runs the renderer
+ * in `--check` mode. Edit the source without re-rendering and the build fails,
+ * rather than the console quietly receiving last week's wording.
+ */
+describe('the per-version listing copy is in step with its source', () => {
+  it('matches what the renderer would write', () => {
+    const result = spawnSync(
+      'python3',
+      [path.join(__dirname, 'tools', 'render-version-listing.py'), '--check'],
+      {
+        encoding: 'utf8',
+      },
+    );
+
+    // ⚠️ A missing interpreter must fail, not skip. A check that silently does
+    // not run is the shape of every guard that has let something through here.
+    expect(result.error).toBeUndefined();
+    expect(`${result.stdout}${result.stderr}`.trim()).not.toContain('out of date');
+    expect(result.status).toBe(0);
   });
 });
