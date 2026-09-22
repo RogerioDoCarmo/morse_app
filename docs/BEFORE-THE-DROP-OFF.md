@@ -118,9 +118,12 @@ build never uploaded anywhere.
 from the `screenshots` and `videos` workflows, which run on GitHub's runners
 and need no machine at all. Two things are different:
 
-- **`store-assets/archive/2026-09-11-video/`** — the 11 September cuts. Nothing
-  regenerates these; the raw clips they were composed from expired with their
-  workflow run's artifact retention.
+- ~~**`store-assets/archive/2026-09-11-video/`**~~ — **removed on 22 September.**
+  The 11 September cuts predated the audio-sync fixes: the four-up carried the
+  soundtrack that landed 7.28 s early, and nothing regenerates them because the
+  raw clips expired with their workflow run's artifact retention. They are still
+  in git history — `git checkout 5be15bc -- store-assets/archive` — so this is
+  recoverable, but they were never a candidate for upload.
 - **`store-assets/0.3.4/ios-iphone-6.5/`** — ⚠️ a **conversion, not a capture**.
   Xcode 26 ships no 6.5-inch simulator, so these cannot be produced again
   without the 6.9-inch originals to convert from. The originals are in

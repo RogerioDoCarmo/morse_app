@@ -17,10 +17,11 @@ What that means in practice:
   any build that must happen in that window for before Monday.
 - **Xcode goes with it.** No `pnpm submit:ios`, no archive, no Privacy Report,
   no simulator. An iOS build in that window cannot be made at all.
-- **`store-assets/` is gitignored and lives only here.** Screenshots and videos
-  are re-downloadable from the workflows; the archived cuts under
-  `store-assets/archive/` are not, and neither are the `build-*.{apk,aab,ipa}`
-  artifacts in the repository root.
+- ⚠️ **`store-assets/` is TRACKED**, and this line used to say the opposite. It
+  has been in git since `5be15bc` ("track the store assets, all of them"), so it
+  survives any machine. The `build-*.{apk,aab,ipa}` artifacts in the repository
+  root are the ones that live only here — those are not tracked, and screenshots
+  and videos are re-downloadable from the workflows regardless.
 - ⚠️ **Two credential files exist only on this disk** and are in no backup this
   document controls: `google-services.json` and `GoogleService-Info.plist`. The
   Firebase service-account JSON at `~/Downloads/service-account.json` is a
