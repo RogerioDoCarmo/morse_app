@@ -27,8 +27,17 @@ const layOut = (width = WIDTH, height = HEIGHT): void => {
   );
 };
 
-const rects = (): { props: Record<string, unknown> }[] =>
-  screen.UNSAFE_getAllByType(Rect) as unknown as { props: Record<string, unknown> }[];
+type SvgRect = { props: Record<string, unknown> };
+
+const rects = (): SvgRect[] => {
+  // ⚠️ `UNSAFE_getAllByType` is typed `any[]` — the tree it walks has no
+  // static shape — so the narrowing happens here, once, through a typed local.
+  // Returning the call directly is an unsafe return; asserting on it is an
+  // unnecessary one, because an `any` receiver accepts anything. The local is
+  // the only spelling that is neither.
+  const found: SvgRect[] = screen.UNSAFE_getAllByType(Rect);
+  return found;
+};
 
 describe('ChipProgressRing', () => {
   it('draws nothing until it has been measured', () => {
@@ -48,9 +57,44 @@ describe('ChipProgressRing', () => {
     const [track, mark] = all;
     // ⚠️ The track carries NO dash pattern: it is the part that must not move.
     expect(track?.props.strokeDasharray).toBeUndefined();
-    expect(track?.props.stroke).toBe(theme.color.accent);
     expect(mark?.props.strokeDasharray).toEqual(expect.any(String));
-    expect(mark?.props.stroke).toBe(theme.color.onInk);
+  });
+
+  /**
+   * ⚠️ WHICH ONE IS LOUD. This is the assertion the first version of this file
+   * got backwards, and getting it backwards is not a subtle miss: with the
+   * accent on the track and `onInk` on the dash, a device draws a solid teal
+   * border with a white notch chasing round it. Naming the two colours
+   * literally — rather than "the mark differs from the track" — is what makes
+   * the swap fail here instead of on someone's phone.
+   */
+  it('lights the mark and leaves the track dim', () => {
+    render(<ChipProgressRing />);
+    layOut();
+
+    const [track, mark] = rects();
+    expect(track?.props.stroke).toBe('#e7f6f3');
+    expect(mark?.props.stroke).toBe('#12a594');
+    // The same two tokens, so a palette change moves both together.
+    expect(track?.props.stroke).toBe(theme.color.accentTint);
+    expect(mark?.props.stroke).toBe(theme.color.accent);
+    // And the mark is never the card underneath it.
+    expect(mark?.props.stroke).not.toBe(theme.color.onInk);
+  });
+
+  /**
+   * The ring traces the chip, so it has to bend where the chip bends. They are
+   * separate components with separate style sheets, and the two radii were
+   * two points apart for a whole build.
+   */
+  it('traces the chip’s own corner radius', () => {
+    render(<ChipProgressRing />);
+    layOut();
+
+    for (const rect of rects()) {
+      expect(rect.props.rx).toBe(14);
+      expect(rect.props.rx).toBe(theme.radius.control);
+    }
   });
 
   /**
@@ -65,10 +109,10 @@ describe('ChipProgressRing', () => {
     const mark = rects()[1];
     const [lit, gap] = String(mark?.props.strokeDasharray).split(' ').map(Number);
 
-    // 117 x 37 inside a 3pt stroke, corner radius 16:
-    //   2*(117-32) + 2*(37-32) + 2*pi*16  =  170 + 10 + 100.53  =  280.53
+    // 117 x 37 inside a 3pt stroke, corner radius 14:
+    //   2*(117-28) + 2*(37-28) + 2*pi*14  =  178 + 18 + 87.96  =  283.96
     const perimeter = (lit ?? 0) + (gap ?? 0);
-    expect(perimeter).toBeCloseTo(280.53, 1);
+    expect(perimeter).toBeCloseTo(283.96, 1);
     expect(lit).toBeCloseTo(perimeter * 0.17, 5);
   });
 

@@ -100,7 +100,10 @@ export function ChipProgressRing({
   const inset = BORDER_WIDTH / 2;
   const width = Math.max(0, (size?.width ?? 0) - BORDER_WIDTH);
   const height = Math.max(0, (size?.height ?? 0) - BORDER_WIDTH);
-  const radius = Math.min(theme.radius.chip, width / 2, height / 2);
+  // ⚠️ `control`, the radius MorseText gives the chip — not `chip`, which is
+  // two points larger. A ring that traces a different curve from the thing it
+  // wraps is visibly off at all four corners and nowhere else.
+  const radius = Math.min(theme.radius.control, width / 2, height / 2);
   // A rounded rectangle's perimeter: the straight runs, plus one whole circle
   // assembled from the four corner quarters.
   const perimeter =
@@ -120,7 +123,14 @@ export function ChipProgressRing({
     >
       {size !== null && perimeter > 0 && (
         <Svg width="100%" height="100%">
-          {/* The track. It never moves. */}
+          {/* The track. It never moves.
+
+              ⚠️ The TINT, not the accent. At full strength the track is the
+              loudest thing on the chip and the mark has nothing left to be:
+              the first device build painted it `accent` and drew the mark in
+              `onInk`, so over a white card the mark read as a NOTCH cut out of
+              a solid teal border — a filling bar running backwards, which is
+              the one thing this ring is documented not to be. */}
           <Rect
             x={inset}
             y={inset}
@@ -128,7 +138,7 @@ export function ChipProgressRing({
             height={height}
             rx={radius}
             fill="none"
-            stroke={theme.color.accent}
+            stroke={theme.color.accentTint}
             strokeWidth={BORDER_WIDTH}
           />
           {/* The one lit mark, travelling. */}
@@ -139,7 +149,7 @@ export function ChipProgressRing({
             height={height}
             rx={radius}
             fill="none"
-            stroke={theme.color.onInk}
+            stroke={theme.color.accent}
             strokeWidth={BORDER_WIDTH}
             strokeLinecap="round"
             strokeDasharray={`${String(lit)} ${String(perimeter - lit)}`}

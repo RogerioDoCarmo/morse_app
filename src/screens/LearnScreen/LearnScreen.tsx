@@ -108,7 +108,9 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
             something to read, so nothing about the grid says the cells can be
             pressed — the same silence that let a tester finish 0.3.4 without
             discovering the Translator's chips play. */}
-        <Text style={styles.labelHint}>{t('learn.tapLetter')}</Text>
+        <Text testID="learn-tap-hint" style={styles.labelHint}>
+          {t('learn.tapLetter')}
+        </Text>
       </View>
       <View style={styles.card}>
         <View style={styles.grid} testID="learn-alphabet">
@@ -136,14 +138,6 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
           ))}
         </View>
         <Text style={styles.note}>{t('learn.accents')}</Text>
-        {/* Pressing a letter here is a request for sound, so the same muted
-            phone that makes a chip look broken makes this look broken. */}
-        <Toast
-          visible={playback.lowVolume}
-          icon="volume"
-          message={t('translator.volumeLow')}
-          onDismiss={playback.dismissLowVolume}
-        />
       </View>
     </View>
   );
@@ -231,6 +225,21 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
             </>
           )}
         </ScrollView>
+
+        {/* ⚠️ OUTSIDE the ScrollView, and this is the whole point of it.
+            Pressing a letter here is a request for sound, so the same muted
+            phone that makes a chip look broken makes this look broken — but
+            the first version put this beside the accents note, at the bottom
+            of an alphabet grid that is itself taller than a phone. It
+            rendered roughly a thousand points below the fold: in the tree,
+            passing its test, and never once seen. Pinned here it sits above
+            the tab bar the way {@link TapScreen}'s does. */}
+        <Toast
+          visible={playback.lowVolume}
+          icon="volume"
+          message={t('translator.volumeLow')}
+          onDismiss={playback.dismissLowVolume}
+        />
       </View>
     </AppFrame>
   );

@@ -35,11 +35,17 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-key-dot'
 - assertVisible:
     id: 'tap-key-dash'
-# Nothing keyed yet, so the card holds the hint rather than a decoding.
+# Nothing keyed yet, so the card holds its PLACEHOLDER rather than a decoding.
+# It used to hold the keying rule instead, which put a sentence about the KEY
+# where the MESSAGE goes.
 - assertVisible:
     id: 'tap-empty'
 - assertNotVisible:
     id: 'tap-clear'
+
+# The rule about the key now sits with the key, below the play button.
+- assertVisible:
+    id: 'tap-hint'
 
 # The four ways out are shown from the START, before there is anything to
 # send. A TestFlight tester came to this screen looking for the vibration the
@@ -70,6 +76,13 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-decoded'
 - assertVisible:
     id: 'tap-clear'
+
+# ⚠️ AND THE RULE IS STILL THERE. This is the whole reason it moved. While it
+# stood in for the decoded message it disappeared on the first dot — taken away
+# at the exact moment someone has keyed one mark and is working out what the
+# other one takes.
+- assertVisible:
+    id: 'tap-hint'
 
 # And the row empties once the letter is committed, which IS stable to assert
 # for exactly the reason above.
