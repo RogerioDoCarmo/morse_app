@@ -98,17 +98,21 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.5 on both stores. Replace for each release; keep the shape.
+For 0.3.7 on both stores. Replace for each release; keep the shape.
+
+⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
+tablet illustration fix went to both stores unannounced. It is the one part of
+a release nothing can catch being stale, because a sentence about the wrong
+version is still a well-formed sentence of the right length.
 
 ⚠️ The build number is assigned by EAS at build time and is not in this
 repository — read it off the binary, or off the Settings screen, which shows it
 from 0.3.5 onward.
 
 ```text
-• The guide now shows the flashing circle running, so you can see what Screen does.
-• Tap any letter to hear just that one — the first letter points this out, and the guide lets you try it.
-• While you hold the tap key, it shows whether you are making a dot or a dash.
-• Playback no longer cuts the last letter short at faster speeds.
-• The low-volume warning appears sooner, and where it used to stay silent.
-• Settings shows the build number beside the version.
+• The guide's volume warning now sits above the button, where you can read it, and goes away by itself.
+• The ring around a letter no longer turns the whole chip — the border stays still and one mark travels it.
+• The microphone pulses while it is listening.
+• Tap any letter in Learn to hear just that one.
+• On the tap screen: a placeholder for your text, and the key's rule now stays below the play button.
 ```
