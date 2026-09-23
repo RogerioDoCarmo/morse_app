@@ -1,7 +1,10 @@
 import React from 'react';
 import { fireEvent, screen, within } from '@testing-library/react-native';
+import { createFakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { encode } from '@/core/domain/morse';
+import { DEFAULT_PLAYBACK_UNIT_MS, toTimeline } from '@/core/domain/timeline';
+import { renderWav } from '@/core/domain/tone';
 import { LearnScreen } from './LearnScreen';
 
 const show = (locale?: 'en' | 'pt-BR' | 'es'): void => {
@@ -117,5 +120,61 @@ describe('LearnScreen — Tips', () => {
     fireEvent.press(screen.getByTestId('tips-back'));
     expect(screen.getByTestId('learn-screen')).toBeOnTheScreen();
     expect(screen.queryByTestId('tips-screen')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ A REFERENCE TABLE LOOKS LIKE SOMETHING TO READ.
+ *
+ * Nothing about the grid said the cells could be pressed — the same silence
+ * that let a TestFlight tester finish 0.3.4 without discovering the
+ * Translator's chips play at all. The letters now sound, and the label says so.
+ */
+describe('the alphabet can be heard, not just read', () => {
+  const cells = (): unknown[] => screen.getAllByTestId('learn-letter');
+
+  it('invites the press in the label above the grid', () => {
+    show('en');
+    expect(screen.getByText('Tap any letter to hear it.')).toBeOnTheScreen();
+  });
+
+  it('translates the invitation', () => {
+    show('pt-BR');
+    expect(screen.getByText('Toque em qualquer letra para ouvi-la.')).toBeOnTheScreen();
+  });
+
+  /**
+   * ⚠️ THE INDEX MAPPING, which is the part that fails silently. The grid and
+   * the playback are both built from REFERENCE, so a cell's position is its
+   * index — but nothing about a wrong index looks wrong, it just sounds like
+   * the wrong letter, and nobody would attribute that to an off-by-one.
+   *
+   * 'C' is the third cell and is dash-dot-dash-dot, so it cannot be confused
+   * with its neighbours the way 'E' and 'T' can.
+   */
+  it('plays the letter that was pressed, not its neighbour', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+
+    fireEvent.press(cells()[2] as Parameters<typeof fireEvent.press>[0]);
+
+    expect(ports.calls.played).toHaveLength(1);
+    expect(ports.calls.played[0]).toEqual(
+      renderWav(toTimeline(encode('C')), { unitMs: DEFAULT_PLAYBACK_UNIT_MS }),
+    );
+  });
+
+  it('plays a different letter for a different cell', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+
+    fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+    expect(ports.calls.played[0]).toEqual(
+      renderWav(toTimeline(encode('A')), { unitMs: DEFAULT_PLAYBACK_UNIT_MS }),
+    );
   });
 });

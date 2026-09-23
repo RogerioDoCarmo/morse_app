@@ -7,8 +7,10 @@ import { Icon } from '@/components/Icon';
 import { AppFrame } from '@/components/AppFrame';
 import type { TabName } from '@/components/TabBar';
 import { TipsScreen } from '@/screens/TipsScreen';
+import { useMorsePlayback } from '@/application/useMorsePlayback';
+import { Toast } from '@/components/Toast';
 import { encode, type MorseSymbol } from '@/core/domain/morse';
-import { PLAYBACK_UNITS } from '@/core/domain/timeline';
+import { DEFAULT_PLAYBACK_UNIT_MS, PLAYBACK_UNITS } from '@/core/domain/timeline';
 import { theme } from '@/theme';
 
 /**
@@ -51,6 +53,18 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
   const [tips, setTips] = useState(false);
   const { tablet } = useLayout();
 
+  /**
+   * The whole reference as one message, so a cell's position in the grid is its
+   * index in the playback.
+   *
+   * ⚠️ Built from REFERENCE, the same source as the grid. Two lists that have
+   * to agree by eye would disagree the first time a character moved, and the
+   * failure — the wrong letter sounding — is one nobody would attribute to an
+   * index.
+   */
+  const reference = useMemo(() => encode(Array.from(REFERENCE).join('')), []);
+  const playback = useMorsePlayback(reference, DEFAULT_PLAYBACK_UNIT_MS);
+
   const alphabet = useMemo(
     (): readonly Readonly<{ char: string; marks: readonly MorseSymbol[] }>[] =>
       Array.from(REFERENCE).map((char) => ({
@@ -88,11 +102,27 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
 
   const alphabetBlock = (
     <View style={styles.block}>
-      <Text style={styles.label}>{t('learn.alphabet')}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{t('learn.alphabet')}</Text>
+        {/* ⚠️ The invitation, not a description. A reference table looks like
+            something to read, so nothing about the grid says the cells can be
+            pressed — the same silence that let a tester finish 0.3.4 without
+            discovering the Translator's chips play. */}
+        <Text style={styles.labelHint}>{t('learn.tapLetter')}</Text>
+      </View>
       <View style={styles.card}>
         <View style={styles.grid} testID="learn-alphabet">
-          {alphabet.map((entry) => (
-            <View key={entry.char} style={styles.cell} testID="learn-letter">
+          {alphabet.map((entry, index) => (
+            <Pressable
+              key={entry.char}
+              style={styles.cell}
+              testID="learn-letter"
+              accessibilityRole="button"
+              accessibilityLabel={entry.char}
+              onPress={() => {
+                playback.playLetter(index);
+              }}
+            >
               <View style={styles.marks}>
                 {entry.marks.map((mark, index) => (
                   <View
@@ -102,10 +132,18 @@ export function LearnScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.
                 ))}
               </View>
               <Text style={styles.char}>{entry.char}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
         <Text style={styles.note}>{t('learn.accents')}</Text>
+        {/* Pressing a letter here is a request for sound, so the same muted
+            phone that makes a chip look broken makes this look broken. */}
+        <Toast
+          visible={playback.lowVolume}
+          icon="volume"
+          message={t('translator.volumeLow')}
+          onDismiss={playback.dismissLowVolume}
+        />
       </View>
     </View>
   );
@@ -212,6 +250,14 @@ const styles = StyleSheet.create({
     gap: theme.spacing.lg,
   },
   block: { gap: theme.spacing.sm },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+    flexWrap: 'wrap',
+  },
+  labelHint: { ...theme.type.hint, color: theme.color.muted },
   label: { ...theme.type.label, color: theme.color.faint, paddingHorizontal: 4 },
   card: {
     padding: 16,

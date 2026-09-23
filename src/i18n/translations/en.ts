@@ -59,11 +59,13 @@ export const en: TranslationMap = {
   'tap.key': 'Tap or hold',
   'tap.clear': 'Clear',
   'tap.read': 'Read',
+  'tap.placeholder': 'What you key appears here.',
   'learn.title': 'Learn',
   'learn.whatTitle': 'What Morse code is',
   'learn.whatBody':
     'A way of sending text as two signal lengths — a short one and a long one. Samuel Morse and Alfred Vail worked it out in the 1830s for the electric telegraph, and it is still readable by ear, by lamp, or by a single finger on a key.',
   'learn.alphabet': 'THE ALPHABET',
+  'learn.tapLetter': 'Tap any letter to hear it.',
   'learn.accents':
     'Ç, É and Ñ have codes of their own. Any other accent — ã, õ, â, ê, ô, á, í, ó, ú — is sent as its plain letter.',
   'learn.silence': 'THE SILENCE COUNTS TOO',
