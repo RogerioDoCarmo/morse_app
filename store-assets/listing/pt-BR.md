@@ -100,17 +100,21 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.5 on both stores. Replace for each release; keep the shape.
+For 0.3.7 on both stores. Replace for each release; keep the shape.
+
+⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
+tablet illustration fix went to both stores unannounced. It is the one part of
+a release nothing can catch being stale, because a sentence about the wrong
+version is still a well-formed sentence of the right length.
 
 ⚠️ The build number is assigned by EAS at build time and is not in this
 repository — read it off the binary, or off the Settings screen, which shows it
 from 0.3.5 onward.
 
 ```text
-• O guia agora mostra o círculo piscando de verdade, para ver o que a saída em Tela faz.
-• Toque em qualquer letra para ouvir só ela — a primeira letra indica isso, e dá para experimentar no guia.
-• Enquanto você segura a tecla, ela mostra se está fazendo um ponto ou um traço.
-• A reprodução não corta mais a última letra nas velocidades altas.
-• O aviso de volume baixo aparece mais cedo, e onde antes ficava calado.
-• Os ajustes mostram o número da compilação ao lado da versão.
+• O aviso de volume do guia agora fica acima do botão, onde dá para ler, e some sozinho.
+• O anel de uma letra não gira mais a tecla inteira — a borda fica parada e só uma marca dá a volta.
+• O microfone pulsa enquanto está ouvindo.
+• Toque em qualquer letra em Aprender para ouvir só ela.
+• Na tela de toque: um espaço para o seu texto, e a regra da tecla fica abaixo do botão de reproduzir.
 ```
