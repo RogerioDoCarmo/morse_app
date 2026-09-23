@@ -16,15 +16,24 @@
  * enough that a 600Hz tone in a room with other people in it is missed — the
  * same failure with a longer explanation.
  *
- * ⚠️ RAISED FROM 30% TO HALF, because 30% did not reach the person it was
- * written for. A tester played messages on 0.3.4 (13) and never saw this
- * warning; the volume that produced that report was therefore ABOVE the old
- * threshold, so the fix is a wider bar and not a narrower one. Half is where a
- * phone stops being reliably audible across a room, and it is still low enough
- * that someone who has deliberately turned the volume down to a working level
- * is not told their phone is too quiet on every message.
+ * ⚠️ BACK TO 30%, AND THE REASON IT WAS RAISED TURNED OUT TO BE WRONG.
+ *
+ * It went to half because a tester played messages on 0.3.4 (13) and never saw
+ * this warning, which was read as "the bar is too low". The real cause was
+ * found later and fixed in #198: `playLetter` NEVER READ THE VOLUME AT ALL —
+ * not gated, not broken, simply absent. The tester saw nothing because nothing
+ * was checked, not because the bar was under them.
+ *
+ * ⚠️ So half was a fix aimed at the wrong fault, and it over-fired. Reported
+ * from a device on 23 September: "the volume is up, I'm listening and the toast
+ * continues appearing". A phone at 40% is perfectly audible in a quiet room and
+ * was being told it was too quiet on EVERY chip press.
+ *
+ * 30% is the original number, restored now that the inference which displaced
+ * it has been disproven. A phone at one or two notches is not silent, but a
+ * 600Hz tone at that level is missed in a room with other people in it.
  */
-export const LOW_VOLUME_LEVEL = 0.5;
+export const LOW_VOLUME_LEVEL = 0.3;
 
 /**
  * Whether the device is too quiet for the Sound channel to be heard.
