@@ -8,10 +8,13 @@ describe('isLowVolume', () => {
   it.each([
     [0, true],
     [0.1, true],
+    [0.29, true],
     [0.3, true],
-    [0.49, true],
-    [0.5, true],
-    [0.51, false],
+    // ⚠️ The readings that prompted the change. A phone at 40-50% is plainly
+    // audible in a quiet room and was warned about on every chip press.
+    [0.31, false],
+    [0.4, false],
+    [0.5, false],
     [0.8, false],
     [1, false],
   ])('reads %f as low: %s', (level, expected) => {
@@ -26,13 +29,19 @@ describe('isLowVolume', () => {
   });
 
   /**
-   * ⚠️ 0.5, RAISED FROM 0.3 — and asserted as the literal it is. A tester
-   * played messages on 0.3.4 (13) and never saw the warning at all, which
-   * means the volume behind that report was above the old bar: the way to
-   * reach it is a wider threshold, not a narrower one.
+   * ⚠️ 0.3, RESTORED — asserted as the literal it is, because an assertion
+   * written against the constant passes whatever the constant becomes.
+   *
+   * It had been raised to 0.5 because a tester never saw the warning on
+   * 0.3.4 (13), read at the time as "the bar is too low". The real cause was
+   * found later and fixed in #198: `playLetter` NEVER READ THE VOLUME AT ALL.
+   * The tester saw nothing because nothing was checked.
+   *
+   * Half then over-fired, reported from a device on 23 September: the volume
+   * was up, the audio audible, and the toast appeared on every press.
    */
-  it('is 0.5, which is what "half volume or lower" means', () => {
-    expect(LOW_VOLUME_LEVEL).toBe(0.5);
+  it('is 0.3, low enough that an audible phone is not warned', () => {
+    expect(LOW_VOLUME_LEVEL).toBe(0.3);
   });
 
   /**

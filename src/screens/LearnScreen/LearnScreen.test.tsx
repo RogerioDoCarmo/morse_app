@@ -1,7 +1,11 @@
 import React from 'react';
-import { fireEvent, screen, within } from '@testing-library/react-native';
+import { ScrollView } from 'react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { createFakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { encode } from '@/core/domain/morse';
+import { DEFAULT_PLAYBACK_UNIT_MS, toTimeline } from '@/core/domain/timeline';
+import { renderWav } from '@/core/domain/tone';
 import { LearnScreen } from './LearnScreen';
 
 const show = (locale?: 'en' | 'pt-BR' | 'es'): void => {
@@ -117,5 +121,117 @@ describe('LearnScreen — Tips', () => {
     fireEvent.press(screen.getByTestId('tips-back'));
     expect(screen.getByTestId('learn-screen')).toBeOnTheScreen();
     expect(screen.queryByTestId('tips-screen')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ A REFERENCE TABLE LOOKS LIKE SOMETHING TO READ.
+ *
+ * Nothing about the grid said the cells could be pressed — the same silence
+ * that let a TestFlight tester finish 0.3.4 without discovering the
+ * Translator's chips play at all. The letters now sound, and the label says so.
+ */
+describe('the alphabet can be heard, not just read', () => {
+  const cells = (): unknown[] => screen.getAllByTestId('learn-letter');
+
+  it('invites the press in the label above the grid', () => {
+    show('en');
+    expect(screen.getByText('Tap any letter to hear it.')).toBeOnTheScreen();
+  });
+
+  it('translates the invitation', () => {
+    show('pt-BR');
+    expect(screen.getByText('Toque em qualquer letra para ouvi-la.')).toBeOnTheScreen();
+  });
+
+  /**
+   * ⚠️ THE INDEX MAPPING, which is the part that fails silently. The grid and
+   * the playback are both built from REFERENCE, so a cell's position is its
+   * index — but nothing about a wrong index looks wrong, it just sounds like
+   * the wrong letter, and nobody would attribute that to an off-by-one.
+   *
+   * 'C' is the third cell and is dash-dot-dash-dot, so it cannot be confused
+   * with its neighbours the way 'E' and 'T' can.
+   */
+  it('plays the letter that was pressed, not its neighbour', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+
+    fireEvent.press(cells()[2] as Parameters<typeof fireEvent.press>[0]);
+
+    expect(ports.calls.played).toHaveLength(1);
+    expect(ports.calls.played[0]).toEqual(
+      renderWav(toTimeline(encode('C')), { unitMs: DEFAULT_PLAYBACK_UNIT_MS }),
+    );
+  });
+
+  it('plays a different letter for a different cell', () => {
+    const ports = createFakePorts();
+    renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+      ports,
+    });
+
+    fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+    expect(ports.calls.played[0]).toEqual(
+      renderWav(toTimeline(encode('A')), { unitMs: DEFAULT_PLAYBACK_UNIT_MS }),
+    );
+  });
+
+  describe('the quiet-phone warning', () => {
+    /** Quiet enough to warn: the threshold is 0.3. */
+    const muted = (): ReturnType<typeof createFakePorts> =>
+      createFakePorts({ volume: { level: async () => 0.05 } });
+
+    const pressALetterOnAMutedPhone = async (): Promise<void> => {
+      const ports = muted();
+      renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+        ports,
+      });
+      fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+      // The volume is read through a promise, so the warning arrives a tick
+      // after the press rather than during it.
+      await screen.findByTestId('toast');
+    };
+
+    it('warns when a letter is pressed and the phone is too quiet', async () => {
+      await pressALetterOnAMutedPhone();
+      expect(screen.getByTestId('toast')).toBeOnTheScreen();
+    });
+
+    /**
+     * ⚠️ THE ASSERTION THAT MATTERS, and the one the first version of this
+     * screen did not have. The toast was placed beside the accents note, which
+     * is the bottom of an alphabet grid 39 cells long — taller than any phone.
+     * It rendered, `getByTestId` found it, every test passed, and on a device
+     * it was about a thousand points below the fold. Being IN THE TREE is not
+     * the same as being ON THE SCREEN, and only its position says which.
+     */
+    it('pins the warning outside the scrolling alphabet', async () => {
+      await pressALetterOnAMutedPhone();
+
+      const scroll = screen.UNSAFE_getAllByType(ScrollView)[0];
+      expect(scroll).toBeDefined();
+      expect(
+        within(scroll as Parameters<typeof within>[0]).queryByTestId('toast'),
+      ).toBeNull();
+    });
+
+    it('stays quiet when the phone is loud enough to hear', async () => {
+      const ports = createFakePorts();
+      renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+        ports,
+      });
+      fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+      // ⚠️ Waits for the volume to have been READ before asserting nothing was
+      // said about it. Asserting straight after the press would pass on a
+      // screen that never checks the volume at all.
+      await waitFor(() => {
+        expect(ports.calls.volumeReads).toBeGreaterThan(0);
+      });
+
+      expect(screen.queryByTestId('toast')).toBeNull();
+    });
   });
 });

@@ -294,7 +294,7 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 <SignalSurface lit={playback.screenLit} />
               ) : text === '' ? (
                 <Text testID="tap-empty" style={styles.emptyHint}>
-                  {t('tap.hint')}
+                  {t('tap.placeholder')}
                 </Text>
               ) : (
                 <Text testID="tap-decoded" style={styles.decoded}>
@@ -322,6 +322,14 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 label={playback.playing ? t('translator.stop') : t('translator.play')}
               />
             </View>
+            {/* ⚠️ BELOW the button, not standing in for the decoded text. It
+                used to fill the card while the message was empty, which put a
+                rule about the KEY where the MESSAGE goes — and it vanished the
+                moment the first dot was keyed, which is when it is still worth
+                reading. Here it sits with the key it describes and stays. */}
+            <Text testID="tap-hint" style={styles.keyingHint}>
+              {t('tap.hint')}
+            </Text>
           </ScrollView>
 
           {/* The only thing besides the key that does not scroll. These are
@@ -489,14 +497,26 @@ const styles = StyleSheet.create({
   // distinction the Translator's card region turns on.
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1, gap: theme.spacing.md },
-  actions: { flexDirection: 'row' },
+  // Away from the channel strip above it, so the button reads as the thing
+  // that acts rather than the last cell in the row.
+  actions: { flexDirection: 'row', paddingTop: theme.spacing.md },
+  keyingHint: {
+    ...theme.type.hint,
+    color: theme.color.muted,
+    textAlign: 'center',
+    paddingTop: theme.spacing.md,
+  },
   keyStage: {
     // No `flex: 1` now that something above it scrolls: the key takes the room
     // it needs and the scrolling region takes the rest. Left as flex it would
     // compete with the scroll view for the same space.
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: theme.spacing.md,
+    // ⚠️ Room on BOTH sides of the key. It sat hard against the letter row
+    // above it, so the two read as one block and the key looked like part of
+    // the readout rather than the thing you press.
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
   },
   /**
    * A 186pt disc, per `design/screens/TapDecode.dc.html`.

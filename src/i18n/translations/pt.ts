@@ -58,11 +58,13 @@ export const ptBR: TranslationMap = {
   'tap.key': 'Toque ou segure',
   'tap.clear': 'Limpar',
   'tap.read': 'Ler',
+  'tap.placeholder': 'O que você digitar aparece aqui.',
   'learn.title': 'Aprender',
   'learn.whatTitle': 'O que é o código Morse',
   'learn.whatBody':
     'Um jeito de enviar texto com dois comprimentos de sinal: um curto e um longo. Samuel Morse e Alfred Vail criaram isso nos anos 1830 para o telégrafo elétrico, e ainda dá para ler de ouvido, por lanterna ou com um dedo só numa chave.',
   'learn.alphabet': 'O ALFABETO',
+  'learn.tapLetter': 'Toque em qualquer letra para ouvi-la.',
   'learn.accents':
     'Ç, É e Ñ têm códigos próprios. Qualquer outro acento — ã, õ, â, ê, ô, á, í, ó, ú — é enviado como a letra sem acento.',
   'learn.silence': 'O SILÊNCIO TAMBÉM CONTA',
