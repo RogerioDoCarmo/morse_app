@@ -418,3 +418,44 @@ describe('the stage does not collapse under a transcript', () => {
     expect(style.flexGrow).toBe(1);
   });
 });
+
+/**
+ * ⚠️ A LISTENING PHONE LOOKED LIKE AN IDLE ONE.
+ *
+ * The level bars are fixed heights — deliberately, because a meter that
+ * pretends to read the microphone is an animation pretending to be data — so
+ * nothing on this screen moved while it recorded. Apart from a colour change
+ * there was no answer to "is it actually listening?", which is the one question
+ * the screen exists to answer.
+ */
+describe('the microphone says it is listening', () => {
+  const pulse = (): unknown =>
+    screen.queryByTestId('mic-pulse', { includeHiddenElements: true });
+
+  it('does not pulse while idle', () => {
+    const mic = recogniser();
+    render(mic.port);
+
+    expect(pulse()).toBeNull();
+  });
+
+  it('pulses once listening starts', async () => {
+    const mic = recogniser();
+    render(mic.port);
+
+    await tapMic();
+
+    expect(pulse()).not.toBeNull();
+  });
+
+  it('stops pulsing when listening ends', async () => {
+    const mic = recogniser();
+    render(mic.port);
+
+    await tapMic();
+    expect(pulse()).not.toBeNull();
+
+    await tapMic();
+    expect(pulse()).toBeNull();
+  });
+});

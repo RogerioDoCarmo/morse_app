@@ -310,6 +310,26 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
     </View>
   );
 
+  /**
+   * ⚠️ RENDERED ABOVE `next`, NOT AFTER IT. This was the last child of the
+   * screen, so on a phone -- where the pager takes the remaining height -- it
+   * was laid out BELOW the Next button and fell off the bottom edge. A warning
+   * nobody can see is worse than no warning: the slide's whole point is that a
+   * silent chip looks broken, and the toast is what explains it.
+   *
+   * Placed in the flow above the button rather than floating over it, which is
+   * what the Translator does and what Toast's own styles assume -- `wrap`
+   * carries the gutter and the gap to whatever sits below.
+   */
+  const toast = (
+    <Toast
+      visible={letterPlayback.lowVolume}
+      icon="volume"
+      message={t('translator.volumeLow')}
+      onDismiss={letterPlayback.dismissLowVolume}
+    />
+  );
+
   const next = (
     <Pressable
       testID="first-run-next"
@@ -373,6 +393,7 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
           <View style={styles.side}>
             {copy(slide)}
             {dots}
+            {toast}
             {next}
           </View>
         </View>
@@ -390,20 +411,10 @@ export function FirstRunScreen({ onDone }: Props): React.JSX.Element {
             ))}
           />
           {dots}
+          {toast}
           {next}
         </>
       )}
-      {/* ⚠️ The chips on the letter slide PLAY, so this slide can be the first
-          place a muted phone is discovered — and it is the worst place to
-          discover it silently, because a chip that appears to do nothing is
-          exactly the impression the slide exists to correct. The same toast the
-          Translator uses, driven by the same hook. */}
-      <Toast
-        visible={letterPlayback.lowVolume}
-        icon="volume"
-        message={t('translator.volumeLow')}
-        onDismiss={letterPlayback.dismissLowVolume}
-      />
     </View>
   );
 }

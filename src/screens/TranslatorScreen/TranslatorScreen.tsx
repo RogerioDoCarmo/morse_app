@@ -873,7 +873,11 @@ const styles = StyleSheet.create({
   inputActions: {
     flexDirection: 'row',
     gap: theme.spacing.md,
-    marginTop: theme.spacing.sm,
+    // ⚠️ `lg`, not `sm`. At 8pt the actions sat almost against the last line of
+    // typed text, so the row read as part of the message rather than as
+    // controls under it — reported from a device as "too short". 18pt is the
+    // same step the card already puts above its heading.
+    marginTop: theme.spacing.lg,
   },
   inputAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   inputActionText: { ...theme.type.hint, color: theme.color.muted },

@@ -668,3 +668,50 @@ describe('sending what was tapped', () => {
     );
   });
 });
+
+/**
+ * ⚠️ THE KEYING RULE WAS STANDING IN FOR THE MESSAGE.
+ *
+ * "Hold the key for a dash, tap it for a dot" filled the card while the
+ * message was empty — a rule about the KEY where the MESSAGE goes. Worse, it
+ * disappeared the moment the first dot was keyed, which is exactly when
+ * someone is still working out which press makes which mark.
+ *
+ * It now sits below the play button, with the key it describes, and stays.
+ * The card shows a placeholder for the text instead.
+ */
+describe('the keying rule sits with the key, not in the message', () => {
+  it('shows a placeholder for the text in the empty card', () => {
+    show('en');
+    expect(screen.getByTestId('tap-empty')).toHaveTextContent(
+      'What you key appears here.',
+    );
+  });
+
+  it('shows the keying rule below the play button', () => {
+    show('en');
+    expect(screen.getByTestId('tap-hint')).toHaveTextContent(
+      'Hold the key for a dash, tap it for a dot.',
+    );
+  });
+
+  /**
+   * The point of the move: the rule outlives the first press. Before this it
+   * was replaced by the decoded text and could not be re-read.
+   */
+  it('keeps the rule on screen once something has been keyed', () => {
+    show('en');
+    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    fireEvent(screen.getByTestId('tap-key'), 'pressOut');
+
+    expect(screen.getByTestId('tap-hint')).toBeOnTheScreen();
+  });
+
+  it('translates the placeholder and the rule', () => {
+    show('pt-BR');
+    expect(screen.getByTestId('tap-empty')).toHaveTextContent(
+      'O que você digitar aparece aqui.',
+    );
+    expect(screen.getByTestId('tap-hint')).toBeOnTheScreen();
+  });
+});

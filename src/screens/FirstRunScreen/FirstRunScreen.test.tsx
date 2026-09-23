@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { elementAt } from '@/testing/elementAt';
@@ -367,5 +367,96 @@ describe('the letter slide on a muted phone', () => {
       expect(ports.calls.played).toHaveLength(1);
     });
     expect(screen.queryByText('Turn the volume up')).toBeNull();
+  });
+});
+
+/**
+ * ⚠️ THE WARNING WAS RENDERED WHERE NOBODY COULD SEE IT.
+ *
+ * `<Toast>` was the last child of the screen, after `{next}`, so on a phone —
+ * where the pager takes the remaining height — it was laid out BELOW the Next
+ * button and fell off the bottom edge. It was reported from a real device.
+ *
+ * That is worse than having no warning at all: the whole point of the letter
+ * slide is that a silent chip looks broken, and this toast is the one thing
+ * that explains why. Rendering it off-screen leaves the bad impression AND
+ * hides the correction.
+ *
+ * ⚠️ NO LAYOUT TEST CAN CATCH IT — React Native Testing Library resolves the
+ * tree without laying anything out, so an off-screen element is
+ * indistinguishable from a visible one. What CAN be pinned is the ORDER: the
+ * toast has to come before the button in the tree, in both layouts.
+ */
+describe('the low-volume toast sits above the Next button', () => {
+  /** testIDs and text in render order, flattened from the rendered tree. */
+  const inOrder = (): string[] => {
+    const out: string[] = [];
+    const walk = (node: unknown): void => {
+      if (node === null || node === undefined) return;
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
+      if (typeof node !== 'object') return;
+      const el = node as { props?: Record<string, unknown>; children?: unknown };
+      const id = el.props?.testID;
+      if (typeof id === 'string') out.push(id);
+      walk(el.children);
+    };
+    walk(screen.toJSON());
+    return out;
+  };
+
+  /** A phone turned right down, so pressing a chip warns. */
+  const muted = (): FakePorts => {
+    const ports = createFakePorts();
+    return { ...ports, volume: { level: async () => 0.05 } };
+  };
+
+  it('renders the toast before the button, not after it', async () => {
+    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
+
+    const chips = within(screen.getByTestId('first-run-art-letter')).getAllByTestId(
+      'morse-letter',
+    );
+    fireEvent.press(chips[1] as Parameters<typeof fireEvent.press>[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toast')).toBeOnTheScreen();
+    });
+
+    const order = inOrder();
+    expect(order.indexOf('toast')).toBeGreaterThan(-1);
+    expect(order.indexOf('first-run-next')).toBeGreaterThan(-1);
+    // ⚠️ The assertion the bug would have failed: after, not before.
+    expect(order.indexOf('toast')).toBeLessThan(order.indexOf('first-run-next'));
+  });
+  /**
+   * The other half of the report: "this toast is not being dismissed". It is
+   * supposed to take itself away after six seconds, because a warning about a
+   * volume the user is already fixing should not need a tap.
+   */
+  it('takes itself away without a tap', async () => {
+    jest.useFakeTimers();
+    try {
+      renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
+
+      const chips = within(screen.getByTestId('first-run-art-letter')).getAllByTestId(
+        'morse-letter',
+      );
+      fireEvent.press(chips[1] as Parameters<typeof fireEvent.press>[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('toast')).toBeOnTheScreen();
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(6000);
+      });
+
+      expect(screen.queryByTestId('toast')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

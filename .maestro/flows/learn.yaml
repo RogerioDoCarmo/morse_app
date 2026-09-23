@@ -26,10 +26,32 @@ appId: com.rogeriodocarmo.morse
     id: 'learn-screen'
 - assertVisible:
     id: 'learn-alphabet'
+
+# The grid looks like a table, so nothing about it says the cells can be
+# pressed. A TestFlight tester finished 0.3.4 without ever discovering that the
+# Translator's chips play; this line is the one that says so here, and a
+# reference table with the invitation missing is back where that started.
+- assertVisible:
+    id: 'learn-tap-hint'
+# And a cell takes a press. The SOUND is `LearnScreen.test.tsx`'s job — it can
+# assert the exact WAV — so what this covers is that the cell is a control at
+# all and that pressing one leaves the screen standing.
+- tapOn:
+    id: 'learn-letter'
+    index: 0
+- assertVisible:
+    id: 'learn-screen'
+# ⚠️ A LONGER BUDGET than the 20s default, because the press above is still
+# sounding while this runs. The CI emulator answers the accessibility dump
+# slowly under load: the run that made this necessary logged its three swipes
+# at 11s, 4s and 4s, and gave up with the card one swipe away. Nothing here is
+# waiting on the app to decide anything — it is a slow device doing the same
+# work — so the fix is time, not a retry.
 - scrollUntilVisible:
     element:
       id: 'learn-gaps'
     direction: DOWN
+    timeout: 45000
 
 # Tips has no tab of its own — Learn is the only route in. The card sits under
 # the alphabet, so on a phone it starts below the fold: scroll to it rather

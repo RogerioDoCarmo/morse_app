@@ -23,6 +23,11 @@ module.exports = tseslint.config(
       // A subagent's git worktree, with its own full checkout of this source.
       // Without this, eslint reports ITS copy of every file as an error here.
       '.claude/**',
+      // Scratch. Gitignored, and outside every tsconfig, so the type-aware
+      // rules cannot parse a file here at all — a saved copy of a screen made
+      // while working on it turned up as three parsing errors in this
+      // project's own lint run.
+      '.work/**',
     ],
   },
 

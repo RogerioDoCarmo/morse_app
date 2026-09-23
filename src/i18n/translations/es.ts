@@ -58,11 +58,13 @@ export const es: TranslationMap = {
   'tap.key': 'Toca o mantén',
   'tap.clear': 'Borrar',
   'tap.read': 'Leer',
+  'tap.placeholder': 'Lo que tecleas aparece aquí.',
   'learn.title': 'Aprender',
   'learn.whatTitle': 'Qué es el código Morse',
   'learn.whatBody':
     'Una forma de enviar texto con dos duraciones de señal: una corta y una larga. Samuel Morse y Alfred Vail lo idearon en la década de 1830 para el telégrafo eléctrico, y todavía se puede leer de oído, con una lámpara o con un solo dedo sobre una llave.',
   'learn.alphabet': 'EL ALFABETO',
+  'learn.tapLetter': 'Toca cualquier letra para oírla.',
   'learn.accents':
     'Ç, É y Ñ tienen códigos propios. Cualquier otro acento — ã, õ, â, ê, ô, á, í, ó, ú — se envía como su letra sin acento.',
   'learn.silence': 'EL SILENCIO TAMBIÉN CUENTA',

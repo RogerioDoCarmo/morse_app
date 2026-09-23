@@ -116,8 +116,15 @@ appId: com.rogeriodocarmo.morse
 # one more button.
 - launchApp:
     clearState: true
-- assertVisible:
-    id: 'first-run'
+# ⚠️ EXTENDED, not a bare assertion. A cold launch after `clearState` shows the
+# splash first, and this one had neither the retry the launch at the top of
+# this flow carries nor any wait of its own: it asserted against the splash and
+# failed with the carousel about half a second away. Its own screenshot is the
+# logo on an empty screen.
+- extendedWaitUntil:
+    visible:
+      id: 'first-run'
+    timeout: 20000
 - tapOn:
     id: 'first-run-skip'
 - assertNotVisible:

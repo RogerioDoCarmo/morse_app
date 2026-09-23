@@ -8,6 +8,7 @@ import { usePorts } from '@/application/providers/PortsProvider';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
+import { MicPulse } from '@/components/MicPulse';
 import { MorseText } from '@/components/MorseText';
 import { OutputChannels } from '@/components/OutputChannels';
 import { Toast } from '@/components/Toast';
@@ -165,27 +166,30 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
             ))}
           </View>
 
-          <Pressable
-            testID="mic-button"
-            accessibilityRole="button"
-            accessibilityLabel="mic-button"
-            accessibilityState={{ selected: listening }}
-            onPress={() => {
-              void (listening ? finish() : listen());
-            }}
-            style={({ pressed }) => [
-              styles.mic,
-              listening ? styles.micLive : styles.micIdle,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Icon
-              name="mic"
-              size={38}
-              strokeWidth={1.7}
-              color={listening ? theme.color.onAccent : theme.color.ink}
-            />
-          </Pressable>
+          <View style={styles.micStage}>
+            <MicPulse active={listening} />
+            <Pressable
+              testID="mic-button"
+              accessibilityRole="button"
+              accessibilityLabel="mic-button"
+              accessibilityState={{ selected: listening }}
+              onPress={() => {
+                void (listening ? finish() : listen());
+              }}
+              style={({ pressed }) => [
+                styles.mic,
+                listening ? styles.micLive : styles.micIdle,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Icon
+                name="mic"
+                size={38}
+                strokeWidth={1.7}
+                color={listening ? theme.color.onAccent : theme.color.ink}
+              />
+            </Pressable>
+          </View>
 
           <View style={styles.status}>
             <Text testID="speech-title" style={styles.title}>
@@ -279,9 +283,11 @@ const styles = StyleSheet.create({
   bar: { width: 6, borderRadius: 3, backgroundColor: '#dfe3e8' },
   barQuiet: { height: 10 },
   barLive: { backgroundColor: theme.color.accent },
+  // Just the button's own box, so the pulse behind it has something to fill
+  // and nothing in the column moves when it appears.
+  micStage: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center' },
   mic: {
-    width: 104,
-    height: 104,
+    ...StyleSheet.absoluteFill,
     borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',

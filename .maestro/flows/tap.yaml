@@ -35,7 +35,9 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-key-dot'
 - assertVisible:
     id: 'tap-key-dash'
-# Nothing keyed yet, so the card holds the hint rather than a decoding.
+# Nothing keyed yet, so the card holds its PLACEHOLDER rather than a decoding.
+# It used to hold the keying rule instead, which put a sentence about the KEY
+# where the MESSAGE goes.
 - assertVisible:
     id: 'tap-empty'
 - assertNotVisible:
@@ -123,6 +125,17 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'signal-button'
     enabled: true
+
+# ⚠️ `tap-hint` — the keying rule that now lives under this button — is
+# DELIBERATELY not asserted anywhere in this flow. It is the last element in
+# the scrolling region, and the CI emulator is 320x628pt: reaching it takes a
+# second swipe past the one that reaches this button, from a different anchor,
+# and leaves the region somewhere the steps below do not expect. This flow
+# already carries three comments about scrolls that broke a later step.
+#
+# What would be gained is nothing `TapScreen.test.tsx` does not already pin —
+# the rule's text, its place below the button, and that it OUTLIVES the first
+# press, which is the whole reason it moved out of the card.
 - tapOn:
     id: 'signal-button'
 
