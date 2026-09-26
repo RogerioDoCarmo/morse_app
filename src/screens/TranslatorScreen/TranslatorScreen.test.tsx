@@ -121,6 +121,82 @@ describe('TranslatorScreen', () => {
     }
   });
 
+  /**
+   * ⚠️ LIGHT USED TO REFUSE IN SILENCE. `if (await ensure('camera'))` swallowed
+   * the answer: the chip stayed dark, nothing appeared, and the only way to
+   * learn why was to guess. Apple's 5.1.1(iv) notes asked for the opposite —
+   * tell the user the feature needs the permission, and link to Settings.
+   *
+   * ⚠️ Light is the ONLY channel behind a permission. Sound, Screen and Vibrate
+   * need none — VIBRATE is a normal Android permission, granted at install — so
+   * there is no refusal for them to report.
+   */
+  describe('a refused camera is not silent', () => {
+    const refuse = (): ReturnType<typeof createFakePorts> => {
+      const ports = createFakePorts({}, { granted: false, canAskAgain: true });
+      ports.permission.request = async (kind) => {
+        ports.calls.requested.push(kind);
+        return { granted: false, canAskAgain: true };
+      };
+      return ports;
+    };
+
+    const denyTheCamera = async (
+      ports: ReturnType<typeof createFakePorts>,
+    ): Promise<void> => {
+      renderWithProviders(<TranslatorScreen />, { ports });
+      fireEvent.press(screen.getByTestId('channel-light'));
+      await waitFor(() => {
+        expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
+      });
+      fireEvent.press(screen.getByTestId('permission-primary'));
+      await waitFor(() => {
+        expect(ports.calls.requested).toContain('camera');
+      });
+      // ⚠️ Wait for the gate to CLOSE, not just for the request to be made.
+      // Without this the gate's own state update was still in flight when the
+      // test ended, and it landed during a later test in this file — which
+      // failed on a WAV built at the wrong speed, with nothing in its own body
+      // to explain why. A helper that leaves work running is a helper that
+      // fails somebody else's assertion.
+      await waitFor(() => {
+        expect(screen.queryByTestId('permission-camera')).toBeNull();
+      });
+    };
+
+    it('says why the channel did not light', async () => {
+      await denyTheCamera(refuse());
+
+      await waitFor(() => {
+        // A regex, because the toast's text now also carries the action label.
+        expect(screen.getByTestId('toast')).toHaveTextContent(/Light needs the camera/u);
+      });
+      expect(screen.getByTestId('channel-light')).not.toBeSelected();
+    });
+
+    it('offers a way to the system settings', async () => {
+      const ports = refuse();
+      await denyTheCamera(ports);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('toast-action')).toBeOnTheScreen();
+      });
+      fireEvent.press(screen.getByTestId('toast-action'));
+
+      expect(ports.calls.settingsOpened).toBe(1);
+    });
+
+    it('says nothing when the camera is granted', async () => {
+      renderWithProviders(<TranslatorScreen />);
+      fireEvent.press(screen.getByTestId('channel-light'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('channel-light')).toBeSelected();
+      });
+      expect(screen.queryByTestId('toast-action')).toBeNull();
+    });
+  });
+
   // The torch is no longer a switch you leave on — it carries the message.
   it('leaves the torch alone until a message runs', async () => {
     const { ports } = renderWithProviders(<TranslatorScreen />);
@@ -1266,6 +1342,15 @@ describe('what Settings changes here', () => {
   it('plays at the stored speed rather than the default', async () => {
     const ports = holding({ 'settings.playbackWpm': '5' });
     renderWithProviders(<TranslatorScreen />, { ports });
+    // ⚠️ WAIT FOR THE STORED SETTING TO ARRIVE, the way the test above does.
+    // Storage resolves asynchronously; typing before it lands plays at the
+    // DEFAULT speed and the assertion fails on a WAV half the expected length,
+    // with nothing in the test body to say why. It passed for as long as it
+    // happened to win the race, and lost it the moment other tests were added
+    // ahead of it in this file.
+    await waitFor(() => {
+      expect(screen.getByTestId('translator-screen')).toBeOnTheScreen();
+    });
     fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
     await waitFor(() => {
       expect(screen.getByTestId('signal-button')).toBeOnTheScreen();

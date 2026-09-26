@@ -80,7 +80,8 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
   // separate setting, and the domain says so in as many words. Keying slowly
   // and listening quickly is a reasonable thing to want.
   const message = useMemo(() => encode(text), [text]);
-  const { playback, cells } = useOutputChannels(
+  const { permission } = usePorts();
+  const { playback, cells, lightDenied, dismissLightDenied } = useOutputChannels(
     message,
     unitMsForWpm(settings.playbackWpm),
   );
@@ -313,6 +314,21 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 Vibrate did not know it was there — and it is visible without
                 scrolling on every screen size. Emit sits under it, one short
                 scroll away on the smallest. */}
+            {/* ⚠️ Beside the strip that raised it. Light is the only channel
+                behind a permission, and a refusal used to leave the chip dark
+                with nothing said. */}
+            <Toast
+              visible={lightDenied}
+              icon="zap"
+              message={t('channels.lightDenied')}
+              onDismiss={dismissLightDenied}
+              action={{
+                label: t('channels.openSettings'),
+                onPress: () => {
+                  void permission.openSettings();
+                },
+              }}
+            />
             <OutputChannels cells={cells} />
             <View style={styles.actions}>
               <SignalButton

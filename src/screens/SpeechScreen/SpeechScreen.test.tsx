@@ -216,8 +216,10 @@ describe('SpeechScreen', () => {
     });
 
     expect(screen.getByTestId('speech-hint')).toHaveTextContent(
-      'OmniMorse needs the microphone to hear you.',
+      'Speaking needs it. Typing and tapping still work.',
     );
+    // ⚠️ And the title stops inviting a tap that does nothing.
+    expect(screen.getByTestId('speech-title')).toHaveTextContent('Microphone is off');
   });
 
   it('offers another go when the recogniser fails for another reason', async () => {
@@ -387,6 +389,75 @@ describe('the microphone permission stands in front of the recogniser', () => {
     fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(isAvailable).toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * ⚠️ THE DEFECT THIS EXISTS FOR: a refusal used to `return` into silence.
+   * The gate closed, the screen stayed on `idle`, and the microphone went on
+   * looking ready while doing nothing when pressed — a button that lies about
+   * itself. Apple's own 5.1.1(iv) notes asked for the opposite: tell the user
+   * the feature needs the permission, and give them a link to Settings.
+   *
+   * Asserted on the WORDS, not on a phase name. The phase is internal; what
+   * the defect was about is whether anything on screen changed.
+   */
+  describe('a refusal is not silent', () => {
+    const refuse = (): FakePorts => {
+      const ports = createFakePorts({}, DENIED);
+      ports.permission.request = async (kind) => {
+        ports.calls.requested.push(kind);
+        return { granted: false, canAskAgain: true };
+      };
+      return ports;
+    };
+
+    const denyThroughTheGate = async (ports: FakePorts): Promise<void> => {
+      renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
+        ports,
+      });
+      fireEvent.press(screen.getByTestId('mic-button'));
+      await waitFor(() => {
+        expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
+      });
+      fireEvent.press(screen.getByTestId('permission-primary'));
+      await waitFor(() => {
+        expect(ports.calls.requested).toContain('microphone');
+      });
+    };
+
+    it('says the microphone is off instead of looking idle', async () => {
+      await denyThroughTheGate(refuse());
+
+      await waitFor(() => {
+        expect(screen.getByTestId('speech-title')).toHaveTextContent('Microphone is off');
+      });
+      expect(screen.getByTestId('speech-hint')).toHaveTextContent(
+        'Speaking needs it. Typing and tapping still work.',
+      );
+    });
+
+    it('offers a way to the system settings', async () => {
+      const ports = refuse();
+      await denyThroughTheGate(ports);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('speech-open-settings')).toBeOnTheScreen();
+      });
+      fireEvent.press(screen.getByTestId('speech-open-settings'));
+
+      expect(ports.calls.settingsOpened).toBe(1);
+    });
+
+    /**
+     * ⚠️ Not on every dead end. `missing` and `failed` are states the settings
+     * app cannot help with — offering it there sends the user somewhere useless.
+     */
+    it('does not offer settings when the language is simply unavailable', async () => {
+      render(recogniser(false).port);
+      await tapMic();
+
+      expect(screen.queryByTestId('speech-open-settings')).toBeNull();
     });
   });
 });

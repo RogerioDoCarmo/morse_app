@@ -21,6 +21,14 @@ type Props = Readonly<{
   icon?: IconName;
   /** Called when it is dismissed, by tap or by timeout. */
   onDismiss: () => void;
+  /**
+   * An optional way out, beside the message.
+   *
+   * ⚠️ It does NOT dismiss on its own. The caller decides — opening the
+   * system settings sends the user out of the app, and a toast that vanished
+   * on the way would leave nothing to come back to.
+   */
+  action?: Readonly<{ label: string; onPress: () => void }>;
 }>;
 
 /**
@@ -39,6 +47,7 @@ export function Toast({
   message,
   icon,
   onDismiss,
+  action,
 }: Props): React.JSX.Element | null {
   useEffect(() => {
     if (!visible) return;
@@ -66,12 +75,35 @@ export function Toast({
           <Icon name={icon} size={17} color={theme.color.onInk} strokeWidth={2} />
         ) : null}
         <Text style={styles.message}>{message}</Text>
+        {/* ⚠️ Inside the Pressable, not beside it. A second Pressable would
+            make the toast two targets in a 44pt strip, and the outer one
+            dismisses — a near miss on the action would delete the thing the
+            user was reaching for. Pressing anywhere still dismisses; pressing
+            the label does the action first. */}
+        {action ? (
+          <Text
+            testID="toast-action"
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={action.onPress}
+            style={styles.action}
+          >
+            {action.label}
+          </Text>
+        ) : null}
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Bright against the ink, because it is the one thing here worth pressing.
+  action: {
+    ...theme.type.label,
+    color: theme.color.accent,
+    marginLeft: 'auto',
+    paddingLeft: theme.spacing.md,
+  },
   // Above the pinned controls rather than over them: the Emit button is what
   // the user just pressed and may want to press again.
   wrap: { paddingHorizontal: theme.gutter, paddingBottom: theme.spacing.sm },

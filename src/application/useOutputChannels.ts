@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { isOutputChannelEnabled } from '@/core/domain/featureFlags';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePermissionGate } from '@/application/providers/PermissionGate';
@@ -22,7 +22,13 @@ import type { MorseMessage } from '@/core/domain/morse';
 export function useOutputChannels(
   message: MorseMessage,
   unitMs?: number,
-): Readonly<{ playback: MorsePlayback; cells: readonly ChannelCell[] }> {
+): Readonly<{
+  playback: MorsePlayback;
+  cells: readonly ChannelCell[];
+  /** True when Light was pressed and the camera permission was refused. */
+  lightDenied: boolean;
+  dismissLightDenied: () => void;
+}> {
   const { t } = useLocale();
   const { ensure } = usePermissionGate();
   const playback = useMorsePlayback(message, unitMs);
@@ -30,12 +36,26 @@ export function useOutputChannels(
   // Switching Light on is what raises the camera permission, so the rationale
   // belongs here rather than at playback: a user who says no should be told
   // why it was asked, not watch a channel silently refuse to light.
+  /** Set when the camera was refused, cleared when the message goes away. */
+  const [lightDenied, setLightDenied] = useState(false);
+  const dismissLightDenied = useCallback(() => {
+    setLightDenied(false);
+  }, []);
+
   const lightToggled = useCallback(async (): Promise<void> => {
     if (playback.channels.light) {
       playback.toggleChannel('light');
       return;
     }
-    if (await ensure('camera')) playback.toggleChannel('light');
+    // ⚠️ A REFUSAL IS REPORTED NOW. This used to swallow the answer: the
+    // chip stayed dark, nothing appeared, and the only way to learn why was to
+    // guess. The caller shows `lightDenied` as a toast with a route to the
+    // settings app — which is what Apple's 5.1.1(iv) notes asked for.
+    if (await ensure('camera')) {
+      playback.toggleChannel('light');
+      return;
+    }
+    setLightDenied(true);
   }, [ensure, playback]);
 
   // The `translator.*` keys are the channels' names, not the Translator's —
@@ -85,5 +105,7 @@ export function useOutputChannels(
   return {
     playback,
     cells: cells.filter((cell) => isOutputChannelEnabled(cell.channel)),
+    lightDenied,
+    dismissLightDenied,
   };
 }

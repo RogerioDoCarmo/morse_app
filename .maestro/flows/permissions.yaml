@@ -42,6 +42,21 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'permission-dismiss'
 
+# ⚠️ AND A REFUSAL IS NOT SILENT. Apple's own 5.1.1(iv) notes asked for this:
+# "If the user is trying to use a feature in the app that won't function
+# without access to the microphone, it may be helpful to include a notification
+# to inform the user and provide a link to the Settings app."
+#
+# Both call sites used to bail into silence — the microphone button went on
+# looking ready while doing nothing when pressed. The unit tests cover the
+# wording; what needs a device is that the OS prompt's "Don't Allow" actually
+# lands here, which no fake can tell us.
+#
+# ⚠️ The system dialog is the OS's to draw and this flow does not tap it — see
+# the header. So the refusal is reached the way a real user reaches it a second
+# time: with the permission already denied at launch, the gate opens in its
+# blocked form, and `permission-dismiss` is the way back to the screen.
+
 # The microphone gate, reached from the Speak tab. Same shape, same guard —
 # and a fresh launch, because the camera gate above is still up.
 - retry:
@@ -82,6 +97,57 @@ appId: com.rogeriodocarmo.morse
     id: 'tab-speak'
 - assertVisible:
     id: 'speech-screen'
+- tapOn:
+    id: 'tab-translate'
+- assertVisible:
+    id: 'translator-screen'
+
+# ⚠️ A REFUSAL HAS TO LAND SOMEWHERE, and this is the half only a device can
+# check. Both call sites used to bail into silence: the gate closed, the screen
+# stayed exactly as it was, and the microphone button went on looking ready
+# while doing nothing when pressed.
+#
+# Reached the way a real user reaches it — the permission already denied at the
+# OS level, so the gate opens in its blocked form and `permission-dismiss` is
+# the way back. That path is the one the unit tests cannot reach: it needs a
+# real denial recorded by the system, not a fake that answers `false`.
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: true
+          permissions:
+            microphone: deny
+      - runFlow: ../dismiss-first-run.yaml
+- tapOn:
+    id: 'tab-speak'
+- assertVisible:
+    id: 'speech-screen'
+- tapOn:
+    id: 'mic-button'
+
+# Denied at the system level means iOS and Android will not prompt again, so
+# the gate opens already blocked: the way forward is the settings app.
+- assertVisible:
+    id: 'permission-microphone'
+- assertVisible:
+    id: 'permission-primary'
+- assertVisible:
+    id: 'permission-dismiss'
+
+# ⚠️ AND GOING BACK DOES NOT STRAND THE USER. This is the case that was
+# reported: the gate closes and the screen behind it has to say why the
+# microphone will not start, with a way to fix it. It used to say nothing at
+# all — `speech-open-settings` did not exist.
+- tapOn:
+    id: 'permission-dismiss'
+- assertVisible:
+    id: 'speech-screen'
+- assertVisible:
+    id: 'speech-open-settings'
+
+# The rest of the app is untouched by a refused microphone, which is the
+# promise the rationale screen makes.
 - tapOn:
     id: 'tab-translate'
 - assertVisible:

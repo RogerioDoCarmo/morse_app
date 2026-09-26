@@ -81,3 +81,67 @@ describe('Toast', () => {
     expect(screen.getByRole('alert')).toBeOnTheScreen();
   });
 });
+
+/**
+ * The action exists for one reason: a channel that cannot switch on needs to
+ * say where to fix it. ⚠️ It lives INSIDE the dismissing Pressable rather than
+ * beside it — two targets in one 44pt strip means a near miss on the action
+ * deletes the thing the user was reaching for.
+ */
+describe('the optional way out', () => {
+  it('shows nothing extra when no action is given', () => {
+    render(<Toast visible message="Quiet" onDismiss={jest.fn()} />);
+
+    expect(screen.queryByTestId('toast-action')).toBeNull();
+  });
+
+  it('shows the action label when one is given', () => {
+    render(
+      <Toast
+        visible
+        message="Light needs the camera"
+        onDismiss={jest.fn()}
+        action={{ label: 'Settings', onPress: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByTestId('toast-action')).toHaveTextContent('Settings');
+  });
+
+  it('runs the action when it is pressed', () => {
+    const onPress = jest.fn();
+    render(
+      <Toast
+        visible
+        message="Light needs the camera"
+        onDismiss={jest.fn()}
+        action={{ label: 'Settings', onPress }}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId('toast-action'));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * ⚠️ It does NOT dismiss itself. Opening the system settings sends the user
+   * out of the app; a toast that vanished on the way would leave nothing to
+   * come back to.
+   */
+  it('leaves dismissing to the caller', () => {
+    const onDismiss = jest.fn();
+    render(
+      <Toast
+        visible
+        message="Light needs the camera"
+        onDismiss={onDismiss}
+        action={{ label: 'Settings', onPress: jest.fn() }}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId('toast-action'));
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+});
