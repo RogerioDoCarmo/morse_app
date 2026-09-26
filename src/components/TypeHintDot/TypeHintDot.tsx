@@ -123,19 +123,23 @@ export function TypeHintDot({
 }
 
 const styles = StyleSheet.create({
-  // ⚠️ Lifted off the text baseline. Sitting centred against the label it read
-  // as a bullet point belonging to the words; raised, it reads as a marker
-  // pointing at the field below.
+  // ⚠️ NO VERTICAL OFFSET. It used to carry `translateY: -5`, lifted off the
+  // text baseline because sitting centred against the label it read as a bullet
+  // point belonging to the words.
   //
-  // ⚠️ THIS MATTERS MORE NOW THAT THE DOT LEADS THE ROW. Trailing the label it
-  // could only ever have looked like punctuation; leading it, at 10pt, it is
-  // sitting exactly where a bullet would. The lift is what keeps it a marker.
+  // That reasoning held while the dot TRAILED the label at 7pt. It does not
+  // hold now: at 10pt, leading the row, with 14pt of clearance and a halo of
+  // its own, nothing about it reads as punctuation — and the lift was reported
+  // from a device as the dot simply not lining up with the text.
+  //
+  // ⚠️ The row's `alignItems: 'center'` is what centres it, so this style must
+  // not fight it. If the bullet reading ever returns, the answer is the gap or
+  // the size, not an offset that leaves the dot visibly off its line.
   slot: {
     width: SIZE,
     height: SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ translateY: -5 }],
   },
   halo: {
     position: 'absolute',

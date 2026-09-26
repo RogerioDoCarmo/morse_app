@@ -61,6 +61,26 @@ describe('TypeHintDot', () => {
   });
 
   /**
+   * ⚠️ IT SITS ON THE LABEL'S LINE. This carried `translateY: -5` for as long
+   * as the dot trailed the label at 7pt, to stop it reading as a bullet point
+   * belonging to the words. Leading the row at 10pt with its own clearance, the
+   * offset stopped buying that and started being visible: reported from a
+   * device as the dot not lining up with the text.
+   *
+   * The row centres it. This asserts that nothing here fights that — an offset
+   * of any size, in either direction, fails.
+   */
+  it('carries no vertical offset of its own', () => {
+    render(<TypeHintDot label="Type here" />);
+    const dot = screen.getByLabelText('Type here');
+
+    const slot = StyleSheet.flatten(dot.props.style) as {
+      transform?: { translateY?: number }[];
+    };
+    expect(slot.transform).toBeUndefined();
+  });
+
+  /**
    * ⚠️ And STOPS it. The hint unmounts the moment the field is touched, which
    * on a first launch is within seconds — a loop left running on a detached
    * node keeps a native animation alive for the rest of the session.
