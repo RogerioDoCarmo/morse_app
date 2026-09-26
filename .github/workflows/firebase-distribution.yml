@@ -34,10 +34,62 @@ jobs:
       bumped: ${{ steps.check.outputs.bumped }}
       version: ${{ steps.check.outputs.version }}
       matrix: ${{ steps.plan.outputs.matrix }}
+      blocked: ${{ steps.credits.outputs.blocked }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
+      # ⚠️ READ BEFORE ANYTHING CALLS `eas build`. This is the whole point of
+      # the memo: `eas build` increments the REMOTE build counter and only then
+      # finds out the balance is zero, so by the time the friendly "no credits"
+      # handling below runs, a versionCode has already been spent on a binary
+      # that does not exist. On 23 September that happened twice in eighty
+      # seconds — Android 15 to 16, iOS 18 to 19 — from a version bump nobody
+      # thought of as a build.
+      - id: memo
+        uses: actions/cache/restore@v4
+        with:
+          path: .eas-credit-block
+          key: eas-credit-block-v1
+
+      - id: credits
+        run: |
+          set -euo pipefail
+          if [ ! -f .eas-credit-block ]; then
+            echo "blocked=false" >> "$GITHUB_OUTPUT"
+            echo "No credit block recorded."
+            exit 0
+          fi
+          until=$(cat .eas-credit-block)
+          # ⚠️ Fails OPEN. An unparseable or malformed date must let the build
+          # through: refusing to build because a cache file is corrupt would be
+          # this guard causing the outage it exists to prevent.
+          if ! now=$(date -u +%s) || ! deadline=$(date -u -d "$until" +%s 2>/dev/null); then
+            echo "blocked=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Could not read the recorded reset date (${until}); building anyway."
+            exit 0
+          fi
+          if [ "$now" -lt "$deadline" ]; then
+            echo "blocked=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### ⏸️ Skipped before spending a build number"
+              echo
+              echo "EAS reported its build allowance exhausted until **${until}**, and"
+              echo "that has not passed yet. Nothing was sent to EAS."
+              echo
+              echo "⚠️ This is the step that protects the **build number**. Calling"
+              echo "\`eas build\` here would increment the remote counter and only then"
+              echo "be refused, burning a \`versionCode\`/\`buildNumber\` on a binary that"
+              echo "never exists."
+              echo
+              echo "Dispatch this workflow by hand once the balance returns."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=Distribution skipped::EAS credits recorded as exhausted until ${until}; no build was attempted."
+          else
+            echo "blocked=false" >> "$GITHUB_OUTPUT"
+            echo "Recorded block expired on ${until}; proceeding."
+          fi
 
       # Gate on an actual version change, not on every push. Distributing on
       # each push produces duplicate same-version releases that testers cannot
@@ -88,7 +140,7 @@ jobs:
   distribute:
     name: Distribute ${{ matrix.platform }}
     needs: gate
-    if: needs.gate.outputs.bumped == 'true'
+    if: needs.gate.outputs.bumped == 'true' && needs.gate.outputs.blocked != 'true'
     runs-on: ubuntu-latest
     strategy:
       # One platform failing should not deny testers the other.
@@ -166,6 +218,18 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               echo "::warning title=Distribution skipped::No EAS build credits — ${{ matrix.platform }} was not built or distributed. ${reset}"
               echo "skipped=true" >> "$GITHUB_OUTPUT"
+              # The date EAS named, for the gate to read next time. Parsed out
+              # of "will reset in 13 days (on Thu Oct 01 2026)"; if the wording
+              # changes and the parse fails, nothing is written and the gate
+              # keeps letting builds through, which is the safe direction.
+              until=$(grep -oiE 'on [A-Z][a-z]{2} [A-Z][a-z]{2} [0-9]{1,2} [0-9]{4}' build.err | head -1 | sed 's/^on //')
+              if [ -n "$until" ]; then
+                echo "$until" > .eas-credit-block
+                echo "blocked_until=$until" >> "$GITHUB_OUTPUT"
+                echo "Recorded the block until $until."
+              else
+                echo "::warning::Could not parse a reset date out of the EAS output; the next run will try again and spend another build number."
+              fi
               exit 0
             fi
             echo "::error::eas build exited ${status}. This is a real build failure, not the credit balance."
@@ -185,6 +249,17 @@ jobs:
           echo "Downloading $url"
           curl -fsSL -o "${{ matrix.artifact }}" "$url"
           ls -lh "${{ matrix.artifact }}"
+
+      # ⚠️ SAVED ONLY ON THE CREDIT PATH. A cache written on every run would
+      # keep a stale date alive; written here, it exists exactly when EAS has
+      # said the balance is out, and the gate above deletes its own effect by
+      # comparing against the date rather than against the file's existence.
+      - name: Remember the block
+        if: steps.build.outputs.blocked_until != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .eas-credit-block
+          key: eas-credit-block-v1
 
       # ⚠️ There is no binary when the build was skipped, and this action would
       # fail on the missing file — turning the red check we just removed into a

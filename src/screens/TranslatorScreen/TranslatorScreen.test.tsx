@@ -1487,6 +1487,35 @@ describe('where the caret starts', () => {
     fireEvent(screen.getByTestId('translator-input'), 'focus');
     expect(screen.queryByTestId('type-hint-dot')).toBeNull();
   });
+
+  /**
+   * ⚠️ THE DOT LEADS THE ROW. It used to trail the label, where it read as
+   * punctuation on the end of the language name — reported from a device as not
+   * getting enough attention. The eye reaches the start of a row first, so the
+   * dot goes first.
+   *
+   * ⚠️ Asserted as an ORDER, not as a presence. `getByTestId` finds the dot
+   * wherever it sits in the row, which is exactly why moving it needed a test
+   * of its own: every assertion above this one passes with the dot back on the
+   * wrong side. `findAll` walks the tree depth-first, so index order is render
+   * order.
+   */
+  it('puts the dot before the label, not after it', () => {
+    renderWithProviders(<TranslatorScreen />);
+
+    // The instance type has no name to import — `react-test-renderer` ships no
+    // declarations — so it is taken from the query that produces it.
+    type Node = ReturnType<typeof screen.getByTestId>;
+
+    const row = screen.getByTestId('focus-input');
+    const nodes: Node[] = row.findAll(() => true);
+    const dotAt = nodes.findIndex((n: Node) => n.props.testID === 'type-hint-dot');
+    const labelAt = nodes.findIndex((n: Node) => n.type === 'Text');
+
+    expect(dotAt).toBeGreaterThanOrEqual(0);
+    expect(labelAt).toBeGreaterThanOrEqual(0);
+    expect(dotAt).toBeLessThan(labelAt);
+  });
 });
 
 /**
