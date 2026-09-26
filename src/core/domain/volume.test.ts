@@ -61,7 +61,16 @@ describe('isLowVolume', () => {
   it('never warns above the threshold, for any level a device can report', () => {
     fc.assert(
       fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (level) => {
-        expect(isLowVolume(level)).toBe(level <= 0.5);
+        // ⚠️ 0.3, THE CURRENT THRESHOLD. This said 0.5 — the old one — and went
+        // on saying it after the threshold moved, so for every level in the
+        // 0.3-to-0.5 band the property asserted the opposite of the behaviour.
+        // It survived because `fc.double` leans hard on the edges of its range
+        // and rarely sampled that band: the suite passed run after run and then
+        // failed on the counterexample 0.30000000000000004.
+        //
+        // ⚠️ A property that restates the constant cannot catch this. It has to
+        // be the literal, and the literal has to move when the constant does.
+        expect(isLowVolume(level)).toBe(level <= 0.3);
       }),
     );
   });

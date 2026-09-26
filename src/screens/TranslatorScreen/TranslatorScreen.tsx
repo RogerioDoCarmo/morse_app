@@ -326,10 +326,13 @@ export function TranslatorScreen({
   const unsupported = useMemo(() => unsupportedCharacters(source), [source]);
   // Playback speed is a saved preference; the hook wants a dot length.
   const { settings } = useSettings();
-  const { playback, cells: channelCells } = useOutputChannels(
-    message,
-    unitMsForWpm(settings.playbackWpm),
-  );
+  const { permission } = usePorts();
+  const {
+    playback,
+    cells: channelCells,
+    lightDenied,
+    dismissLightDenied,
+  } = useOutputChannels(message, unitMsForWpm(settings.playbackWpm));
   // One decimal is enough to look continuous and keeps the style object stable.
   const progressPercent = Math.round(playback.progress * 1000) / 10;
 
@@ -782,6 +785,21 @@ export function TranslatorScreen({
             icon="check"
             message={t('translator.copied')}
             onDismiss={dismissCopiedToast}
+          />
+          {/* ⚠️ Beside the strip that raised it. Light is the only channel
+              behind a permission, and a refusal used to leave the chip dark
+              with nothing said. */}
+          <Toast
+            visible={lightDenied}
+            icon="zap"
+            message={t('channels.lightDenied')}
+            onDismiss={dismissLightDenied}
+            action={{
+              label: t('channels.openSettings'),
+              onPress: () => {
+                void permission.openSettings();
+              },
+            }}
           />
           <OutputChannels cells={channelCells} />
 
