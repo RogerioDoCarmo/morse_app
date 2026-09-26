@@ -101,69 +101,31 @@ appId: com.rogeriodocarmo.morse
     id: 'tab-translate'
 - assertVisible:
     id: 'translator-screen'
-
-# ⚠️ A REFUSAL HAS TO LAND SOMEWHERE, and this is the half only a device can
-# check. Both call sites used to bail into silence: the gate closed, the screen
-# stayed exactly as it was, and the microphone button went on looking ready
-# while doing nothing when pressed.
+# ⚠️ THE REFUSAL FEEDBACK IS NOT TESTED HERE, and this note is the result of
+# trying twice. When the gate is refused, the Speak screen now says the
+# microphone is off and offers a route to the settings app. Reaching that state
+# needs an ANSWER to the system dialog, and this flow does not tap the system
+# dialog — see the header.
 #
-# Reached the way a real user reaches it — the permission already denied at the
-# OS level, so the gate opens in its blocked form and `permission-dismiss` is
-# the way back. That path is the one the unit tests cannot reach: it needs a
-# real denial recorded by the system, not a fake that answers `false`.
-- retry:
-    maxRetries: 2
-    commands:
-      - launchApp:
-          clearState: true
-          permissions:
-            microphone: deny
-      - runFlow: ../dismiss-first-run.yaml
-- tapOn:
-    id: 'tab-speak'
-- assertVisible:
-    id: 'speech-screen'
-- tapOn:
-    id: 'mic-button'
-
-# The gate opens either way, with the one action 5.1.1(iv) requires.
-- assertVisible:
-    id: 'permission-microphone'
-- assertVisible:
-    id: 'permission-primary'
-
-# ⚠️ THE TWO PLATFORMS DISAGREE ABOUT WHAT "DENIED" MEANS, and assuming they
-# agreed is what failed here first. iOS reports a denied permission as one that
-# cannot be asked again, so the gate opens BLOCKED and offers a way back to the
-# app. Android goes on reporting `canAskAgain: true` after a denial set this
-# way — confirmed on a local emulator, where the gate rendered a single
-# "Continue" and no "Go back" — so there is nothing to go back from, which is
-# 5.1.1(iv)'s requirement rather than a defect.
+# Both attempts to work around that failed, each on a different platform, and
+# each failure is worth recording so nobody spends the runs again:
 #
-# So the blocked path is asserted where it exists. On Android the same ground is
-# covered by `SpeechScreen.test.tsx`, which can answer the port directly; what
-# it cannot do is prove the OS records the denial, and that is what this half
-# buys on iOS.
-- runFlow:
-    when:
-      platform: iOS
-    commands:
-      - assertVisible:
-          id: 'permission-dismiss'
-      # ⚠️ GOING BACK MUST NOT STRAND THE USER. This is the reported case: the
-      # gate closes and the screen behind it has to say why the microphone will
-      # not start, with a way to fix it. It used to say nothing at all —
-      # `speech-open-settings` did not exist.
-      - tapOn:
-          id: 'permission-dismiss'
-      - assertVisible:
-          id: 'speech-screen'
-      - assertVisible:
-          id: 'speech-open-settings'
-
-# The rest of the app is untouched by a refused microphone, which is the
-# promise the rationale screen makes.
-- tapOn:
-    id: 'tab-translate'
-- assertVisible:
-    id: 'translator-screen'
+#   1. Launching with `permissions: { microphone: deny }` and asserting the
+#      BLOCKED gate. iOS reports such a permission as un-askable and opens the
+#      blocked gate; Android goes on reporting `canAskAgain: true` and opens the
+#      ordinary one, where `permission-dismiss` does not exist. Android failed on
+#      that assertion. Confirmed locally too: with RECORD_AUDIO denied through
+#      appops the screen showed a single "Continue" and no way back.
+#
+#   2. Asserting the blocked path only under `when: platform: iOS`. Android then
+#      got past the gate assertions and died on the step after them, because the
+#      gate was still up — which the header already says: the gate covers the
+#      app, so there is nowhere to navigate to without answering the OS. And iOS
+#      itself failed the same blocked assertion on the retry, having passed it on
+#      the run before, so the simulator's own answer is not stable either.
+#
+# The behaviour is covered where it can be held still: `SpeechScreen.test.tsx`
+# asserts the words and the route to settings, `TranslatorScreen.test.tsx` the
+# toast and its action, and both were run against the old silent `return` and
+# fail there. What no test proves is that a real OS denial reaches that code —
+# that one is checked by hand, and was, on a Pixel 6.
