@@ -31,7 +31,10 @@ const COPY: Readonly<
   idle: { title: 'speech.tapToSpeak', hint: 'speech.idleHint' },
   listening: { title: 'speech.listening', hint: 'speech.listeningHint' },
   done: { title: 'speech.gotIt', hint: 'speech.doneHint' },
-  denied: { title: 'speech.tapToSpeak', hint: 'speech.denied' },
+  // ⚠️ NOT 'speech.tapToSpeak'. On this phase tapping does nothing, and a
+  // title inviting the tap is the screen lying about itself — which is the
+  // whole defect: denied looked identical to idle.
+  denied: { title: 'speech.micOff', hint: 'speech.denied' },
   missing: { title: 'speech.tapToSpeak', hint: 'speech.unavailable' },
   failed: { title: 'speech.tapToSpeak', hint: 'speech.failed' },
 });
@@ -65,7 +68,7 @@ type Props = Readonly<{
  */
 export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.Element {
   const { t } = useLocale();
-  const { speech, locale: localePort } = usePorts();
+  const { speech, locale: localePort, permission } = usePorts();
   const deviceLocale = useMemo(() => localePort.getDeviceLocale(), [localePort]);
   // The recogniser follows the interface unless Language has pointed it
   // somewhere else — a device may not have every voice pack installed.
@@ -91,7 +94,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
   // What was heard is a message like any other, and it goes out the same four
   // ways. A tester came to this screen looking for the vibration the
   // Translator offers and found the transcript was a dead end.
-  const { playback, cells } = useOutputChannels(
+  const { playback, cells, lightDenied, dismissLightDenied } = useOutputChannels(
     message,
     unitMsForWpm(settings.playbackWpm),
   );
@@ -114,7 +117,16 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
   const listen = useCallback(async (): Promise<void> => {
     // Rationale before the OS prompt. The recogniser would otherwise ask on
     // its own, and its dialog gets one sentence to explain a microphone.
-    if (!(await ensure('microphone'))) return;
+    //
+    // ⚠️ A REFUSAL LANDS SOMEWHERE NOW. This used to `return` into silence:
+    // the gate closed, the screen stayed on `idle`, and the microphone went on
+    // looking ready while doing nothing when pressed. The `denied` phase
+    // already existed — it was only ever reached from the recogniser failing
+    // later, never from the user saying no.
+    if (!(await ensure('microphone'))) {
+      setPhase('denied');
+      return;
+    }
 
     if (!(await speech.isAvailable(speechLocale))) {
       setPhase('missing');
@@ -198,6 +210,22 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
             <Text testID="speech-hint" style={styles.hint}>
               {t(copy.hint)}
             </Text>
+            {/* ⚠️ The way out, and only where there is one. `missing` and
+                `failed` are dead ends the settings app cannot help with, so
+                offering it there would send the user somewhere useless. */}
+            {phase === 'denied' ? (
+              <Text
+                testID="speech-open-settings"
+                accessibilityRole="button"
+                accessibilityLabel="speech-open-settings"
+                onPress={() => {
+                  void permission.openSettings();
+                }}
+                style={styles.settingsLink}
+              >
+                {t('speech.openSettings')}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -234,6 +262,21 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
                 message={t('translator.volumeLow')}
                 onDismiss={playback.dismissLowVolume}
               />
+              {/* ⚠️ Beside the strip that raised it. Light is the only channel
+                  behind a permission, and a refusal used to leave the chip dark
+                  with nothing said. */}
+              <Toast
+                visible={lightDenied}
+                icon="zap"
+                message={t('channels.lightDenied')}
+                onDismiss={dismissLightDenied}
+                action={{
+                  label: t('channels.openSettings'),
+                  onPress: () => {
+                    void permission.openSettings();
+                  },
+                }}
+              />
               <OutputChannels cells={cells} />
               <View style={styles.actions}>
                 <SignalButton
@@ -252,6 +295,16 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
 }
 
 const styles = StyleSheet.create({
+  // A link, not a button: the primary action on this screen is still the
+  // microphone. This is how to make it work again, one step down.
+  settingsLink: {
+    ...theme.type.label,
+    color: theme.color.accentDeep,
+    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
   screen: { flex: 1, backgroundColor: theme.color.ground },
   header: {
     height: 48,
