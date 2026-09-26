@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { TypeHintDot } from './TypeHintDot';
 
@@ -40,6 +40,24 @@ describe('TypeHintDot', () => {
 
     expect(loop.mock.calls[0]?.[1]).toStrictEqual({ iterations: 6 });
     loop.mockRestore();
+  });
+
+  /**
+   * ⚠️ THE SIZE IS ASSERTED LITERALLY, because 7 was not enough. The dot
+   * replaced the input's auto-focus, so catching the eye is its only job, and
+   * at 7pt it was reported from a device as not doing it. A test reading SIZE
+   * back from the module would pass at 7, at 10, and at 1.
+   */
+  it('is ten points across, with a halo that grows past it', () => {
+    render(<TypeHintDot label="Type here" />);
+    const dot = screen.getByLabelText('Type here');
+
+    const slot = StyleSheet.flatten(dot.props.style) as {
+      width?: number;
+      height?: number;
+    };
+    expect(slot.width).toBe(10);
+    expect(slot.height).toBe(10);
   });
 
   /**

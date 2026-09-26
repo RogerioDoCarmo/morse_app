@@ -69,11 +69,18 @@ export const theme = Object.freeze({
   type: Object.freeze({
     wordmark: { fontFamily: fontFamily.extrabold, fontSize: 22, letterSpacing: -0.55 },
     title: { fontFamily: fontFamily.extrabold, fontSize: 24, letterSpacing: -0.6 },
+    // ⚠️ 22, down from 26, reported from a device as too big. The letter
+    // spacing and line height move with it so the block keeps its proportions:
+    // -0.02em and 1.27x, the ratios it had at 26.
+    //
+    // ⚠️ SpeechScreen had been overriding this to 22 since it was written, so
+    // the same role rendered at two sizes depending on which screen you were
+    // on. That override is gone; this is the one declaration.
     input: {
       fontFamily: fontFamily.semibold,
-      fontSize: 26,
-      letterSpacing: -0.52,
-      lineHeight: 33,
+      fontSize: 22,
+      letterSpacing: -0.44,
+      lineHeight: 28,
     },
     decoded: {
       fontFamily: fontFamily.bold,

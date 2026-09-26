@@ -2,11 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { theme } from '@/theme';
 
-/** The dot itself, in points. */
-const SIZE = 7;
+/**
+ * The dot itself, in points.
+ *
+ * ⚠️ 10, not 7. At 7 it was reported from a device as not catching the eye —
+ * which is the ONLY job it has, since it replaced the input's auto-focus. It
+ * is still a dot and not a badge: the accent colour, not red, because it
+ * points at a field rather than reporting a problem.
+ */
+const SIZE = 10;
 
 /** How far the halo grows past the dot at the top of each pulse. */
-const HALO = 2.6;
+const HALO = 3.2;
+
+/**
+ * How solid the halo is at the start of a beat.
+ *
+ * Raised with {@link SIZE} for the same reason. Past about 0.7 the halo stops
+ * reading as a ring of light around the dot and starts reading as a second,
+ * blurrier dot.
+ */
+const HALO_OPACITY = 0.6;
 
 /** One breath, in milliseconds. Slow enough to read as alive, not as an alarm. */
 const BEAT_MS = 1100;
@@ -91,7 +107,10 @@ export function TypeHintDot({
         style={[
           styles.halo,
           {
-            opacity: beat.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }),
+            opacity: beat.interpolate({
+              inputRange: [0, 1],
+              outputRange: [HALO_OPACITY, 0],
+            }),
             transform: [
               { scale: beat.interpolate({ inputRange: [0, 1], outputRange: [1, HALO] }) },
             ],
@@ -107,6 +126,10 @@ const styles = StyleSheet.create({
   // ⚠️ Lifted off the text baseline. Sitting centred against the label it read
   // as a bullet point belonging to the words; raised, it reads as a marker
   // pointing at the field below.
+  //
+  // ⚠️ THIS MATTERS MORE NOW THAT THE DOT LEADS THE ROW. Trailing the label it
+  // could only ever have looked like punctuation; leading it, at 10pt, it is
+  // sitting exactly where a bullet would. The lift is what keeps it a marker.
   slot: {
     width: SIZE,
     height: SIZE,
