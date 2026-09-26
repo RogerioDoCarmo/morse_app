@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { encode } from '@/core/domain/morse';
 import { DEFAULT_PLAYBACK_UNIT_MS, toTimeline } from '@/core/domain/timeline';
@@ -1500,6 +1501,26 @@ describe('where the caret starts', () => {
    * wrong side. `findAll` walks the tree depth-first, so index order is render
    * order.
    */
+  /**
+   * ⚠️ THE HALO OVERFLOWS ITS BOX BY DESIGN. TypeHintDot is a 10pt slot that
+   * pulses a halo out to 3.2x — absolutely positioned, because one that took
+   * part in layout would shove the label sideways on every beat. That makes the
+   * clearance the ROW's job, and at the original 6pt gap the halo reached to
+   * within about a point of the "E" on a device.
+   *
+   * The number is asserted literally. `theme.spacing` has no 14, and deriving
+   * it from SIZE x HALO here would be a second implementation of the same sum
+   * that could agree with itself while disagreeing with the component.
+   */
+  it('leaves the pulsing halo room beside the label', () => {
+    renderWithProviders(<TranslatorScreen />);
+
+    const row = screen.getByTestId('focus-input');
+    const style = StyleSheet.flatten(row.props.style) as { gap?: number };
+
+    expect(style.gap).toBe(14);
+  });
+
   it('puts the dot before the label, not after it', () => {
     renderWithProviders(<TranslatorScreen />);
 

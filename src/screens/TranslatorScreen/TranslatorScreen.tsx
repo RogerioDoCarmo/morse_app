@@ -875,7 +875,13 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     marginBottom: 10,
   },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
+  // ⚠️ THE GAP IS ROOM FOR THE HALO, not decoration. TypeHintDot occupies a
+  // 10pt box and pulses a halo out to 3.2x that — absolutely positioned, and
+  // deliberately so: a halo that took part in layout would shove this label
+  // sideways on every beat. The overflow is therefore the consumer's to leave
+  // room for, and at 6 it did not. On a device the halo reached to within about
+  // a point of the "E", which reads as the dot being stuck to the word.
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 14, flexShrink: 0 },
   inputActions: {
     flexDirection: 'row',
     gap: theme.spacing.md,
