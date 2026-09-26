@@ -126,25 +126,40 @@ appId: com.rogeriodocarmo.morse
 - tapOn:
     id: 'mic-button'
 
-# Denied at the system level means iOS and Android will not prompt again, so
-# the gate opens already blocked: the way forward is the settings app.
+# The gate opens either way, with the one action 5.1.1(iv) requires.
 - assertVisible:
     id: 'permission-microphone'
 - assertVisible:
     id: 'permission-primary'
-- assertVisible:
-    id: 'permission-dismiss'
 
-# ⚠️ AND GOING BACK DOES NOT STRAND THE USER. This is the case that was
-# reported: the gate closes and the screen behind it has to say why the
-# microphone will not start, with a way to fix it. It used to say nothing at
-# all — `speech-open-settings` did not exist.
-- tapOn:
-    id: 'permission-dismiss'
-- assertVisible:
-    id: 'speech-screen'
-- assertVisible:
-    id: 'speech-open-settings'
+# ⚠️ THE TWO PLATFORMS DISAGREE ABOUT WHAT "DENIED" MEANS, and assuming they
+# agreed is what failed here first. iOS reports a denied permission as one that
+# cannot be asked again, so the gate opens BLOCKED and offers a way back to the
+# app. Android goes on reporting `canAskAgain: true` after a denial set this
+# way — confirmed on a local emulator, where the gate rendered a single
+# "Continue" and no "Go back" — so there is nothing to go back from, which is
+# 5.1.1(iv)'s requirement rather than a defect.
+#
+# So the blocked path is asserted where it exists. On Android the same ground is
+# covered by `SpeechScreen.test.tsx`, which can answer the port directly; what
+# it cannot do is prove the OS records the denial, and that is what this half
+# buys on iOS.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: 'permission-dismiss'
+      # ⚠️ GOING BACK MUST NOT STRAND THE USER. This is the reported case: the
+      # gate closes and the screen behind it has to say why the microphone will
+      # not start, with a way to fix it. It used to say nothing at all —
+      # `speech-open-settings` did not exist.
+      - tapOn:
+          id: 'permission-dismiss'
+      - assertVisible:
+          id: 'speech-screen'
+      - assertVisible:
+          id: 'speech-open-settings'
 
 # The rest of the app is untouched by a refused microphone, which is the
 # promise the rationale screen makes.
