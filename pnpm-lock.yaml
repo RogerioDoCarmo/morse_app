@@ -143,8 +143,8 @@ importers:
         specifier: ^7.16.2
         version: 7.16.2(eslint@9.39.5)(typescript@6.0.3)
       fast-check:
-        specifier: ^4.10.1
-        version: 4.10.1
+        specifier: ^4.10.2
+        version: 4.10.2
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -1749,6 +1749,9 @@ packages:
   '@types/node@26.6.2':
     resolution: {integrity: sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g==}
 
+  '@types/node@26.6.3':
+    resolution: {integrity: sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg==}
+
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
 
@@ -3033,8 +3036,8 @@ packages:
   exponential-backoff@3.1.3:
     resolution: {integrity: sha512-ZgEeZXj30q+I0EN+CbSSpIyPaJ5HVQD18Z1m+u1FXbAeT94mr1zw50q4q6jiiC447Nl/YTcIYSAftiGqetwXCA==}
 
-  fast-check@4.10.1:
-    resolution: {integrity: sha512-sB5Vghiu8MyCyToHoBVGsT0baZg3sZWNIY+a6Ct2EDrQJlT4YdH6MC1BSLNe3kX1k5i5g0q1O52XFgcKK/rGHg==}
+  fast-check@4.10.2:
+    resolution: {integrity: sha512-iK2f+YrcmoeGqk6fA0ea2bptcu/itMIm4NfEozq6N25+aG6h7s5HZbB/k1aV7b5w5sFLMCbbtRUsTVR+BgC3xw==}
     engines: {node: '>=12.17.0'}
 
   fast-deep-equal@3.1.3:
@@ -4234,8 +4237,8 @@ packages:
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
 
-  minimizer-webpack-plugin@5.10.1:
-    resolution: {integrity: sha512-+dsZEyTcy1lkq41lxdiOqvb26gXbYGgwY+30w37f9PqUVkuEBejBLDotsHOTjuga9xJyGLW2DqzKDUyJ4W/PMQ==}
+  minimizer-webpack-plugin@5.12.0:
+    resolution: {integrity: sha512-PCN1x1OzFeFB2GlP91s46q7Gz8Jf16Z7M45bzpoqrYZlh12QeY6tYVM5h299wbwy1DxnQ69VFmmh8Hb2Ff8mbw==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
       '@minify-html/node': '*'
@@ -5368,6 +5371,10 @@ packages:
 
   webpack-sources@3.5.1:
     resolution: {integrity: sha512-jyuiGJdtvY434z5bUZrjz67v76/ePNvFZTp9Mdz29IlH4+GPsgyGjiv0fKI+M7BdkU6ADjulUcKAd3tUK3WlEw==}
+    engines: {node: '>=10.13.0'}
+
+  webpack-sources@3.5.3:
+    resolution: {integrity: sha512-F/zS5rEcCKxS6hrhxkLjOzblTsuv89rkuDyP+vToquds6KfPJ3fDqg9UNzbtJcA2AgXZOLMYLQqZpuyE5zDfxg==}
     engines: {node: '>=10.13.0'}
 
   webpack@5.109.2:
@@ -7685,6 +7692,10 @@ snapshots:
     dependencies:
       undici-types: 8.9.0
 
+  '@types/node@26.6.3':
+    dependencies:
+      undici-types: 8.9.0
+
   '@types/react@19.2.18':
     dependencies:
       csstype: 3.2.3
@@ -9248,7 +9259,7 @@ snapshots:
 
   exponential-backoff@3.1.3: {}
 
-  fast-check@4.10.1:
+  fast-check@4.10.2:
     dependencies:
       pure-rand: 8.4.2
 
@@ -10214,7 +10225,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 26.6.2
+      '@types/node': 26.6.3
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -10899,7 +10910,7 @@ snapshots:
     dependencies:
       brace-expansion: 1.1.18
 
-  minimizer-webpack-plugin@5.10.1(webpack@5.109.2):
+  minimizer-webpack-plugin@5.12.0(webpack@5.109.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
@@ -12031,6 +12042,8 @@ snapshots:
 
   webpack-sources@3.5.1: {}
 
+  webpack-sources@3.5.3: {}
+
   webpack@5.109.2:
     dependencies:
       '@types/estree': 1.0.9
@@ -12047,12 +12060,12 @@ snapshots:
       events: 3.3.0
       graceful-fs: 4.2.11
       mime-db: 1.54.0
-      minimizer-webpack-plugin: 5.10.1(webpack@5.109.2)
+      minimizer-webpack-plugin: 5.12.0(webpack@5.109.2)
       neo-async: 2.6.2
       schema-utils: 4.5.0
       tapable: 2.3.3
       watchpack: 2.5.2
-      webpack-sources: 3.5.1
+      webpack-sources: 3.5.3
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@napi-rs/image'
