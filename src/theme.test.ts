@@ -78,3 +78,24 @@ describe('theme tokens', () => {
     }
   });
 });
+
+/**
+ * ⚠️ THE FIELD'S OWN TEXT. Reported from a device as too big at 26, and the
+ * numbers are asserted literally for the reason the rest of this file is:
+ * reading the token back and comparing it to itself passes at any value.
+ *
+ * ⚠️ Three screens render this one token — the Translator's field, the guide's
+ * mocked sample, and the Speak transcript — so a change here is a change to
+ * all three, and to the store screenshots that show the first two.
+ */
+describe('the input type scale', () => {
+  it('is 22 point, the size a device asked for', () => {
+    expect(theme.type.input.fontSize).toBe(22);
+  });
+
+  /** The ratios it had at 26: -0.02em of tracking, and 1.27x leading. */
+  it('keeps its proportions at the smaller size', () => {
+    expect(theme.type.input.letterSpacing).toBe(-0.44);
+    expect(theme.type.input.lineHeight).toBe(28);
+  });
+});

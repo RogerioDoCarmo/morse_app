@@ -573,15 +573,21 @@ export function TranslatorScreen({
                   onPress={focusInput}
                   style={styles.labelRow}
                 >
-                  <Text style={styles.label}>
-                    {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
-                  </Text>
-                  {/* ⚠️ Shown only while the field is UNTOUCHED. The input no
+                  {/* ⚠️ BEFORE the label, not after it. Trailing the words it
+                      read as punctuation on the end of "English" — reported
+                      from a device as not getting enough attention — and the
+                      eye reaches the start of a row first. It is the first
+                      thing in the card now.
+
+                      ⚠️ Shown only while the field is UNTOUCHED. The input no
                       longer takes focus on open, so something has to say where
                       to start — but a dot that never leaves is decoration, and
                       one that persists after you have typed is a bug report
                       waiting to happen. */}
                   {showTypeHint ? <TypeHintDot label={t('translator.typeHint')} /> : null}
+                  <Text style={styles.label}>
+                    {toMorse ? t('translator.sourceLabel') : t('translator.morseLabel')}
+                  </Text>
                 </Pressable>
                 {/* The other two ways of getting text in. Both were drawn on
                     the artboard and neither was ever wired: a tester pressed

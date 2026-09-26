@@ -309,7 +309,11 @@ const styles = StyleSheet.create({
     color: theme.color.faint,
     marginBottom: theme.spacing.sm,
   },
-  transcript: { ...theme.type.input, fontSize: 22, color: theme.color.ink },
+  // ⚠️ No `fontSize` of its own any more. This screen had overridden the input
+  // scale to 22 since it was written while the Translator ran at 26 — the same
+  // role at two sizes, one of them a local override invisible from the other
+  // file. The token is 22 now, so this says it once.
+  transcript: { ...theme.type.input, color: theme.color.ink },
   morseBlock: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.color.border,
