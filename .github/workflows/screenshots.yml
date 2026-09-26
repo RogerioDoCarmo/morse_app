@@ -493,7 +493,7 @@ jobs:
 
       # Every set, by pattern — a missing one is then a named failure below
       # rather than a step that dies before the others are looked at.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: store-screenshots-*
           path: captured/
