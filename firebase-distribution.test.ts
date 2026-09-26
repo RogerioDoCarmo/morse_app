@@ -114,3 +114,66 @@ describe('nothing is distributed when nothing was built', () => {
     expect(buildStep()).toContain('GITHUB_OUTPUT');
   });
 });
+
+/**
+ * ⚠️ THE COUNTER MOVES BEFORE THE REFUSAL. `eas build` increments the REMOTE
+ * `versionCode`/`buildNumber` and only then discovers the balance is zero, so
+ * the friendly handling above — correct as it is about the red check — runs far
+ * too late to prevent the damage. On 23 September a version bump did it twice
+ * in eighty seconds: Android 15 → 16, iOS 18 → 19, no binary behind either, and
+ * nothing in this repository can give those numbers back.
+ *
+ * The order is the whole guard. A memo read AFTER the build would be a comment.
+ */
+describe('a refused build does not spend a build number', () => {
+  const gate = (): string => {
+    const start = WORKFLOW.indexOf('  gate:');
+    const end = WORKFLOW.indexOf('  distribute:');
+    return WORKFLOW.slice(start, end);
+  };
+
+  it('reads the credit memo before anything reaches EAS', () => {
+    const g = gate();
+    const memoAt = g.indexOf('.eas-credit-block');
+    const easAt = WORKFLOW.indexOf('eas build --platform');
+
+    expect(memoAt).toBeGreaterThan(-1);
+    expect(easAt).toBeGreaterThan(-1);
+    // Same file, so the offsets are comparable: the gate is above the job that
+    // runs the build.
+    expect(WORKFLOW.indexOf('.eas-credit-block')).toBeLessThan(easAt);
+  });
+
+  it('lets the gate stop the distribute job', () => {
+    expect(gate()).toContain('blocked: ${{ steps.credits.outputs.blocked }}');
+    expect(WORKFLOW).toContain("needs.gate.outputs.blocked != 'true'");
+  });
+
+  /**
+   * ⚠️ FAILS OPEN. A guard that refuses to build because its own cache file is
+   * corrupt would cause the outage it exists to prevent — so an unreadable date
+   * must let the build through, loudly.
+   */
+  it('builds anyway when the recorded date cannot be read', () => {
+    const g = gate();
+    expect(g).toContain('blocked=false');
+    expect(g).toContain('Could not read the recorded reset date');
+  });
+
+  it('records the date EAS named, so the next run can skip', () => {
+    expect(buildStep()).toContain('.eas-credit-block');
+    expect(buildStep()).toContain('blocked_until=');
+  });
+
+  /**
+   * The cache is written ONLY on the credit path. Saving on every run would
+   * keep a stale date alive long after the balance returned.
+   */
+  it('saves the memo only when a block was actually recorded', () => {
+    const start = WORKFLOW.indexOf('- name: Remember the block');
+    expect(start).toBeGreaterThan(-1);
+    expect(WORKFLOW.slice(start, start + 300)).toContain(
+      "if: steps.build.outputs.blocked_until != ''",
+    );
+  });
+});
