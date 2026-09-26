@@ -17,15 +17,26 @@ for exactly that reason.
 
 ## Before you leave the PC
 
-1. **Have the repository up to date on `main`.** Everything below assumes the
-   version is `0.3.6`.
+1. ⚠️ **`git pull` ON THE MAC, and read the version back.** Everything below
+   assumes **0.3.7**.
+
+   ```bash
+   git checkout main && git pull
+   node -p "require('./app.json').expo.version"
+   ```
+
+   ⚠️ **This is the step that was skipped.** Build 17 was archived from a
+   checkout that predated the 0.3.7 bump, so it went to App Store Connect as
+   **0.3.6** — carrying the 5.1.1 fix, but none of the device-feedback work.
+   Nothing in Xcode says which commit it built; the only place the mistake is
+   visible is the version string, and by then the upload has happened.
 2. ⚠️ **Copy `GoogleService-Info.plist` onto a USB stick or AirDrop it.** It is
    **not in git** — `.gitignore:75` excludes it, deliberately, because it is a
    credential. `git pull` on the Mac will **not** bring it, and its absence does
    not announce itself as a missing file: the build fails with
    `Could not get GOOGLE_APP_ID in Google Services file from build environment`,
    which reads like a signing error.
-3. **Decide the build number.** See step 5 — it is `17` unless something has
+3. **Decide the build number.** See step 5 — it is `18` unless something has
    been uploaded since.
 
 ---
@@ -75,7 +86,10 @@ This creates `ios/`, which is not in the repository. `--clean` matters: a stale
 
 Apple rejects an upload whose `CFBundleVersion` is not higher than every build
 already uploaded **for this version string**. The last iOS build uploaded was
-**0.3.5 (16)**, so use **17**.
+**0.3.6 (17)**, so use **18**.
+
+⚠️ 17 is taken. It is the build now in TestFlight's Beta App Review, and Apple
+refuses an upload whose `CFBundleVersion` repeats one already seen.
 
 ⚠️ The target directory is named by `expo prebuild` from the app name and is
 **not** verifiable from Windows, so find it rather than assuming `OmniMorse`:
@@ -84,12 +98,14 @@ already uploaded **for this version string**. The last iOS build uploaded was
 PLIST=$(ls ios/*/Info.plist | head -1)
 echo "$PLIST"
 /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 17"          "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 18"          "$PLIST"
 /usr/libexec/PlistBuddy -c "Print :CFBundleVersion"           "$PLIST"
 ```
 
-`CFBundleShortVersionString` should already read `0.3.6`. If it does not, stop —
-`app.json` disagrees with what you are about to ship.
+`CFBundleShortVersionString` should already read `0.3.7`. ⚠️ **If it does not,
+STOP.** It means the pull in step 1 did not happen or did not land, and the
+archive will be labelled with a version you are not shipping — which is exactly
+how 0.3.6 (17) reached Apple.
 
 > ⚠️ `eas.json` sets `"appVersionSource": "remote"`, meaning EAS normally keeps
 > the build number on its servers and `app.json` carries none. That mechanism
@@ -174,7 +190,7 @@ Name it so it says what it is, matching the convention the submit script
 expects:
 
 ```text
-omnimorse-0.3.6-17-appstore.ipa
+omnimorse-0.3.7-18-appstore.ipa
 ```
 
 ---
@@ -197,7 +213,7 @@ your Apple ID password.
 ⚠️ `pnpm submit:ios` **will not work there** — it calls `altool`, which ships
 with Xcode and exists only on macOS. Two routes that do:
 
-- `eas submit --platform ios --path ./omnimorse-0.3.6-17-appstore.ipa`
+- `eas submit --platform ios --path ./omnimorse-0.3.7-18-appstore.ipa`
   (the app is `ascAppId 6805992452` in `eas.json`). This uploads an existing
   binary rather than building one. ⚠️ Confirm it does not consume a build
   credit before relying on it close to the reset date.
