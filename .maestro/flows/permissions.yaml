@@ -42,6 +42,21 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'permission-dismiss'
 
+# ⚠️ AND A REFUSAL IS NOT SILENT. Apple's own 5.1.1(iv) notes asked for this:
+# "If the user is trying to use a feature in the app that won't function
+# without access to the microphone, it may be helpful to include a notification
+# to inform the user and provide a link to the Settings app."
+#
+# Both call sites used to bail into silence — the microphone button went on
+# looking ready while doing nothing when pressed. The unit tests cover the
+# wording; what needs a device is that the OS prompt's "Don't Allow" actually
+# lands here, which no fake can tell us.
+#
+# ⚠️ The system dialog is the OS's to draw and this flow does not tap it — see
+# the header. So the refusal is reached the way a real user reaches it a second
+# time: with the permission already denied at launch, the gate opens in its
+# blocked form, and `permission-dismiss` is the way back to the screen.
+
 # The microphone gate, reached from the Speak tab. Same shape, same guard —
 # and a fresh launch, because the camera gate above is still up.
 - retry:
@@ -86,3 +101,31 @@ appId: com.rogeriodocarmo.morse
     id: 'tab-translate'
 - assertVisible:
     id: 'translator-screen'
+# ⚠️ THE REFUSAL FEEDBACK IS NOT TESTED HERE, and this note is the result of
+# trying twice. When the gate is refused, the Speak screen now says the
+# microphone is off and offers a route to the settings app. Reaching that state
+# needs an ANSWER to the system dialog, and this flow does not tap the system
+# dialog — see the header.
+#
+# Both attempts to work around that failed, each on a different platform, and
+# each failure is worth recording so nobody spends the runs again:
+#
+#   1. Launching with `permissions: { microphone: deny }` and asserting the
+#      BLOCKED gate. iOS reports such a permission as un-askable and opens the
+#      blocked gate; Android goes on reporting `canAskAgain: true` and opens the
+#      ordinary one, where `permission-dismiss` does not exist. Android failed on
+#      that assertion. Confirmed locally too: with RECORD_AUDIO denied through
+#      appops the screen showed a single "Continue" and no way back.
+#
+#   2. Asserting the blocked path only under `when: platform: iOS`. Android then
+#      got past the gate assertions and died on the step after them, because the
+#      gate was still up — which the header already says: the gate covers the
+#      app, so there is nowhere to navigate to without answering the OS. And iOS
+#      itself failed the same blocked assertion on the retry, having passed it on
+#      the run before, so the simulator's own answer is not stable either.
+#
+# The behaviour is covered where it can be held still: `SpeechScreen.test.tsx`
+# asserts the words and the route to settings, `TranslatorScreen.test.tsx` the
+# toast and its action, and both were run against the old silent `return` and
+# fail there. What no test proves is that a real OS denial reaches that code —
+# that one is checked by hand, and was, on a Pixel 6.
