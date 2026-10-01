@@ -1,13 +1,21 @@
 name: Firebase App Distribution
 
+# ⚠️ DISPATCH ONLY. A VERSION BUMP IS NOT A REQUEST FOR A BUILD.
+#
+# This fired on any push to develop touching `package.json`, gated on the
+# version actually changing. The gate was right and the trigger was still
+# wrong: on 23 September a bump woke both platforms, EAS incremented
+# versionCode 15 → 16 and buildNumber 18 → 19, and THEN refused for lack of
+# credits. Two numbers spent on binaries that do not exist, and nothing in a
+# repository can give them back. Miroji lost six the same way.
+#
+# The credit memo below still matters — a dispatched build can meet the same
+# empty wallet — but it cannot be the only guard, because by the time it runs
+# the counter has already moved.
+#
+# ⚠️ Testers no longer get a build automatically on a version bump. That is
+# the deliberate cost: distribution is now something someone asks for.
 on:
-  push:
-    branches: [develop]
-    paths:
-      - 'package.json'
-  # A version bump is a heavy way to retry a distribution that failed for a
-  # reason of its own — which is how the `--output` bug below went unnoticed
-  # from the day this was written until the first bump ever fired it.
   workflow_dispatch:
     inputs:
       platform:

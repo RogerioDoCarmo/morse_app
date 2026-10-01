@@ -140,3 +140,65 @@ describe('no workflow indexes the secrets context dynamically', () => {
     );
   });
 });
+
+/**
+ * ⚠️ NOTHING AUTOMATIC MAY BUY A BUILD.
+ *
+ * `eas-build.yml` ran on `v*.*.*` tags, narrowed to that after five merges in
+ * one evening cost seven iOS builds out of the fifteen a month the free plan
+ * allows. `firebase-distribution.yml` ran on any push to develop touching
+ * `package.json`. Both looked careful. Both spent credits nobody had asked for,
+ * and the distribution one did worse: on 23 September it woke both platforms,
+ * EAS incremented versionCode 15 → 16 and buildNumber 18 → 19, and THEN refused
+ * for lack of credits. Two numbers spent on binaries that do not exist.
+ *
+ * ⚠️ The assertion is that `workflow_dispatch` is the ONLY trigger. Checking
+ * that it is present passes on the version this guard exists to prevent, which
+ * had `push` beside it.
+ *
+ * ⚠️ And the list of files is DERIVED, not written down. A guard naming three
+ * workflows is silent about the fourth somebody adds.
+ */
+describe('nothing automatic buys a paid build', () => {
+  const dir = path.join(__dirname, '.github', 'workflows');
+
+  /** Every workflow that can reach a cloud `eas build`. `--local` costs nothing. */
+  const paid = fs
+    .readdirSync(dir)
+    .filter((f) => /\.ya?ml$/u.test(f))
+    .filter((f) => {
+      const lines = workflow(f).match(/eas build[^\n]*/gu) ?? [];
+      return lines.length > 0 && !lines.every((l) => l.includes('--local'));
+    });
+
+  it('finds the workflows it is meant to be guarding', () => {
+    // A derived list that came back empty would make every assertion below
+    // pass by vacuum.
+    expect(paid).toEqual(
+      expect.arrayContaining(['eas-build.yml', 'firebase-distribution.yml']),
+    );
+  });
+
+  /**
+   * ⚠️ Its own stripper, not the one scoped to the block above. And it is
+   * load-bearing: the comments added beside these triggers EXPLAIN the push and
+   * tag rules they replaced, so a check against raw text would match its own
+   * documentation and fail on a correct file.
+   */
+  const withoutComments = (text: string): string =>
+    text
+      .split('\n')
+      .filter((line) => !/^\s*#/u.test(line))
+      .join('\n');
+
+  it.each(paid)('%s runs only when a human dispatches it', (name) => {
+    const body = withoutComments(workflow(name));
+    const on = body.slice(body.indexOf('\non:'), body.indexOf('\npermissions:'));
+
+    expect(on).toContain('workflow_dispatch:');
+    // The expensive half: no push, no tag, no pull request.
+    expect(on).not.toMatch(/\n\s*push:/u);
+    expect(on).not.toMatch(/\n\s*pull_request:/u);
+    expect(on).not.toMatch(/tags:/u);
+  });
+});
