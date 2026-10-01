@@ -1,0 +1,12 @@
+1
+00:00:00,000 --> 00:00:02,000
+OmniMorse — encode, decode, learn Morse code
+
+2
+00:00:02,000 --> 00:00:18,000
+Four ways in: type it, speak it, tap it out, or learn the alphabet
+
+3
+00:00:18,000 --> 00:00:20,000
+Nothing you type, say or key ever leaves your phone
+
