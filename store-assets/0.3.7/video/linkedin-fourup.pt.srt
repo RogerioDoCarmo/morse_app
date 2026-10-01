@@ -1,0 +1,12 @@
+1
+00:00:00,000 --> 00:00:02,000
+OmniMorse — codifique, decodifique e aprenda código Morse
+
+2
+00:00:02,000 --> 00:00:18,000
+Quatro caminhos: digite, fale, toque o ritmo ou aprenda o alfabeto
+
+3
+00:00:18,000 --> 00:00:20,000
+Nada do que você digita, fala ou toca sai do aparelho
+
