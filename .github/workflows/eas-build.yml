@@ -14,10 +14,22 @@ name: EAS build
 # convention already puts an annotated tag on main for every version.
 #
 # `workflow_dispatch` stays for the times a build is wanted without a release.
+# ⚠️ DISPATCH ONLY. NOT EVEN A TAG.
+#
+# This ran on `v*.*.*` tags, narrowed to that after five merges in one evening
+# cost seven iOS builds out of the fifteen a month the free plan allows. That
+# was an improvement and still not enough: a tag is a git operation nobody
+# associates with a spend, this repository already carries 17 of them, and
+# tagging is exactly the moment someone is thinking about release paperwork
+# rather than about credits.
+#
+# Both binaries can be produced for nothing — Gradle builds the AAB and the APK
+# locally, and the Mac archives the IPA in Xcode. EAS earns a credit only when
+# neither machine can do the job, and a human is the right judge of that.
+#
+# ⚠️ After a tag is pushed, the question is asked rather than answered by a
+# trigger: whoever tagged it decides whether a cloud build is wanted.
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       platform:
