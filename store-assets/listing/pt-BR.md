@@ -111,10 +111,16 @@ version is still a well-formed sentence of the right length.
 repository — read it off the binary, or off the Settings screen, which shows it
 from 0.3.5 onward.
 
+⚠️ AND 0.3.7's FIRST DRAFT OF THIS BLOCK DESCRIBED A BUILD THAT DID NOT
+SHIP YET — written before the permission-refusal feedback and the label/dot
+work were merged, so it mentioned neither. The stale-notes trap has two
+directions: copy left over from the last release, and copy written before
+this one finished. Re-read this block against the log on the day you submit.
+
 ```text
-• O aviso de volume do guia agora fica acima do botão, onde dá para ler, e some sozinho.
-• O anel de uma letra não gira mais a tecla inteira — a borda fica parada e só uma marca dá a volta.
-• O microfone pulsa enquanto está ouvindo.
+• Agora o app explica o que para de funcionar quando você recusa o microfone ou a câmera, em vez de ficar parado sem dizer nada.
 • Toque em qualquer letra em Aprender para ouvir só ela.
-• Na tela de toque: um espaço para o seu texto, e a regra da tecla fica abaixo do botão de reproduzir.
+• O anel da letra atual foi corrigido: a borda fica parada e só uma marca dá a volta.
+• O aviso de volume aparece acima do botão, onde dá para ler, e some sozinho.
+• O ponto que pulsa agora fica à esquerda do campo, alinhado com o texto.
 ```
