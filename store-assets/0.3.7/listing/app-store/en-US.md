@@ -66,12 +66,12 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## What's New in This Version
 
-`409 / 4000`
+`417 / 4000`
 
 ```text
-• The guide's volume warning now sits above the button, where you can read it, and goes away by itself.
-• The ring around a letter no longer turns the whole chip — the border stays still and one mark travels it.
-• The microphone pulses while it is listening.
+• The app now says what stops working when you refuse the microphone or the camera, instead of sitting there silently.
 • Tap any letter in Learn to hear just that one.
-• On the tap screen: a placeholder for your text, and the key's rule now stays below the play button.
+• The ring on the current letter is fixed: the border stays still and one mark travels it.
+• The volume warning sits above the button, where you can read it, and goes away by itself.
+• The pulsing dot now sits left of the field, level with the text.
 ```
