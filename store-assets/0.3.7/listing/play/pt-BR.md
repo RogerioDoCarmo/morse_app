@@ -50,12 +50,12 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## What's new
 
-`392 / 500`
+`423 / 500`
 
 ```text
-• O aviso de volume do guia agora fica acima do botão, onde dá para ler, e some sozinho.
-• O anel de uma letra não gira mais a tecla inteira — a borda fica parada e só uma marca dá a volta.
-• O microfone pulsa enquanto está ouvindo.
+• Agora o app explica o que para de funcionar quando você recusa o microfone ou a câmera, em vez de ficar parado sem dizer nada.
 • Toque em qualquer letra em Aprender para ouvir só ela.
-• Na tela de toque: um espaço para o seu texto, e a regra da tecla fica abaixo do botão de reproduzir.
+• O anel da letra atual foi corrigido: a borda fica parada e só uma marca dá a volta.
+• O aviso de volume aparece acima do botão, onde dá para ler, e some sozinho.
+• O ponto que pulsa agora fica à esquerda do campo, alinhado com o texto.
 ```

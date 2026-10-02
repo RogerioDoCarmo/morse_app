@@ -109,10 +109,16 @@ version is still a well-formed sentence of the right length.
 repository — read it off the binary, or off the Settings screen, which shows it
 from 0.3.5 onward.
 
+⚠️ AND 0.3.7's FIRST DRAFT OF THIS BLOCK DESCRIBED A BUILD THAT DID NOT
+SHIP YET — written before the permission-refusal feedback and the label/dot
+work were merged, so it mentioned neither. The stale-notes trap has two
+directions: copy left over from the last release, and copy written before
+this one finished. Re-read this block against the log on the day you submit.
+
 ```text
-• The guide's volume warning now sits above the button, where you can read it, and goes away by itself.
-• The ring around a letter no longer turns the whole chip — the border stays still and one mark travels it.
-• The microphone pulses while it is listening.
+• The app now says what stops working when you refuse the microphone or the camera, instead of sitting there silently.
 • Tap any letter in Learn to hear just that one.
-• On the tap screen: a placeholder for your text, and the key's rule now stays below the play button.
+• The ring on the current letter is fixed: the border stays still and one mark travels it.
+• The volume warning sits above the button, where you can read it, and goes away by itself.
+• The pulsing dot now sits left of the field, level with the text.
 ```
