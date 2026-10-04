@@ -122,5 +122,6 @@ this one finished. Re-read this block against the log on the day you submit.
 • Toque em qualquer letra em Aprender para ouvir só ela.
 • O anel da letra atual foi corrigido: a borda fica parada e só uma marca dá a volta.
 • O aviso de volume aparece acima do botão, onde dá para ler, e some sozinho.
+• O microfone pulsa enquanto está ouvindo.
 • O ponto que pulsa agora fica à esquerda do campo, alinhado com o texto.
 ```
