@@ -50,12 +50,13 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## What's new
 
-`417 / 500`
+`464 / 500`
 
 ```text
 • The app now says what stops working when you refuse the microphone or the camera, instead of sitting there silently.
 • Tap any letter in Learn to hear just that one.
 • The ring on the current letter is fixed: the border stays still and one mark travels it.
 • The volume warning sits above the button, where you can read it, and goes away by itself.
+• The microphone pulses while it is listening.
 • The pulsing dot now sits left of the field, level with the text.
 ```

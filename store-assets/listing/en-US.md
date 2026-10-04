@@ -120,5 +120,6 @@ this one finished. Re-read this block against the log on the day you submit.
 • Tap any letter in Learn to hear just that one.
 • The ring on the current letter is fixed: the border stays still and one mark travels it.
 • The volume warning sits above the button, where you can read it, and goes away by itself.
+• The microphone pulses while it is listening.
 • The pulsing dot now sits left of the field, level with the text.
 ```
