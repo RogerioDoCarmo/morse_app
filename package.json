@@ -35,8 +35,8 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "build-storybook": "storybook build",
-    "chromatic": "chromatic --exit-zero-on-changes",
-    "storybook": "storybook dev -p 6006"
+    "storybook": "storybook dev -p 6006",
+    "chromatic:publish": "pnpm build-storybook && chromatic --storybook-build-dir=storybook-static --exit-zero-on-changes"
   },
   "dependencies": {
     "@expo-google-fonts/dm-mono": "^0.4.2",
