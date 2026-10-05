@@ -224,3 +224,49 @@ describe('nothing automatic buys a paid build', () => {
     expect(on).not.toMatch(/tags:/u);
   });
 });
+
+/**
+ * `release.yml` creates the GitHub Release from the annotated tag's message,
+ * and refuses a tag whose name disagrees with `app.json` at that commit. That
+ * guard is the only thing standing between a typo and a release claiming a
+ * version the app does not ship.
+ *
+ * ⚠️ It must nevertheless accept semver BUILD METADATA. `v0.3.7+storybook` is
+ * the same version with something extra in the repository and sorts EQUAL to
+ * `0.3.7`; a `-suffix` is a PRE-release and sorts BEFORE it, which is a real
+ * mistake and must still fail.
+ *
+ * ⚠️ This runs the workflow's own comparison, extracted from the file rather
+ * than retyped here. A copy of the rule would pass while the workflow rejected
+ * the tag, which is the failure mode worth avoiding.
+ */
+describe('a release tag may carry build metadata', () => {
+  const script = workflow('release.yml');
+
+  /** The two expansions the guard applies, in order, read out of the file. */
+  const strip = (tag: string): string => {
+    expect(script).toContain('TAG_VERSION="${TAG_VERSION#v}"');
+    expect(script).toContain('TAG_VERSION="${TAG_VERSION%%+*}"');
+    return tag.replace(/^v/u, '').replace(/\+.*$/u, '');
+  };
+
+  it.each([
+    ['v0.3.7', '0.3.7'],
+    ['v0.3.7+storybook', '0.3.7'],
+    ['v0.3.7+build.12', '0.3.7'],
+  ])('%s is compared as %s', (tag, expected) => {
+    expect(strip(tag)).toBe(expected);
+  });
+
+  it.each([['v0.3.7-rc1'], ['v0.3.7-storybook']])(
+    '%s is NOT reduced to 0.3.7, so a pre-release tag still fails the guard',
+    (tag) => {
+      expect(strip(tag)).not.toBe('0.3.7');
+    },
+  );
+
+  it('still refuses a lightweight tag, where there are no notes to publish', () => {
+    expect(script).toContain('is a lightweight tag');
+    expect(script).toContain('exit 1');
+  });
+});
