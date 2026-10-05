@@ -162,20 +162,42 @@ describe('no workflow indexes the secrets context dynamically', () => {
 describe('nothing automatic buys a paid build', () => {
   const dir = path.join(__dirname, '.github', 'workflows');
 
-  /** Every workflow that can reach a cloud `eas build`. `--local` costs nothing. */
+  /**
+   * Every workflow that can spend somebody's money.
+   *
+   * Two billed things run from this repository, and they bill differently:
+   *
+   * - A cloud `eas build` costs a build credit. `--local` costs nothing, which
+   *   is why the flag is checked rather than the command.
+   * - Chromatic bills per SNAPSHOT — one per story per build — so it is
+   *   expensive in proportion to the story count, which only ever grows.
+   *
+   * ⚠️ Chromatic contains no `eas build`. Matching on that alone — which is
+   * what this did before `chromatic.yml` existed — would have exempted it
+   * completely: a guard reporting success while the one newly added paid
+   * workflow ran on every push.
+   */
+  const spendsMoney = (text: string): boolean => {
+    const easLines = text.match(/eas build[^\n]*/gu) ?? [];
+    const cloudEas = easLines.length > 0 && !easLines.every((l) => l.includes('--local'));
+    const chromatic = /chromaui\/action|chromatic --|pnpm chromatic/u.test(text);
+    return cloudEas || chromatic;
+  };
+
   const paid = fs
     .readdirSync(dir)
     .filter((f) => /\.ya?ml$/u.test(f))
-    .filter((f) => {
-      const lines = workflow(f).match(/eas build[^\n]*/gu) ?? [];
-      return lines.length > 0 && !lines.every((l) => l.includes('--local'));
-    });
+    .filter((f) => spendsMoney(workflow(f)));
 
   it('finds the workflows it is meant to be guarding', () => {
     // A derived list that came back empty would make every assertion below
     // pass by vacuum.
     expect(paid).toEqual(
-      expect.arrayContaining(['eas-build.yml', 'firebase-distribution.yml']),
+      expect.arrayContaining([
+        'eas-build.yml',
+        'firebase-distribution.yml',
+        'chromatic.yml',
+      ]),
     );
   });
 
