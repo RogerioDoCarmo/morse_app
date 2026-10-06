@@ -78,6 +78,16 @@ jobs:
           APP_VERSION=$(node -p "require('./app.json').expo.version")
           TAG_VERSION="${{ steps.tag.outputs.name }}"
           TAG_VERSION="${TAG_VERSION#v}"
+          # Build metadata, the `+suffix` semver allows, is dropped before the
+          # comparison. `v0.3.7+storybook` is the SAME version built with
+          # something extra in the repository, and it sorts equal to `0.3.7` —
+          # which is the whole point of the `+` form. Keeping it in the compare
+          # would reject exactly the tag it is meant to allow.
+          #
+          # ⚠️ A `-suffix` is NOT stripped, deliberately. That is a PRE-release
+          # and sorts BEFORE the version, so `v0.3.7-rc1` claiming to be 0.3.7
+          # is a real mistake and should still fail here.
+          TAG_VERSION="${TAG_VERSION%%+*}"
           if [ "$APP_VERSION" != "$TAG_VERSION" ]; then
             echo "::error::Tag ${{ steps.tag.outputs.name }} does not match" \
                  "app.json version $APP_VERSION. Bump app.json on develop and" \

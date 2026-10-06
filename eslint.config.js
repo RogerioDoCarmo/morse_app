@@ -20,6 +20,10 @@ module.exports = tseslint.config(
       'reports/**',
       '.stryker-tmp/**',
       'design/**',
+      // The web Storybook's build output. Gitignored, but eslint's flat config
+      // does not read .gitignore — without this, `pnpm lint` parses Vite's
+      // generated bundles and reports ~2300 errors in code nobody wrote.
+      'storybook-static/**',
       // A subagent's git worktree, with its own full checkout of this source.
       // Without this, eslint reports ITS copy of every file as an error here.
       '.claude/**',

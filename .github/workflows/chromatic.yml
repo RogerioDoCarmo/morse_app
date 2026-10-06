@@ -1,0 +1,105 @@
+name: Chromatic
+
+# Builds the web Storybook and publishes it to Chromatic for visual regression
+# testing and a hosted, shareable Storybook.
+#
+# ⚠️ DISPATCH ONLY. NOTHING AUTOMATIC SPENDS A SNAPSHOT.
+#
+# Chromatic bills per SNAPSHOT — one per story per build, multiplied by the
+# viewports and modes configured — so "one more build" is never one more
+# anything. It is cheap here today, with a handful of stories and a single
+# mode, and it stops being cheap silently as stories are added. The trigger is
+# where that is held, not a hope that the story count stays small.
+#
+# This is the same decision already made for `eas-build.yml` and
+# `firebase-distribution.yml` in this repository on 1 October 2026, and for
+# Chromatic in mirror_app and curriculo. In mirror_app the evidence was stark:
+# of its last 200 Chromatic runs, 91 came from pushes and 109 from pull
+# requests, and not one from a person deciding a visual check was worth buying.
+#
+# ⚠️ TWO THINGS ARE GIVEN UP, AND THEY ARE REAL.
+#
+# 1. A pull request gets no automatic visual check. A regression waits for
+#    somebody to dispatch this, which means it can reach `main` first. The
+#    inverted ChipProgressRing in 0.3.6 is exactly the shape of defect this
+#    would have caught — and exactly the shape that reaches a device when
+#    nobody runs it.
+#
+# 2. Any Chromatic permalink to "the latest build on main" goes stale, because
+#    a pull request build is filed under its head branch, never its base.
+#    Dispatching this from `main` after a release keeps such a link alive.
+#
+# ⚠️ Run it deliberately: before a release, and after any change to a component
+# that has a story.
+on:
+  workflow_dispatch:
+    inputs:
+      branch-name:
+        description: Branch to treat as the Chromatic baseline (leave blank for the ref you dispatch from)
+        required: false
+        type: string
+
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  chromatic:
+    name: Chromatic
+    runs-on: ubuntu-latest
+    # Dependabot pull requests run without repository secrets, so the project
+    # token would be empty and the step would fail on a missing credential
+    # rather than on anything real. Same guard as the other secret-using jobs.
+    if: github.actor != 'dependabot[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # ⚠️ Chromatic needs the full history to find the baseline build to
+          # diff against. With a shallow clone every story reads as new, which
+          # both buys a full set of snapshots and tells you nothing.
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ⚠️ Build before publishing, as its own step. `chromatic` can build for
+      # you, but then a broken story fails inside the paid step — and a failed
+      # Chromatic run still consumes the snapshots it managed to take. Failing
+      # here costs nothing.
+      - name: Build the web Storybook
+        run: pnpm build-storybook
+
+      - name: Publish to Chromatic
+        uses: chromaui/action@v11
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybook-static
+          # The build is already done above; do not do it again.
+          onlyChanged: true
+          exitZeroOnChanges: true
+          branchName: ${{ inputs.branch-name }}
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Chromatic"
+            echo
+            echo "Dispatched by \`${{ github.actor }}\` from \`${{ github.ref_name }}\`."
+            echo
+            echo "⚠️ This spends snapshots — one per story, per build."
+          } >> "$GITHUB_STEP_SUMMARY"

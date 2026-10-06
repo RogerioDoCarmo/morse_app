@@ -162,20 +162,42 @@ describe('no workflow indexes the secrets context dynamically', () => {
 describe('nothing automatic buys a paid build', () => {
   const dir = path.join(__dirname, '.github', 'workflows');
 
-  /** Every workflow that can reach a cloud `eas build`. `--local` costs nothing. */
+  /**
+   * Every workflow that can spend somebody's money.
+   *
+   * Two billed things run from this repository, and they bill differently:
+   *
+   * - A cloud `eas build` costs a build credit. `--local` costs nothing, which
+   *   is why the flag is checked rather than the command.
+   * - Chromatic bills per SNAPSHOT — one per story per build — so it is
+   *   expensive in proportion to the story count, which only ever grows.
+   *
+   * ⚠️ Chromatic contains no `eas build`. Matching on that alone — which is
+   * what this did before `chromatic.yml` existed — would have exempted it
+   * completely: a guard reporting success while the one newly added paid
+   * workflow ran on every push.
+   */
+  const spendsMoney = (text: string): boolean => {
+    const easLines = text.match(/eas build[^\n]*/gu) ?? [];
+    const cloudEas = easLines.length > 0 && !easLines.every((l) => l.includes('--local'));
+    const chromatic = /chromaui\/action|chromatic --|pnpm chromatic/u.test(text);
+    return cloudEas || chromatic;
+  };
+
   const paid = fs
     .readdirSync(dir)
     .filter((f) => /\.ya?ml$/u.test(f))
-    .filter((f) => {
-      const lines = workflow(f).match(/eas build[^\n]*/gu) ?? [];
-      return lines.length > 0 && !lines.every((l) => l.includes('--local'));
-    });
+    .filter((f) => spendsMoney(workflow(f)));
 
   it('finds the workflows it is meant to be guarding', () => {
     // A derived list that came back empty would make every assertion below
     // pass by vacuum.
     expect(paid).toEqual(
-      expect.arrayContaining(['eas-build.yml', 'firebase-distribution.yml']),
+      expect.arrayContaining([
+        'eas-build.yml',
+        'firebase-distribution.yml',
+        'chromatic.yml',
+      ]),
     );
   });
 
@@ -200,5 +222,51 @@ describe('nothing automatic buys a paid build', () => {
     expect(on).not.toMatch(/\n\s*push:/u);
     expect(on).not.toMatch(/\n\s*pull_request:/u);
     expect(on).not.toMatch(/tags:/u);
+  });
+});
+
+/**
+ * `release.yml` creates the GitHub Release from the annotated tag's message,
+ * and refuses a tag whose name disagrees with `app.json` at that commit. That
+ * guard is the only thing standing between a typo and a release claiming a
+ * version the app does not ship.
+ *
+ * ⚠️ It must nevertheless accept semver BUILD METADATA. `v0.3.7+storybook` is
+ * the same version with something extra in the repository and sorts EQUAL to
+ * `0.3.7`; a `-suffix` is a PRE-release and sorts BEFORE it, which is a real
+ * mistake and must still fail.
+ *
+ * ⚠️ This runs the workflow's own comparison, extracted from the file rather
+ * than retyped here. A copy of the rule would pass while the workflow rejected
+ * the tag, which is the failure mode worth avoiding.
+ */
+describe('a release tag may carry build metadata', () => {
+  const script = workflow('release.yml');
+
+  /** The two expansions the guard applies, in order, read out of the file. */
+  const strip = (tag: string): string => {
+    expect(script).toContain('TAG_VERSION="${TAG_VERSION#v}"');
+    expect(script).toContain('TAG_VERSION="${TAG_VERSION%%+*}"');
+    return tag.replace(/^v/u, '').replace(/\+.*$/u, '');
+  };
+
+  it.each([
+    ['v0.3.7', '0.3.7'],
+    ['v0.3.7+storybook', '0.3.7'],
+    ['v0.3.7+build.12', '0.3.7'],
+  ])('%s is compared as %s', (tag, expected) => {
+    expect(strip(tag)).toBe(expected);
+  });
+
+  it.each([['v0.3.7-rc1'], ['v0.3.7-storybook']])(
+    '%s is NOT reduced to 0.3.7, so a pre-release tag still fails the guard',
+    (tag) => {
+      expect(strip(tag)).not.toBe('0.3.7');
+    },
+  );
+
+  it('still refuses a lightweight tag, where there are no notes to publish', () => {
+    expect(script).toContain('is a lightweight tag');
+    expect(script).toContain('exit 1');
   });
 });
