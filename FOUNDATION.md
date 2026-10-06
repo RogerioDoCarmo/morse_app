@@ -121,8 +121,8 @@ trade-off between screen-reader purity and locale-independent test matching.
 | Format | Prettier |
 | Pre-commit | Husky → lint-staged (lint + format), plus tests |
 | Static analysis | SonarCloud (`sonar-project.properties`) |
-| Component workshop | Storybook — dual setup: on-device (`.rnstorybook/`) + web (`.storybook/`) |
-| Visual regression | Chromatic, snapshotting the **web** Storybook |
+| Component workshop | Storybook — **web only** (`.storybook/`) as of 6 Oct 2026. ⚠️ The on-device half (`.rnstorybook/`) is **not** set up here: it needs a generated requires file, Metro wiring and `react-native-gesture-handler`, which this app does not use |
+| Visual regression | Chromatic, snapshotting the **web** Storybook. ⚠️ **Dispatch-only** — see §4 |
 | Build / release | EAS (`eas.json`) |
 | Distribution (test) | Firebase App Distribution |
 
@@ -134,20 +134,42 @@ with CI-based analysis. Mirror Jest's `collectCoverageFrom` negations into
 
 ## 4. CI/CD — GitHub Actions
 
-Workflows to replicate from `../mirror_app/.github/workflows/`:
+Originally replicated from `../mirror_app/.github/workflows/`. ⚠️ **The triggers
+below are what this repository actually runs as of 6 October 2026, and three of
+them deliberately diverge from Miroji's blueprint.** Do not copy the old shape
+back in.
 
 | Workflow | Trigger | Does |
 | --- | --- | --- |
 | `ci.yml` | PR + push | lint, typecheck, tests, mutation (PRs only), SonarCloud |
 | `e2e.yml` | PR + push | Maestro on iOS (macOS runner) + Android (Ubuntu + emulator) |
-| `chromatic.yml` | PR + push | builds web Storybook, publishes to Chromatic |
-| `eas-build.yml` | push to `main` (path-filtered) | EAS production build; **store submit is manual-only** |
-| `firebase-distribution.yml` | push to `develop` | version-gated APK/IPA distribution |
+| `chromatic.yml` | ⚠️ **`workflow_dispatch` only** | builds web Storybook, publishes to Chromatic |
+| `eas-build.yml` | ⚠️ **`workflow_dispatch` only** | EAS production build; **store submit is manual-only** |
+| `firebase-distribution.yml` | ⚠️ **`workflow_dispatch` only** | version-gated APK/IPA distribution |
+| `release.yml` | push of a `v*.*.*` tag | publishes a GitHub Release from the annotated tag's message. **No build artifacts** |
+
+⚠️ **Why the three are dispatch-only.** Both services bill against a monthly
+allowance, and automatic triggers exhausted it without anyone asking. `eas-build.yml`
+once cost *seven iOS builds in one evening* out of fifteen a month;
+`firebase-distribution.yml` burned `versionCode 16` and `buildNumber 19` on a
+version bump, EAS having incremented both **before** refusing for lack of
+credits. Miroji's Chromatic showed 200 runs of which **91 were pushes and 109
+pull requests — not one a human decision**.
+
+⚠️ **What that costs, accepted deliberately:** a pull request gets no automatic
+visual check, so a regression can reach `main` before anyone dispatches
+Chromatic; and testers get no build when the version bumps.
+
+⚠️ `ci-workflows.test.ts` enforces this. It derives the list from workflows that
+reach a cloud `eas build` **or** publish to Chromatic, and asserts
+`workflow_dispatch` is their *only* trigger.
 
 **Rules learned the hard way:**
 
 - **Always set an explicit `permissions:` block** on every workflow (least privilege).
-- **Path-filter `eas-build.yml`** so docs/CI-only changes don't burn build quota.
+- ~~**Path-filter `eas-build.yml`** so docs/CI-only changes don't burn build quota.~~
+  ⚠️ **Superseded 1 October 2026.** Path filters were not enough — a tag, a
+  merge, or a version bump still fired it. It is `workflow_dispatch` only now.
 - **Gate Firebase distribution on an actual `package.json` version bump**, not on every
   push — otherwise you get duplicate same-version releases.
 - **Skip secret-requiring jobs for Dependabot** (`if: github.actor != 'dependabot[bot]'`)
