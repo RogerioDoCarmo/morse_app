@@ -159,12 +159,9 @@ describe('no workflow indexes the secrets context dynamically', () => {
  * ⚠️ And the list of files is DERIVED, not written down. A guard naming three
  * workflows is silent about the fourth somebody adds.
  */
-describe('nothing automatic buys a paid build', () => {
+function paidWorkflows(): readonly string[] {
   const dir = path.join(__dirname, '.github', 'workflows');
-
   /**
-   * Every workflow that can spend somebody's money.
-   *
    * Two billed things run from this repository, and they bill differently:
    *
    * - A cloud `eas build` costs a build credit. `--local` costs nothing, which
@@ -180,14 +177,16 @@ describe('nothing automatic buys a paid build', () => {
   const spendsMoney = (text: string): boolean => {
     const easLines = text.match(/eas build[^\n]*/gu) ?? [];
     const cloudEas = easLines.length > 0 && !easLines.every((l) => l.includes('--local'));
-    const chromatic = /chromaui\/action|chromatic --|pnpm chromatic/u.test(text);
-    return cloudEas || chromatic;
+    return cloudEas || /chromaui\/action|chromatic --|pnpm chromatic/u.test(text);
   };
-
-  const paid = fs
+  return fs
     .readdirSync(dir)
     .filter((f) => /\.ya?ml$/u.test(f))
     .filter((f) => spendsMoney(workflow(f)));
+}
+
+describe('nothing automatic buys a paid build', () => {
+  const paid = paidWorkflows();
 
   it('finds the workflows it is meant to be guarding', () => {
     // A derived list that came back empty would make every assertion below
@@ -268,5 +267,37 @@ describe('a release tag may carry build metadata', () => {
   it('still refuses a lightweight tag, where there are no notes to publish', () => {
     expect(script).toContain('is a lightweight tag');
     expect(script).toContain('exit 1');
+  });
+});
+
+/**
+ * `FOUNDATION.md` is the blueprint this project was built against, and its
+ * CI table is read as the description of what runs. It drifted: for weeks it
+ * described `chromatic.yml` as running on "PR + push" in a repository that had
+ * no Chromatic at all, and `eas-build.yml` and `firebase-distribution.yml` as
+ * push-triggered months after both became dispatch-only.
+ *
+ * ⚠️ A document claiming a capability the repository lacks costs more than one
+ * admitting the gap — that table is what sent somebody to chromatic.com to
+ * finish a setup that had never been started.
+ *
+ * So the doc is checked against the workflows rather than trusted.
+ */
+describe('FOUNDATION.md describes the triggers this repository actually has', () => {
+  const foundation = fs.readFileSync(path.join(__dirname, 'FOUNDATION.md'), 'utf8');
+
+  /** The row for a workflow in the CI table, if the table names it. */
+  const row = (name: string): string | undefined =>
+    foundation
+      .split('\n')
+      .find((line) => line.includes(`\`${name}\``) && line.includes('|'));
+
+  it.each(paidWorkflows())('%s is listed as dispatch-only', (name) => {
+    const line = row(name);
+    expect(line).toBeDefined();
+    // The table must say so, not merely avoid claiming otherwise.
+    expect(line).toMatch(/workflow_dispatch/u);
+    // And must not still carry the trigger it used to have.
+    expect(line).not.toMatch(/\|\s*(PR \+ push|push to)/u);
   });
 });
