@@ -83,13 +83,44 @@ jobs:
       - name: Build the web Storybook
         run: pnpm build-storybook
 
+      # TurboSnap is deliberately off. The comment below is longer than the
+      # change because the change is a deletion, and a deletion invites being
+      # undone by anyone who reads `onlyChanged` as free money.
+      #
+      # ⚠️ IT WAS ON, AND THE FIRST BUILD PASSED ANYWAY. With no parent build
+      # to diff against, TurboSnap has nothing to trace and skips itself
+      # entirely. Build 2, dispatched on 11 October 2026, found that parent,
+      # actually ran, and died: `preview-stats.json` does not exist unless
+      # `storybook build` is given `--stats-json`, and it was not. A baseline
+      # build CANNOT reveal this. Only the second one can — which is the
+      # argument for dispatching a paid workflow twice before trusting it.
+      #
+      # ⚠️ AND THE TWO SAFEGUARDS TURN OUT TO BE IN TENSION, WHICH IS THE
+      # FINDING WORTH CARRYING. `mirror_app` and the website keep TurboSnap
+      # working without naming a flag anywhere, because they pass
+      # `buildScriptName` and the Chromatic CLI appends
+      # `--webpack-stats-json` itself when it runs the build — mirror_app's
+      # 26 September log shows it doing precisely that. Moving the build into
+      # its own step, which is what keeps a broken story out of the paid step
+      # above, is exactly what takes that away again. Neither safeguard knows
+      # about the other and nothing warns you.
+      #
+      # ⚠️ AND IT STAYS OFF RATHER THAN BEING FIXED WITH THAT FLAG. TurboSnap's
+      # job here would be protecting the snapshot allowance, and the
+      # dispatch-only trigger above already holds that ground, more reliably.
+      # What TurboSnap would add is the one failure this workflow must not
+      # have: a visual check somebody deliberately paid for that silently
+      # checks nothing, because a story whose dependency went untraced is
+      # neither snapshotted nor reported missing. This Storybook resolves `@/`
+      # through a Vite alias written in `.storybook/main.ts` and visible in no
+      # tsconfig, which is exactly the edge TurboSnap mis-traces. The entire
+      # saving at stake is four snapshots.
       - name: Publish to Chromatic
         uses: chromaui/action@v18
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          storybookBuildDir: storybook-static
           # The build is already done above; do not do it again.
-          onlyChanged: true
+          storybookBuildDir: storybook-static
           exitZeroOnChanges: true
           branchName: ${{ inputs.branch-name }}
 
