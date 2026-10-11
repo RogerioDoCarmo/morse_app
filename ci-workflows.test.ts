@@ -81,6 +81,19 @@ describe('a scanner outage does not fail the test suite', () => {
 });
 
 /**
+ * ⚠️ COMMENTS FIRST, and this file has already been bitten twice without it.
+ * A note explaining a fix necessarily CONTAINS the thing it forbids, so a raw
+ * scan reports the FIXED workflow as broken — the same way the tap-halo guard
+ * failed on a comment saying "NOT tap-halo", and the Maestro gap test measured
+ * the length of its own explanation.
+ */
+const stripComments = (yaml: string): string =>
+  yaml
+    .split('\n')
+    .map((line) => line.replace(/(^|\s)#.*$/u, '').trimEnd())
+    .join('\n');
+
+/**
  * ⚠️ `secrets[expr]` HANDS THE WHOLE SECRETS CONTEXT TO A STEP.
  *
  * `secrets.FOO` is static: the expression compiler knows at parse time which
@@ -102,19 +115,6 @@ describe('no workflow indexes the secrets context dynamically', () => {
   const WORKFLOWS = fs
     .readdirSync(path.join(__dirname, '.github', 'workflows'))
     .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
-
-  /**
-   * ⚠️ COMMENTS FIRST, and this file has already been bitten twice without it.
-   * The note explaining the fix necessarily CONTAINS `secrets[matrix.…]`, so a
-   * raw scan reports the fixed workflow as broken — the same way the tap-halo
-   * guard failed on a comment saying "NOT tap-halo", and the Maestro gap test
-   * measured the length of its own explanation.
-   */
-  const stripComments = (yaml: string): string =>
-    yaml
-      .split('\n')
-      .map((line) => line.replace(/(^|\s)#.*$/u, '').trimEnd())
-      .join('\n');
 
   it.each(WORKFLOWS)('%s uses static secret references', (name) => {
     const body = stripComments(workflow(name));
@@ -299,5 +299,69 @@ describe('FOUNDATION.md describes the triggers this repository actually has', ()
     expect(line).toMatch(/workflow_dispatch/u);
     // And must not still carry the trigger it used to have.
     expect(line).not.toMatch(/\|\s*(PR \+ push|push to)/u);
+  });
+});
+
+/**
+ * ⚠️ TURBOSNAP IS ONE SETTING SPREAD ACROSS TWO FILES, AND THE FIRST BUILD
+ * CANNOT TELL YOU IT IS BROKEN.
+ *
+ * `onlyChanged: true` asks Chromatic to snapshot only the stories the changed
+ * files reach. Working out which those are needs `preview-stats.json`, and
+ * Storybook writes that only when `build-storybook` is given `--stats-json`.
+ * So half the setting lives in `package.json`, where nobody looking at the
+ * workflow will think to check.
+ *
+ * ⚠️ WITH THE WORKFLOW HALF ALONE THE BASELINE BUILD STILL PASSES. With no
+ * parent build to diff against there is nothing to trace, so TurboSnap skips
+ * itself and never looks for the file. The failure waits for the SECOND
+ * build — which, on a dispatch-only workflow, is weeks later and is precisely
+ * the moment somebody wanted a visual answer. It happened here on 11 October
+ * 2026, on the first dispatch after the baseline.
+ *
+ * The guard is therefore the implication, not either half on its own.
+ */
+describe('TurboSnap is never asked for without the stats file it needs', () => {
+  const chromaticWorkflows = fs
+    .readdirSync(path.join(__dirname, '.github', 'workflows'))
+    .filter((f) => /\.ya?ml$/u.test(f))
+    .filter((f) => /chromaui\/action|chromatic --|pnpm chromatic/u.test(workflow(f)));
+
+  it('finds the Chromatic workflow it is guarding', () => {
+    // An empty derived list would satisfy the implication below by vacuum.
+    expect(chromaticWorkflows).toContain('chromatic.yml');
+  });
+
+  const buildStorybookScript = (): string =>
+    /"build-storybook":\s*"([^"]*)"/u.exec(
+      fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
+    )?.[1] ?? '';
+
+  it('reads the real build script, so a missing flag means a missing flag', () => {
+    // If this stopped matching it would read as "no stats file" everywhere,
+    // which fails SAFE — but for the wrong reason, and the message would send
+    // the next person to the workflow instead of to this regex.
+    expect(buildStorybookScript()).toContain('storybook build');
+  });
+
+  it.each(chromaticWorkflows)(
+    '%s asks for onlyChanged only if the build writes the stats',
+    (name) => {
+      const asksForTurboSnap = /onlyChanged:\s*true/u.test(stripComments(workflow(name)));
+      expect(asksForTurboSnap && !buildStorybookScript().includes('--stats-json')).toBe(
+        false,
+      );
+    },
+  );
+
+  /**
+   * The implication holds whenever either half is absent, so this pins WHICH
+   * half and why. TurboSnap is off here by decision, not by oversight: the
+   * trigger already protects the allowance, and TurboSnap's own failure mode
+   * is a paid visual check that silently checks nothing. Deleting the setting
+   * and leaving no reason invites its return.
+   */
+  it('keeps the reasoning that was the actual deliverable', () => {
+    expect(workflow('chromatic.yml')).toContain('TurboSnap is deliberately off');
   });
 });
