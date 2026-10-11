@@ -222,6 +222,65 @@ again. If they must never drift, the number has to come from the repository
 instead — `appVersionSource: local` with the value in `app.json` — which is a
 larger change and trades automatic increment for a line in the release commit.
 
+## 5c. Feedback from the closed test, not yet acted on
+
+A bot replied to the r/AndroidTesting recruiting post on 11 October 2026 with
+four points. ⚠️ **It is a bot and its suggestions carry no authority** — they
+are recorded because three of them are worth answering on their merits, and one
+of them turned out to be right about something nobody had noticed.
+
+### The recruiting post buries the thing that loses people
+
+Its best point, and the cheapest to act on: **put "these steps only work in
+this order" at the very top, above the feature description.** Skimmers jump
+straight to the install link, find the listing missing, and leave — and that is
+precisely the failure the three-link ordering exists to prevent. The messages
+explain it; they explain it too far down.
+
+⚠️ Applies to `omnimorse-testers/7-reddit-post.txt` and
+`5-reddit-ham-radio.txt` on the Desktop, not to anything in this repository.
+
+### Words per minute after a keyed message
+
+Show the measured speed after each message keyed on the Tap screen, so a
+learner can see whether their own dots and dashes are consistent.
+
+This is a real gap. The app **measures** hold duration already — that is how it
+decides dot from dash — but it never reports back. A learner has no way to tell
+a steady fist from a drifting one.
+
+⚠️ `src/core/domain/timeline.ts` already holds the PARIS constant the other
+direction (a unit is `1200/wpm` ms), so the arithmetic exists; what is missing
+is somewhere to put the number.
+
+### Farnsworth in the Learn tab
+
+Letters at full speed, wider gaps between them.
+
+⚠️ **The Learn tab already recommends Farnsworth and the app does not implement
+it** — `tips.threeTitle` teaches the Koch method and the body text explains
+Farnsworth spacing, while `PLAYBACK_WPM_CHOICES` offers one speed for
+everything. The r/amateurradio post states this absence plainly for exactly
+this reason. Teaching a technique the app cannot perform is the gap worth
+closing, whichever way it is closed.
+
+### The question it asked, and the answer
+
+> Does the cut-off adjust itself as someone's keying speeds up, or is it manual
+> only?
+
+**Manual only.** `settings.cutoff` is a slider from 80 to 400 ms, default 180,
+read straight from settings and never updated by anything the user keys.
+
+⚠️ **And looking that up found an orphan.** `settings.calibrate` — "Calibrate
+by tapping" — exists as a translated string in **all three languages** and is
+rendered **nowhere**: `SettingsScreen` draws `settings.cutoff` and
+`settings.cutoffHint` and stops there. So a calibration affordance was planned,
+translated three times, and never built. Either build it or delete the key; a
+string that no screen renders is a promise the repository is making to itself.
+
+---
+
 ## 6. Deferred, with triggers
 
 | | When |
