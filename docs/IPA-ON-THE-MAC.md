@@ -36,8 +36,8 @@ for exactly that reason.
    not announce itself as a missing file: the build fails with
    `Could not get GOOGLE_APP_ID in Google Services file from build environment`,
    which reads like a signing error.
-3. **Decide the build number.** See step 5 — it is `18` unless something has
-   been uploaded since.
+3. ⚠️ **Decide the build number — and it is no longer 18.** See step 5. **18 is
+   uploaded and in App Store review**; anything built from now on is **19**.
 
 ---
 
@@ -85,11 +85,29 @@ This creates `ios/`, which is not in the repository. `--clean` matters: a stale
 ### 5. Set the build number
 
 Apple rejects an upload whose `CFBundleVersion` is not higher than every build
-already uploaded **for this version string**. The last iOS build uploaded was
-**0.3.6 (17)**, so use **18**.
+already uploaded **for this version string**. The last iOS build uploaded is
+**0.3.7 (18)**, now *Waiting for Review*, so use **19**.
 
-⚠️ 17 is taken. It is the build now in TestFlight's Beta App Review, and Apple
-refuses an upload whose `CFBundleVersion` repeats one already seen.
+⚠️ **THIS SECTION SAID 18 UNTIL 12 OCTOBER 2026, AND THE REASON IT GAVE HAD
+EXPIRED.** It read "the last iOS build uploaded was 0.3.6 (17), so use 18" —
+true when written, false once 18 went up. ⚠️ A guide that hard-codes a number
+goes stale silently, which is the same failure mode as the stale checkout that
+sent build 17 to Apple labelled 0.3.6. **Read the number off the two places
+that actually know it, rather than off this page:**
+
+```bash
+npx eas build:version:get --platform ios --non-interactive   # the remote counter
+```
+
+and App Store Connect for what has actually been uploaded.
+
+⚠️ 17 and 18 are both taken. Apple refuses an upload whose `CFBundleVersion`
+repeats one already seen for the same version string.
+
+ⓘ **19 is also the tidy answer for an ad-hoc build that will never reach
+Apple.** EAS's remote counter already reads 19 — incremented on 23 September
+and then refused for credits, leaving a number with no binary behind it. Using
+19 gives that orphan a body instead of minting a second gap.
 
 ⚠️ The target directory is named by `expo prebuild` from the app name and is
 **not** verifiable from Windows, so find it rather than assuming `OmniMorse`:
@@ -98,7 +116,7 @@ refuses an upload whose `CFBundleVersion` repeats one already seen.
 PLIST=$(ls ios/*/Info.plist | head -1)
 echo "$PLIST"
 /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 18"          "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 19"          "$PLIST"
 /usr/libexec/PlistBuddy -c "Print :CFBundleVersion"           "$PLIST"
 ```
 
@@ -186,16 +204,45 @@ In the Organizer window that opens:
 ⚠️ Choose **Export**, not **Upload**, if you intend to submit from the PC.
 Upload sends it from the Mac and there is then nothing to carry.
 
-Name it so it says what it is, matching the convention the submit script
-expects:
+Name it so it says what it is — app, version, build, **destination** — matching
+the convention the submit script expects:
 
 ```text
-omnimorse-0.3.7-18-appstore.ipa
+omnimorse-0.3.7-19-firebase-adhoc.ipa   # ad-hoc, for device testing
+omnimorse-0.3.7-19-appstore.ipa         # App Store distribution
 ```
+
+⚠️ **The destination suffix is not decoration.** Two IPAs for the same build
+that differ only in how they are signed are otherwise indistinguishable on
+disk, and only one of them can be submitted. `pnpm submit:ios` defends itself
+by reading the embedded profile rather than the filename — but nothing defends
+*you* from uploading the wrong file to Firebase and wondering why it installs
+nowhere.
 
 ---
 
-## Submitting
+## Sending it to Firebase App Distribution
+
+⚠️ **This is where an ad-hoc IPA goes, and it is not the same as submitting.**
+Nothing below touches App Store Connect.
+
+```bash
+firebase appdistribution:distribute omnimorse-0.3.7-19-firebase-adhoc.ipa   --app 1:528695608041:ios:b8944ef8ac0615ff4be678   --release-notes "0.3.7 (19) — ad-hoc build for device testing"   --groups testers
+```
+
+⚠️ **Omit `--groups` to upload without emailing anyone**, then add the group in
+a second run when the build is worth their attention. The group holds **2
+testers** — both his own devices — so nothing here reaches the Play
+closed-track testers, who arrived through a different channel entirely.
+
+⚠️ **An ad-hoc IPA installs only on devices registered in its provisioning
+profile.** Firebase will accept and distribute a build that no tester can
+actually install, and it reports that as success. If a device is new since the
+profile was made, register it and re-export before blaming the upload.
+
+---
+
+## Submitting to App Store Connect
 
 **If you still have the Mac:** this is one command and the simpler path.
 
@@ -213,7 +260,7 @@ your Apple ID password.
 ⚠️ `pnpm submit:ios` **will not work there** — it calls `altool`, which ships
 with Xcode and exists only on macOS. Two routes that do:
 
-- `eas submit --platform ios --path ./omnimorse-0.3.7-18-appstore.ipa`
+- `eas submit --platform ios --path ./omnimorse-0.3.7-19-appstore.ipa`
   (the app is `ascAppId 6805992452` in `eas.json`). This uploads an existing
   binary rather than building one. ⚠️ Confirm it does not consume a build
   credit before relying on it close to the reset date.
