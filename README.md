@@ -2,7 +2,7 @@
 
 <a href="https://apps.apple.com/app/id6805992452">
   <img alt="Download Omni Morse on the App Store"
-       src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+       src=".github/assets/download-on-the-app-store.svg"
        height="48">
 </a>
 
