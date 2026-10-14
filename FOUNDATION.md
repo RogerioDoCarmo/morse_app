@@ -298,7 +298,14 @@ grantable to other apps, and **must not be stripped** (doing so weakens security
 
 - **Privacy policy** hosted on GitHub Pages (`docs/`), linked from both store listings.
   Required for camera *and* microphone permissions.
-- **GitHub Pages needs a `docs/index.html`** or the root URL 404s.
+- **GitHub Pages needs a `docs/index.html`** or the root URL 404s. ⚠️ This was written
+  here and then left undone: `morse_app` ran a 404 at its own root until
+  14 October 2026, while the app was already public on the App Store.
+- ⚠️ **`docs/` IS THE PUBLIC SITE, NOT A DOCS FOLDER.** Everything in it is served to
+  anyone. Engineering notes belong in `notes/` — ten of them were being published as
+  raw markdown, tester counts and store strategy included, because the folder's NAME
+  suggests otherwise. `docs-site.test.ts` fails the build on a `.md` file or a
+  subdirectory there, because a comment would not have survived.
 - Google Play **short description forbids promotional words** — "no ads" / "sem anúncios"
   is rejected. Keep promo language out of that field.
 - Google Play requires a **closed test: 12+ testers, continuously opted in for 14 days**,
