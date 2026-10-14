@@ -1,6 +1,10 @@
 # OmniMorse
 
-[![On the App Store](https://img.shields.io/badge/App_Store-Omni_Morse-0D96F6?logo=apple&logoColor=white)](https://apps.apple.com/app/id6805992452)
+<a href="https://apps.apple.com/app/id6805992452">
+  <img alt="Download Omni Morse on the App Store"
+       src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+       height="48">
+</a>
 
 A Morse code translator for Android and iOS. Type or speak, watch it as dots and dashes,
 play it on the torch — and tap it back in to decode.
