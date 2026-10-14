@@ -1,13 +1,23 @@
 # OmniMorse
 
+[![On the App Store](https://img.shields.io/badge/App_Store-Omni_Morse-0D96F6?logo=apple&logoColor=white)](https://apps.apple.com/app/id6805992452)
+
 A Morse code translator for Android and iOS. Type or speak, watch it as dots and dashes,
 play it on the torch — and tap it back in to decode.
 
 ## Status
 
-Shipping to testers. Every screen in [design/](design/) is built, the suite runs nine
-Maestro flows on both platforms, and 0.3.0 is on TestFlight and Firebase App
-Distribution. Neither store listing is live yet.
+**Live on the App Store** — [Omni Morse](https://apps.apple.com/app/id6805992452),
+version 0.3.7, approved 14 October 2026. ⚠️ The listing is named *Omni Morse*, with a
+space; the app on the home screen is `OmniMorse`.
+
+**Google Play: closed testing, not public yet.** 0.3.7 is on the closed track while the
+twelve-testers-for-fourteen-days production requirement runs. ⚠️ Until that clears the
+Play listing returns **404 to anyone who is not a tester** — that is correct behaviour,
+not a broken link.
+
+Every screen in [design/](design/) is built, the suite runs nine Maestro flows on both
+platforms, and 1358 tests pass across 83 suites.
 
 ## What it does
 
