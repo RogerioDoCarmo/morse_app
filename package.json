@@ -73,7 +73,7 @@
     "@stryker-mutator/jest-runner": "^10.0.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.5",
     "@types/react": "~19.2.2",
     "chromatic": "^18.11.0",
     "eslint": "^9.39.5",
