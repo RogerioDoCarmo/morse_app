@@ -90,7 +90,7 @@
     "jest-expo": "~57.0.0",
     "lint-staged": "^17.6.0",
     "markdownlint-cli2": "^0.23.3",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "react-dom": "19.2.3",
     "react-native-web": "^0.21.3",
     "react-server-dom-webpack": "~19.2.4",
