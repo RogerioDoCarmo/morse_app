@@ -18,6 +18,8 @@ import { SpeechScreen } from '@/screens/SpeechScreen';
 import { TapScreen } from '@/screens/TapScreen';
 import { TranslatorScreen } from '@/screens/TranslatorScreen';
 import { useAppFonts } from '@/adapters/fonts/expoFontsAdapter';
+import { useBuildFeatures } from '@/application/providers/BuildFeaturesProvider';
+import { hasTab } from '@/components/TabBar';
 import { useFirstRun } from '@/application/useFirstRun';
 import { useSampleSeed } from '@/application/useSampleSeed';
 import { theme } from '@/theme';
@@ -70,7 +72,12 @@ const UNBUILT: readonly TabName[] = [];
 function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element {
   const firstRun = useFirstRun();
   const sampleSeed = useSampleSeed();
-  const [tab, setTab] = useState<TabName>('translate');
+  const features = useBuildFeatures();
+  const [selected, setTab] = useState<TabName>('translate');
+  // ⚠️ A tab this build does not have falls back to the Translator rather
+  // than rendering a screen for a feature that is not there. Nothing in the
+  // UI offers such a tab, so this is the backstop, not the mechanism.
+  const tab: TabName = hasTab(selected, features) ? selected : 'translate';
   // Spent as soon as the answer is known and it says yes. Storage is what
   // remembers; `sampleSeed.seed` deliberately does not move within a launch.
   useEffect(() => {

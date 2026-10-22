@@ -21,6 +21,7 @@ import {
   unsupportedCharacters,
 } from '@/core/domain/morse';
 import { type AppLocale } from '@/core/domain/locale';
+import { useBuildFeatures } from '@/application/providers/BuildFeaturesProvider';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useLayout } from '@/application/useLayout';
 import { useSettings } from '@/application/providers/SettingsProvider';
@@ -164,6 +165,7 @@ export function TranslatorScreen({
   seedSample = true,
 }: Props = {}): React.JSX.Element {
   const { t, locale, setLocale } = useLocale();
+  const features = useBuildFeatures();
   const { clipboard } = usePorts();
 
   // ⚠️ "Untouched", not "empty". On the first run the field is SEEDED with SOS,
@@ -603,25 +605,30 @@ export function TranslatorScreen({
                     key, a cut-off and a letter row. Both already exist, one
                     tab away, and a second copy inside this card would be a
                     second thing to keep right. */}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={toMorse ? 'speak-input' : 'tap-input'}
-                  testID={toMorse ? 'speak-input' : 'tap-input'}
-                  onPress={() => {
-                    onSelectTab?.(toMorse ? 'speak' : 'tap');
-                  }}
-                  style={({ pressed }) => [styles.textAction, pressed && styles.dimmed]}
-                >
-                  <Icon
-                    name={toMorse ? 'mic' : 'tap'}
-                    size={15}
-                    color={theme.color.accent}
-                    strokeWidth={2.1}
-                  />
-                  <Text style={styles.textActionLabel}>
-                    {toMorse ? t('translator.speak') : t('translator.tapItIn')}
-                  </Text>
-                </Pressable>
+                {/* Speak leads to a tab only a listening build has; with it
+                    gone there is nowhere to send the press. Tap is in every
+                    build. */}
+                {toMorse && !features.speechInput ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={toMorse ? 'speak-input' : 'tap-input'}
+                    testID={toMorse ? 'speak-input' : 'tap-input'}
+                    onPress={() => {
+                      onSelectTab?.(toMorse ? 'speak' : 'tap');
+                    }}
+                    style={({ pressed }) => [styles.textAction, pressed && styles.dimmed]}
+                  >
+                    <Icon
+                      name={toMorse ? 'mic' : 'tap'}
+                      size={15}
+                      color={theme.color.accent}
+                      strokeWidth={2.1}
+                    />
+                    <Text style={styles.textActionLabel}>
+                      {toMorse ? t('translator.speak') : t('translator.tapItIn')}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
               <TextInput
                 ref={inputRef}
