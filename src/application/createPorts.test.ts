@@ -1,3 +1,4 @@
+import { ALL_BUILD_FEATURES, featuresFor } from '@/core/domain/buildFeatures';
 import { createPorts } from './createPorts';
 
 // expo-audio reads its native module's prototype the moment it is imported,
@@ -28,15 +29,89 @@ jest.mock('expo-audio', () => ({
 }));
 
 const mockIsEnabled = jest.fn<boolean, []>();
+const mockCreateFirebase = jest.fn();
 
 jest.mock('@/adapters/crash/firebaseCrashReportingAdapter', () => ({
-  createFirebaseCrashReportingAdapter: () => ({
-    isEnabled: (): boolean => mockIsEnabled(),
-    setEnabled: jest.fn(),
-    recordError: jest.fn(),
-    log: jest.fn(),
-  }),
+  createFirebaseCrashReportingAdapter: () => {
+    mockCreateFirebase();
+    return {
+      isEnabled: (): boolean => mockIsEnabled(),
+      setEnabled: jest.fn(),
+      recordError: jest.fn(),
+      log: jest.fn(),
+    };
+  },
 }));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const recognition = require('expo-speech-recognition') as {
+  ExpoSpeechRecognitionModule: { getSupportedLocales: jest.Mock; start: jest.Mock };
+};
+
+describe('createPorts — what a build leaves out', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // The store build: every feature on, exactly as before build variants existed.
+  it('builds the store ports with no argument', () => {
+    mockIsEnabled.mockReturnValue(true);
+    expect(createPorts().ports.crash.isEnabled()).toBe(true);
+    expect(mockCreateFirebase).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * ⚠️ NOT EVEN CONSTRUCTED. In the F-Droid build the Firebase packages are not
+   * installed and resolve to an empty module, so building the adapter — even
+   * to ask it whether it is enabled — is the call that would read nothing.
+   */
+  it('never builds the Firebase adapter when crash reporting is left out', () => {
+    mockIsEnabled.mockReturnValue(true);
+    const { crash } = createPorts(featuresFor('fdroid')).ports;
+
+    expect(mockCreateFirebase).not.toHaveBeenCalled();
+    expect(mockIsEnabled).not.toHaveBeenCalled();
+    expect(crash.isEnabled()).toBe(false);
+  });
+
+  it('uses the real recogniser when speech input is in the build', async () => {
+    recognition.ExpoSpeechRecognitionModule.getSupportedLocales.mockResolvedValue({
+      locales: ['en-US'],
+    });
+    const { speech } = createPorts(ALL_BUILD_FEATURES).ports;
+
+    await expect(speech.isAvailable('en')).resolves.toBe(true);
+    expect(
+      recognition.ExpoSpeechRecognitionModule.getSupportedLocales,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('never touches the recogniser module when speech input is left out', async () => {
+    const features = { ...ALL_BUILD_FEATURES, speechInput: false };
+    const { speech } = createPorts(features).ports;
+    const onError = jest.fn();
+
+    await expect(speech.isAvailable('en')).resolves.toBe(false);
+    await speech.start('en', jest.fn(), onError);
+
+    expect(onError).toHaveBeenCalledWith('unavailable');
+    expect(
+      recognition.ExpoSpeechRecognitionModule.getSupportedLocales,
+    ).not.toHaveBeenCalled();
+    expect(recognition.ExpoSpeechRecognitionModule.start).not.toHaveBeenCalled();
+  });
+
+  // Speech is kept in the F-Droid build: the platform recogniser is not
+  // proprietary code in the APK. Pinned so that choice cannot drift unnoticed.
+  it('keeps the real recogniser in the F-Droid build', async () => {
+    recognition.ExpoSpeechRecognitionModule.getSupportedLocales.mockResolvedValue({
+      locales: ['pt-BR'],
+    });
+    const { speech } = createPorts(featuresFor('fdroid')).ports;
+
+    await expect(speech.isAvailable('pt-BR')).resolves.toBe(true);
+  });
+});
 
 describe('createPorts — crash reporting selection', () => {
   beforeEach(() => {

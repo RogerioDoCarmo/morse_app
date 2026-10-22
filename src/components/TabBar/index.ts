@@ -1,1 +1,1 @@
-export { TabBar, TABS, type TabName } from './TabBar';
+export { TabBar, TABS, hasTab, tabsFor, type TabName } from './TabBar';
