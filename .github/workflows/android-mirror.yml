@@ -86,6 +86,7 @@ jobs:
           # shellcheck disable=SC2086
           pnpm remove $EXCLUDED
           node tools/fdroid-mirror.js package package.json
+          node tools/fdroid-mirror.js appjson app.json
 
       - name: Generate the F-Droid Android project
         working-directory: source

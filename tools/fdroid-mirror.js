@@ -6,6 +6,7 @@
  *   node tools/fdroid-mirror.js version <tag>            prints "<versionName> <versionCode>"
  *   node tools/fdroid-mirror.js excluded                 prints the packages to uninstall
  *   node tools/fdroid-mirror.js package <package.json>   marks a package.json as the F-Droid build
+ *   node tools/fdroid-mirror.js appjson <app.json>       drops the update settings from app.json
  *   node tools/fdroid-mirror.js fastlane <out-dir> <versionCode> <versionName>
  *
  * ⚠️ Plain Node, no dependencies: the workflow runs it before anything is
@@ -95,6 +96,24 @@ function fdroidPackageJson(pkg) {
       throw new Error(`${name} is still a dependency. Run pnpm remove before this step.`);
     }
   }
+  return next;
+}
+
+/**
+ * The mirror's copy of app.json, without the over-the-air update settings.
+ *
+ * `app.config.js` already drops them from the F-Droid config, so the native
+ * project is the same either way. This is for the BUNDLE: `src/appVersion.ts`
+ * imports app.json whole to read the version, so without this the update
+ * server's URL would ride along in the F-Droid JavaScript as dead data.
+ *
+ * @param {Record<string, any>} appJson
+ * @returns {Record<string, any>}
+ */
+function fdroidAppJson(appJson) {
+  const next = JSON.parse(JSON.stringify(appJson));
+  delete next.expo.updates;
+  delete next.expo.runtimeVersion;
   return next;
 }
 
@@ -338,6 +357,12 @@ function main(argv) {
       fs.writeFileSync(file, `${JSON.stringify(fdroidPackageJson(pkg), null, 2)}\n`);
       return;
     }
+    case 'appjson': {
+      const file = args[0];
+      const appJson = JSON.parse(fs.readFileSync(file, 'utf8'));
+      fs.writeFileSync(file, `${JSON.stringify(fdroidAppJson(appJson), null, 2)}\n`);
+      return;
+    }
     case 'fastlane': {
       const files = writeFastlane(args[0], Number(args[1]), args[2]);
       process.stdout.write(`${files.join('\n')}\n`);
@@ -366,6 +391,7 @@ module.exports = {
   SCREENSHOTS_LEFT_OUT,
   versionFromTag,
   fdroidPackageJson,
+  fdroidAppJson,
   fastlaneText,
   screenshotVersion,
   writeFastlane,

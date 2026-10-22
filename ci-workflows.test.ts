@@ -404,6 +404,7 @@ describe('the F-Droid mirror workflow', () => {
     expect(body).toContain('node tools/fdroid-mirror.js version "$TAG"');
     expect(body).toContain('node tools/fdroid-mirror.js excluded');
     expect(body).toContain('node tools/fdroid-mirror.js package package.json');
+    expect(body).toContain('node tools/fdroid-mirror.js appjson app.json');
     expect(body).toContain('bash source/tools/fdroid-assemble-mirror.sh');
   });
 

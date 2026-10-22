@@ -14,6 +14,9 @@ const mirror = require('./tools/fdroid-mirror.js') as {
     scripts: Record<string, string | undefined>;
     dependencies: Record<string, string | undefined>;
   };
+  fdroidAppJson: (appJson: { expo: Record<string, unknown> }) => {
+    expo: Record<string, unknown>;
+  };
   fastlaneText: (
     locale: string,
     source: string,
@@ -115,6 +118,33 @@ describe('the mirror’s package.json', () => {
     expect(out.omnimorse).toStrictEqual({ buildVariant: 'fdroid' });
     expect(out.scripts.prepare).toBeUndefined();
     expect(out.dependencies['expo-speech-recognition']).toBeDefined();
+  });
+});
+
+describe('the mirror’s app.json', () => {
+  const appJson = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'app.json'), 'utf8'),
+  ) as {
+    expo: Record<string, unknown>;
+  };
+
+  // src/appVersion.ts bundles app.json whole, so the update URL would
+  // otherwise ship in the F-Droid JavaScript as dead data.
+  it('drops the update server and the runtime version', () => {
+    const out = mirror.fdroidAppJson(appJson);
+    expect(out.expo.updates).toBeUndefined();
+    expect(out.expo.runtimeVersion).toBeUndefined();
+    expect(JSON.stringify(out)).not.toContain('u.expo.dev');
+  });
+
+  it('keeps everything else, the version and identity first of all', () => {
+    const out = mirror.fdroidAppJson(appJson);
+    const rest = { ...appJson.expo };
+    delete rest.updates;
+    delete rest.runtimeVersion;
+    expect(out.expo).toStrictEqual(rest);
+    expect(out.expo.version).toBe(appJson.expo.version);
+    expect(appJson.expo.updates).toBeDefined();
   });
 });
 
