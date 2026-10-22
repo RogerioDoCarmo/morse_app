@@ -1,3 +1,4 @@
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DISABLED_BUILD_FEATURES, BUILD_FEATURES } from '@/core/domain/buildFeatures';
@@ -165,6 +166,34 @@ describe('build-variant.js', () => {
         'Unknown build feature "ads".',
       );
     });
+  });
+
+  // metro.config.js is new. For the store build it must be Expo's default,
+  // or the store bundle has changed.
+  //
+  // ⚠️ In a real Node process, not in Jest: expo/metro-config will not load
+  // through Jest's transform. The script prints what it compared, so a pass is
+  // a comparison that actually ran.
+  it.each([
+    ['store', 'same'],
+    ['fdroid', 'different'],
+  ])('makes the %s Metro config the %s object as Expo’s default', (name, expected) => {
+    const script = [
+      "const { getDefaultConfig } = require('expo/metro-config');",
+      "const ours = require('./metro.config.js');",
+      'const theirs = getDefaultConfig(process.cwd());',
+      'const same = JSON.stringify(ours.resolver.sourceExts) === JSON.stringify(theirs.resolver.sourceExts)',
+      '  && typeof ours.resolver.resolveRequest === typeof theirs.resolver.resolveRequest;',
+      "process.stdout.write(same ? 'same' : 'different');",
+    ].join('\n');
+    const result = spawnSync(process.execPath, ['-e', script], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      env: { ...process.env, OMNIMORSE_BUILD_VARIANT: name },
+    });
+
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toBe(expected);
   });
 
   describe('the Metro half', () => {
