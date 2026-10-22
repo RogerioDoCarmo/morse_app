@@ -17,6 +17,9 @@ const variants = require('../build-variant');
 
 const ROOT = path.join(__dirname, '..');
 
+/** Packages that arrive only through `@react-native-firebase/*`. */
+const FIREBASE_ONLY_BUILT = Object.freeze(['@firebase/util', 'protobufjs']);
+
 /**
  * The version a release tag names, and the versionCode F-Droid will see.
  *
@@ -75,6 +78,15 @@ function fdroidPackageJson(pkg) {
   next.expo.autolinking.android = next.expo.autolinking.android ?? {};
   next.expo.autolinking.android.buildFromSource = ['.*'];
   if (next.scripts) delete next.scripts.prepare;
+  // Build-script approvals for packages only Firebase brought in. pnpm
+  // ignores an entry for a package that is not installed, so these do
+  // nothing in the mirror except name Firebase.
+  const ignored = next.pnpm?.ignoredBuiltDependencies;
+  if (Array.isArray(ignored)) {
+    next.pnpm.ignoredBuiltDependencies = ignored.filter(
+      (name) => !FIREBASE_ONLY_BUILT.includes(name),
+    );
+  }
   for (const name of variants.excludedPackages('fdroid')) {
     if (
       next.dependencies?.[name] !== undefined ||

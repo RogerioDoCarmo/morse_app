@@ -365,3 +365,68 @@ describe('TurboSnap is never asked for without the stats file it needs', () => {
     expect(workflow('chromatic.yml')).toContain('TurboSnap is deliberately off');
   });
 });
+
+/**
+ * The F-Droid build mirror. It pushes to another repository, so it holds a
+ * write token, and it runs on every published release — the two facts that
+ * make a careless edit here expensive in a way nothing else would notice.
+ */
+describe('the F-Droid mirror workflow', () => {
+  const body = stripComments(workflow('android-mirror.yml'));
+
+  // Free by construction. The paid-workflow guard above derives its list, so
+  // this pins that the mirror is NOT on it rather than trusting that it is not.
+  it('is not a paid workflow', () => {
+    expect(paidWorkflows()).not.toContain('android-mirror.yml');
+    expect(body).not.toMatch(/eas |chromatic|appdistribution/iu);
+  });
+
+  it('reads its one secret by a static name', () => {
+    expect(body.match(/secrets\.\w+/gu)).toStrictEqual([
+      'secrets.MORSE_APP_ANDROID_TOKEN',
+    ]);
+  });
+
+  it('pushes only to the mirror repository', () => {
+    expect(body).toContain('repository: RogerioDoCarmo/morse_app-android');
+    expect(body.match(/repository:/gu)).toHaveLength(1);
+  });
+
+  // `v0.3.7+appstore` is the same version from a later commit; mirroring it
+  // by itself would silently move the mirror's v0.3.7.
+  it('mirrors a +metadata release only when dispatched by hand', () => {
+    expect(body).toContain(
+      "if: github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+')",
+    );
+  });
+
+  it('takes the version and the excluded packages from the tested tool', () => {
+    expect(body).toContain('node tools/fdroid-mirror.js version "$TAG"');
+    expect(body).toContain('node tools/fdroid-mirror.js excluded');
+    expect(body).toContain('node tools/fdroid-mirror.js package package.json');
+    expect(body).toContain('bash source/tools/fdroid-assemble-mirror.sh');
+  });
+
+  it('prebuilds the F-Droid variant, not the store one', () => {
+    const prebuild = body.slice(
+      body.indexOf('- name: Generate the F-Droid Android project'),
+    );
+    expect(prebuild.slice(0, 300)).toContain('OMNIMORSE_BUILD_VARIANT: fdroid');
+  });
+
+  // The order is the point: remove, then prebuild, then check, then push.
+  it('refuses to push a project that still references proprietary code', () => {
+    const at = (step: string): number => body.indexOf(`- name: ${step}`);
+    expect(at('Remove what the F-Droid build leaves out')).toBeGreaterThan(-1);
+    expect(at('Remove what the F-Droid build leaves out')).toBeLessThan(
+      at('Generate the F-Droid Android project'),
+    );
+    expect(at('Generate the F-Droid Android project')).toBeLessThan(
+      at('Refuse a project that still references proprietary code'),
+    );
+    expect(at('Refuse a project that still references proprietary code')).toBeLessThan(
+      at('Commit and push'),
+    );
+    expect(body).toContain('firebase|crashlytics|com\\.google\\.android\\.gms');
+  });
+});

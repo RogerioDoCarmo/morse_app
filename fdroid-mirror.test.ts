@@ -73,6 +73,13 @@ describe('the mirror’s package.json', () => {
     });
   });
 
+  it('drops build approvals for packages only Firebase brought, and keeps the rest', () => {
+    const out = mirror.fdroidPackageJson({
+      pnpm: { ignoredBuiltDependencies: ['@firebase/util', 'esbuild', 'protobufjs'] },
+    }) as unknown as { pnpm: { ignoredBuiltDependencies: string[] } };
+    expect(out.pnpm.ignoredBuiltDependencies).toStrictEqual(['esbuild']);
+  });
+
   it('does not change what it was given', () => {
     const copy = JSON.parse(JSON.stringify(pruned)) as typeof pruned;
     mirror.fdroidPackageJson(pruned);

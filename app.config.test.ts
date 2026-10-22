@@ -489,6 +489,16 @@ describe('app.config for the F-Droid variant', () => {
     expect(plugins.filter((plugin) => nameOf(plugin) === CLEANER)).toHaveLength(1);
   });
 
+  // Expo's prebuild writes updates meta-data even with expo-updates gone.
+  it('strips the updates meta-data in the F-Droid build only', () => {
+    const STRIPPER = './plugins/withoutUpdatesMetadata.js';
+    const plugins = fdroid().plugins.map(nameOf);
+
+    expect(plugins.filter((name) => name === STRIPPER)).toHaveLength(1);
+    expect(plugins.indexOf(STRIPPER)).toBeLessThan(plugins.indexOf(CLEANER));
+    expect(loadConfig([ANDROID, IOS]).expo.plugins.map(nameOf)).not.toContain(STRIPPER);
+  });
+
   it('keeps the store build’s cleaner exactly as it was', () => {
     const plugins = loadConfig([ANDROID, IOS]).expo.plugins;
     expect(plugins[plugins.length - 1]).toBe(CLEANER);

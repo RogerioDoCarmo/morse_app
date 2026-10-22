@@ -151,6 +151,10 @@ module.exports = () => {
   // removes it otherwise. Before the cleaner, which must stay last.
   plugins.push('./plugins/withAdiRegistration.js');
 
+  // Expo's prebuild writes updates meta-data whether or not expo-updates is
+  // installed. A build without it takes them back out.
+  if (!has('otaUpdates')) plugins.push('./plugins/withoutUpdatesMetadata.js');
+
   // The cleaner also strips what a variant leaves out — permissions React
   // Native or a library injects that this build has nothing to use them for.
   const dropped = variants.droppedPermissions(variant);
