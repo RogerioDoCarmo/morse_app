@@ -224,9 +224,9 @@ the scanner flags. Six entries, each matched by the source scan above:
 Miroji's `autolinking_implementation.gradle` entry is gone: the scanner no longer flags it in
 SDK 57, and an unused entry is an error.
 
-⚠️ `commit:` is a placeholder. After the first mirror run, take the hash from that run's job
-summary. Re-mirroring a tag rewrites the mirror's history for it, so the hash must be updated
-after any re-run.
+`commit:` is `52a6b5dfb6148b97a1f5c026fb40c8a5751d51d9`, the mirror commit from the first run
+(`v0.3.7+fdroid`, 24 October 2026), tagged `v0.3.7` in the mirror. ⚠️ Re-mirroring a tag rewrites
+the mirror's history for it, so take the new hash from that run's job summary after any re-run.
 
 ## Privacy policy
 
