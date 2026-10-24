@@ -2,7 +2,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/Icon';
+import { useBuildFeatures } from '@/application/providers/BuildFeaturesProvider';
 import { useLocale } from '@/application/providers/LocaleProvider';
+import type { BuildFeature, BuildFeatures } from '@/core/domain/buildFeatures';
 import type { TranslationKey } from '@/i18n/keys';
 import { theme } from '@/theme';
 
@@ -19,12 +21,33 @@ export const TABS: readonly Readonly<{
   name: TabName;
   icon: IconName;
   key: TranslationKey;
+  /** The build feature this destination needs; absent means every build has it. */
+  requires?: BuildFeature;
 }>[] = [
   { name: 'translate', icon: 'translate', key: 'nav.translate' },
-  { name: 'speak', icon: 'mic', key: 'nav.speak' },
+  { name: 'speak', icon: 'mic', key: 'nav.speak', requires: 'speechInput' },
   { name: 'tap', icon: 'tap', key: 'nav.tap' },
   { name: 'learn', icon: 'book', key: 'nav.learn' },
 ];
+
+/**
+ * Whether this build has a destination at all.
+ *
+ * ⚠️ Different from `unavailable` below, on purpose. An unavailable tab is one
+ * the app has not finished, shown greyed so the bar keeps its shape. A tab
+ * whose feature the build left out is GONE: there is nothing to finish, and a
+ * greyed Speak button in a build with no recogniser would be a promise the
+ * build cannot keep.
+ */
+export function hasTab(name: TabName, features: BuildFeatures): boolean {
+  const tab = TABS.find((candidate) => candidate.name === name);
+  return tab !== undefined && (tab.requires === undefined || features[tab.requires]);
+}
+
+/** The destinations this build has, in bar order. */
+export function tabsFor(features: BuildFeatures): typeof TABS {
+  return TABS.filter((tab) => hasTab(tab.name, features));
+}
 
 type Props = Readonly<{
   active: TabName;
@@ -49,12 +72,13 @@ type Props = Readonly<{
 export function TabBar({ active, onSelect, unavailable = [] }: Props): React.JSX.Element {
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
+  const features = useBuildFeatures();
   return (
     <View
       testID="tab-bar"
       style={[styles.bar, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) }]}
     >
-      {TABS.map((tab) => {
+      {tabsFor(features).map((tab) => {
         const selected = tab.name === active;
         const missing = unavailable.includes(tab.name);
         return (

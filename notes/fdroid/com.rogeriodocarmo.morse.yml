@@ -1,0 +1,58 @@
+AntiFeatures:
+  NonFreeNet:
+    en-US: Speech input uses the device's own speech recogniser. On most phones that
+      is Google's, which may send the audio to Google to transcribe. Everything else
+      works offline; the app itself has no internet permission.
+Categories:
+  - Science & Education
+  - Translation & Dictionary
+License: MIT
+AuthorName: Rogério do Carmo
+AuthorEmail: contact@rogeriodocarmo.com
+SourceCode: https://github.com/RogerioDoCarmo/morse_app
+IssueTracker: https://github.com/RogerioDoCarmo/morse_app/issues
+Changelog: https://github.com/RogerioDoCarmo/morse_app/releases
+
+AutoName: OmniMorse
+
+RepoType: git
+Repo: https://github.com/RogerioDoCarmo/morse_app-android.git
+
+Builds:
+  - versionName: 0.3.7
+    versionCode: 307
+    commit: REPLACE_WITH_THE_FULL_40_CHARACTER_HASH_OF_THE_MIRROR_COMMIT_TAGGED_v0.3.7
+    subdir: android/app
+    sudo:
+      - apt-get update
+      - apt-get install -y nodejs npm
+      - npm install -g pnpm@10.4.1
+    init:
+      - cd ../..
+      - pnpm install --frozen-lockfile --prod
+      - patch -p1 -d node_modules/expo-camera/android < patches/expo-camera-remove-google-mlkit.patch
+      - patch -p1 -d node_modules/expo-application/android < patches/expo-application-remove-installreferrer.patch
+    gradle:
+      - yes
+    prebuild:
+      - cd ../..
+      - sed -i '/jvmToolchain\|JavaVersion/s/17/21/' node_modules/@react-native/gradle-plugin/*/build.gradle.kts
+        node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/JdkConfiguratorUtils.kt
+      - sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=armeabi-v7a,arm64-v8a/'
+        android/gradle.properties
+      - sed -i 's/^expo.useLegacyPackaging=.*/expo.useLegacyPackaging=true/' android/gradle.properties
+    scanignore:
+      - node_modules/hermes-compiler/hermesc/linux64-bin
+      - node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+      - node_modules/react-native/ReactAndroid/publish.gradle
+      - node_modules/react-native-safe-area-context/android/build.gradle
+      - node_modules/react-native-svg/android/build.gradle
+      - node_modules/@react-native-async-storage/async-storage/android/build.gradle
+    scandelete:
+      - node_modules
+    ndk: 27.1.12297006
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.3.7
+CurrentVersionCode: 307

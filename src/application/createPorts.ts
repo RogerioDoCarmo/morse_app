@@ -7,6 +7,8 @@ import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizatio
 import { createExpoPermissionAdapter } from '@/adapters/permission/expoPermissionAdapter';
 import { createAsyncStoragePreferencesAdapter } from '@/adapters/preferences/asyncStoragePreferencesAdapter';
 import { createExpoSpeechRecognitionAdapter } from '@/adapters/speech/expoSpeechRecognitionAdapter';
+import { createUnavailableSpeechRecognitionAdapter } from '@/adapters/speech/unavailableSpeechRecognitionAdapter';
+import { BUNDLED_FEATURES } from '@/application/providers/BuildFeaturesProvider';
 import {
   createExpoTorchAdapter,
   type TorchAdapter,
@@ -14,7 +16,23 @@ import {
 import { createExpoSpeechAdapter } from '@/adapters/tts/expoSpeechAdapter';
 import { createPlatformVibrationAdapter } from '@/adapters/vibration/platformVibrationAdapter';
 import { createNativeVolumeAdapter } from '@/adapters/volume/nativeVolumeAdapter';
-import type { Ports } from '@/core/ports';
+import type { BuildFeatures } from '@/core/domain/buildFeatures';
+import type { ICrashReportingPort, Ports } from '@/core/ports';
+
+/**
+ * Crashlytics when this build has crash reporting AND it is configured; the
+ * no-op reporter otherwise.
+ *
+ * ⚠️ The switch is checked BEFORE the Firebase adapter is built, not after.
+ * In a build that leaves crash reporting out, `@react-native-firebase/*` is
+ * not installed and Metro resolves it to an empty module; constructing the
+ * adapter there would be the one call that reads it.
+ */
+function selectCrashReporting(features: BuildFeatures): ICrashReportingPort {
+  if (!features.crashReporting) return createNoopCrashReportingAdapter();
+  const firebaseCrash = createFirebaseCrashReportingAdapter();
+  return firebaseCrash.isEnabled() ? firebaseCrash : createNoopCrashReportingAdapter();
+}
 
 /**
  * The composition root — the one place that knows which adapter implements
@@ -28,12 +46,17 @@ import type { Ports } from '@/core/ports';
  * availability, and a checkout without `google-services.json` gets the no-op
  * one. That keeps local development, CI and any Firebase-free build behaving
  * identically to a configured one rather than erroring at startup.
+ *
+ * `features` says what this build contains — every feature in the store
+ * build, less in the F-Droid one. A feature the build leaves out gets an
+ * adapter that never touches its native module, because that module is not in
+ * the APK. Taken as a parameter so both builds can be tested; the app passes
+ * nothing.
  */
-export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
-  const firebaseCrash = createFirebaseCrashReportingAdapter();
-  const crash = firebaseCrash.isEnabled()
-    ? firebaseCrash
-    : createNoopCrashReportingAdapter();
+export function createPorts(
+  features: BuildFeatures = BUNDLED_FEATURES,
+): Readonly<{ ports: Ports; torch: TorchAdapter }> {
+  const crash = selectCrashReporting(features);
   // Built after `crash` because both take it: adapters report through the
   // port, never by reaching for a sibling adapter.
   const torch = createExpoTorchAdapter(crash);
@@ -49,7 +72,9 @@ export function createPorts(): Readonly<{ ports: Ports; torch: TorchAdapter }> {
       preferences: createAsyncStoragePreferencesAdapter(crash),
       clipboard: createExpoClipboardAdapter(),
       tts: createExpoSpeechAdapter(crash),
-      speech: createExpoSpeechRecognitionAdapter(crash),
+      speech: features.speechInput
+        ? createExpoSpeechRecognitionAdapter(crash)
+        : createUnavailableSpeechRecognitionAdapter(),
       locale: createExpoLocalizationAdapter(),
       permission: createExpoPermissionAdapter(),
       crash,

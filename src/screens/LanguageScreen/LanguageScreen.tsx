@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBuildFeatures } from '@/application/providers/BuildFeaturesProvider';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
@@ -42,6 +43,7 @@ export function LanguageScreen({ onBack }: Props): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { settings, setSpeechLocale } = useSettings();
   const { locale: localePort } = usePorts();
+  const { speechInput } = useBuildFeatures();
 
   // ⚠️ The DEVICE locale, not the interface one — the two are independent.
   const speechLocale = settings.speechLocale ?? localePort.getDeviceLocale();
@@ -87,36 +89,42 @@ export function LanguageScreen({ onBack }: Props): React.JSX.Element {
           </View>
         </View>
 
-        <View style={styles.block}>
-          <Text style={styles.label}>{t('language.speech')}</Text>
-          <View style={styles.card}>
-            {/* ⚠️ No "Match the interface" toggle any more. Recognition used
-                to follow the app language unless this was switched off, so
-                changing the UI silently changed what the microphone listened
-                for. They are two settings now, and the list is always here
-                rather than hidden behind a switch. */}
-            <View testID="language-recogniser">
-              <Text style={styles.subLabel}>{t('language.recogniseIn')}</Text>
-              {SUPPORTED_LOCALES.map((value, index) => (
-                <ChoiceRow
-                  key={value}
-                  testID={`recogniser-${value}`}
-                  title={RECOGNISER[value]}
-                  selected={value === speechLocale}
-                  first={index === 0}
-                  onPress={() => {
-                    setSpeechLocale(value);
-                  }}
-                />
-              ))}
+        {/* The recogniser's language, and the footnote about what the
+            microphone can recognise, exist only in a build that listens. */}
+        {speechInput ? (
+          <>
+            <View style={styles.block}>
+              <Text style={styles.label}>{t('language.speech')}</Text>
+              <View style={styles.card}>
+                {/* ⚠️ No "Match the interface" toggle any more. Recognition used
+                  to follow the app language unless this was switched off, so
+                  changing the UI silently changed what the microphone listened
+                  for. They are two settings now, and the list is always here
+                  rather than hidden behind a switch. */}
+                <View testID="language-recogniser">
+                  <Text style={styles.subLabel}>{t('language.recogniseIn')}</Text>
+                  {SUPPORTED_LOCALES.map((value, index) => (
+                    <ChoiceRow
+                      key={value}
+                      testID={`recogniser-${value}`}
+                      title={RECOGNISER[value]}
+                      selected={value === speechLocale}
+                      first={index === 0}
+                      onPress={() => {
+                        setSpeechLocale(value);
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
 
-        <View style={styles.footnote}>
-          <Icon name="info" size={17} color={theme.color.muted} strokeWidth={2} />
-          <Text style={styles.footnoteText}>{t('language.footnote')}</Text>
-        </View>
+            <View style={styles.footnote}>
+              <Icon name="info" size={17} color={theme.color.muted} strokeWidth={2} />
+              <Text style={styles.footnoteText}>{t('language.footnote')}</Text>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );

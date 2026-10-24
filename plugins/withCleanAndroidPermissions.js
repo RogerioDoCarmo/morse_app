@@ -67,10 +67,25 @@ const PERMISSIONS_TO_REMOVE = [
   'android.permission.WRITE_EXTERNAL_STORAGE',
 ];
 
-function buildReleaseManifest() {
-  const removals = PERMISSIONS_TO_REMOVE.map(
-    (name) => `    <uses-permission android:name="${name}" tools:node="remove" />`,
-  ).join('\n');
+/**
+ * The release manifest: every listed permission marked for removal.
+ *
+ * `extra` is what a build variant adds to the list — the F-Droid build strips
+ * INTERNET and ACCESS_NETWORK_STATE, which React Native and the store build's
+ * network features inject but that build has no use for. The store build
+ * passes nothing, and gets exactly the list above.
+ *
+ * @param {readonly string[]} [extra]
+ * @returns {string}
+ */
+function buildReleaseManifest(extra = []) {
+  const names = [
+    ...PERMISSIONS_TO_REMOVE,
+    ...extra.filter((name) => !PERMISSIONS_TO_REMOVE.includes(name)),
+  ];
+  const removals = names
+    .map((name) => `    <uses-permission android:name="${name}" tools:node="remove" />`)
+    .join('\n');
 
   return (
     '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n' +
@@ -80,7 +95,11 @@ function buildReleaseManifest() {
   );
 }
 
-module.exports = function withCleanAndroidPermissions(config) {
+/**
+ * @param {import('expo/config-plugins').ExpoConfig} config
+ * @param {{ remove?: readonly string[] }} [options]
+ */
+module.exports = function withCleanAndroidPermissions(config, options = {}) {
   return withDangerousMod(config, [
     'android',
     async (cfg) => {
@@ -93,7 +112,7 @@ module.exports = function withCleanAndroidPermissions(config) {
       fs.mkdirSync(releaseDir, { recursive: true });
       fs.writeFileSync(
         path.join(releaseDir, 'AndroidManifest.xml'),
-        buildReleaseManifest(),
+        buildReleaseManifest(options.remove ?? []),
       );
       return cfg;
     },

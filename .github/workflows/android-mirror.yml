@@ -1,0 +1,161 @@
+name: Mirror Android Build
+
+# Publishes a build-only, plain-Gradle snapshot of the F-DROID VARIANT to
+# RogerioDoCarmo/morse_app-android on each release, for F-Droid to build
+# from. Adapted from Miroji's android-mirror.yml; notes/FDROID.md explains
+# every step and where this differs from Miroji's.
+#
+# Costs nothing: GitHub-hosted Ubuntu only. It builds no binary, buys no
+# build, publishes no Storybook and distributes nothing. The only thing it
+# writes anywhere is a git push to the mirror repository.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to mirror (e.g. v0.3.7)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    # ⚠️ `v0.3.7+appstore` and `v0.3.7+storybook` are releases of the SAME
+    # version 0.3.7 cut from later commits. Mirroring them automatically would
+    # re-point the mirror's v0.3.7 at whichever was published last. Only a
+    # plain vX.Y.Z release mirrors by itself; a +metadata tag can still be
+    # mirrored on purpose, by dispatch.
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+')
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+    steps:
+      # ⚠️ The packaging comes from the TAG, unlike Miroji's, which takes its
+      # patches from main. Here the F-Droid variant is app source — the build
+      # flags, the no-op adapters, the config branches — and the patches are
+      # written against the exact node_modules that tag's lockfile installs.
+      - name: Checkout source at release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          path: source
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: source/package.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: source/.nvmrc
+
+      - name: Read the version from the tag
+        id: version
+        working-directory: source
+        run: |
+          set -euo pipefail
+          read -r NAME CODE < <(node tools/fdroid-mirror.js version "$TAG")
+          APP_VERSION=$(node -p "require('./app.json').expo.version")
+          if [ "$NAME" != "$APP_VERSION" ]; then
+            echo "::error::$TAG names $NAME but app.json at that tag says $APP_VERSION."
+            exit 1
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "mirror_tag=v$NAME" >> "$GITHUB_OUTPUT"
+          echo "Mirroring $TAG as v$NAME, versionCode $CODE"
+
+      - name: Install dependencies
+        working-directory: source
+        run: pnpm install --frozen-lockfile
+
+      # Uninstalled, not merely unlinked: package.json and pnpm-lock.yaml in
+      # the mirror must not name them, so F-Droid's own install never fetches
+      # them. The list comes from build-variant.js, the one table.
+      - name: Remove what the F-Droid build leaves out
+        working-directory: source
+        run: |
+          set -euo pipefail
+          EXCLUDED=$(node tools/fdroid-mirror.js excluded)
+          echo "Removing: $EXCLUDED"
+          # shellcheck disable=SC2086
+          pnpm remove $EXCLUDED
+          node tools/fdroid-mirror.js package package.json
+          node tools/fdroid-mirror.js appjson app.json
+
+      - name: Generate the F-Droid Android project
+        working-directory: source
+        env:
+          OMNIMORSE_BUILD_VARIANT: fdroid
+        run: npx expo prebuild --platform android --no-install
+
+      # A guard, not a hope: if any of these reached the generated project,
+      # the mirror is not pushed.
+      - name: Refuse a project that still references proprietary code
+        working-directory: source
+        run: |
+          set -euo pipefail
+          if grep -rniE 'firebase|crashlytics|com\.google\.android\.gms|google-services|expo\.modules\.updates|installreferrer|mlkit' \
+              android --include='*.gradle' --include='*.kts' --include='*.xml' --include='*.properties' --include='*.kt' --include='*.java'; then
+            echo "::error::The generated Android project references proprietary code. See the lines above."
+            exit 1
+          fi
+          if grep -nE 'react-native-firebase|expo-updates@' pnpm-lock.yaml; then
+            echo "::error::The pruned lockfile still names an excluded package."
+            exit 1
+          fi
+          echo "Generated project and lockfile are clean."
+
+      - name: Assemble build-only snapshot
+        run: |
+          set -euo pipefail
+          bash source/tools/fdroid-assemble-mirror.sh source mirror \
+            "${{ steps.version.outputs.code }}" "${{ steps.version.outputs.name }}"
+          grep -n "versionCode\|versionName" mirror/android/app/build.gradle
+
+      - name: Checkout destination repository
+        uses: actions/checkout@v4
+        with:
+          repository: RogerioDoCarmo/morse_app-android
+          token: ${{ secrets.MORSE_APP_ANDROID_TOKEN }}
+          path: dest
+
+      # Fastlane is generated now, so it is synced like everything else —
+      # except older changelogs, which F-Droid keeps showing for the versions
+      # they describe and which no later run regenerates.
+      - name: Sync snapshot into destination
+        run: |
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude='.git' --exclude='README.md' --exclude='.gitignore' \
+            --exclude='fastlane/metadata/android/*/changelogs/' \
+            mirror/ dest/
+          rsync -a mirror/fastlane/ dest/fastlane/
+
+      - name: Commit and push
+        working-directory: dest
+        env:
+          MIRROR_TAG: ${{ steps.version.outputs.mirror_tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to mirror for $TAG"
+            exit 0
+          fi
+          git commit -m "Mirror $TAG from morse_app"
+          git tag -f "$MIRROR_TAG"
+          git push origin HEAD:main
+          git push origin "$MIRROR_TAG" --force
+          {
+            echo "### Mirrored $TAG as $MIRROR_TAG"
+            echo
+            echo "Commit for the F-Droid recipe: \`$(git rev-parse HEAD)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
