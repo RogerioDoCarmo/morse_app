@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const plugin = require('./withCleanAndroidPermissions.js') as {
   PERMISSIONS_TO_REMOVE: string[];
-  buildReleaseManifest: () => string;
+  buildReleaseManifest: (extra?: readonly string[]) => string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -81,6 +81,39 @@ describe('withCleanAndroidPermissions', () => {
       );
 
       expect(names).toStrictEqual(PERMISSIONS_TO_REMOVE);
+    });
+  });
+
+  // A build variant adds to the list; it never replaces it.
+  describe('with a variant’s extra removals', () => {
+    const extra = [
+      'android.permission.INTERNET',
+      'android.permission.ACCESS_NETWORK_STATE',
+    ];
+    const namesIn = (manifest: string): (string | undefined)[] =>
+      [...manifest.matchAll(/android:name="([^"]+)"/g)].map((match) => match[1]);
+
+    it('removes the base list and then the extras, in that order', () => {
+      expect(namesIn(buildReleaseManifest(extra))).toStrictEqual([
+        'android.permission.SYSTEM_ALERT_WINDOW',
+        'android.permission.DUMP',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+      ]);
+    });
+
+    it('does not list a permission twice', () => {
+      expect(
+        namesIn(buildReleaseManifest(['android.permission.DUMP'])).filter(
+          (name) => name === 'android.permission.DUMP',
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('is the plain manifest when there is nothing extra', () => {
+      expect(buildReleaseManifest([])).toBe(buildReleaseManifest());
     });
   });
 });

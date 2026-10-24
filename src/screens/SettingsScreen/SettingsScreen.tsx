@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_VERSION_FULL } from '@/appVersion';
 import { Toast } from '@/components/Toast';
+import { useBuildFeatures } from '@/application/providers/BuildFeaturesProvider';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
 import { Icon } from '@/components/Icon';
@@ -43,6 +44,10 @@ export function SettingsScreen({
   onShowGuide,
 }: Props): React.JSX.Element {
   const { t, locale } = useLocale();
+  // What this build contains. A feature it leaves out has no row here at all:
+  // a switch for crash reports in a build with no crash reporter would be a
+  // setting that does nothing, which is worse than no setting.
+  const features = useBuildFeatures();
 
   /**
    * What the last switch did, echoed back.
@@ -139,13 +144,17 @@ export function SettingsScreen({
               value={LOCALE_LABELS[locale]}
               onPress={onOpenLanguage}
             />
-            <View style={styles.rule} />
-            <NavRow
-              testID="settings-speech-locale"
-              title={t('settings.speechRecognition')}
-              value={LOCALE_LABELS[settings.speechLocale ?? locale]}
-              onPress={onOpenLanguage}
-            />
+            {features.speechInput ? (
+              <>
+                <View style={styles.rule} />
+                <NavRow
+                  testID="settings-speech-locale"
+                  title={t('settings.speechRecognition')}
+                  value={LOCALE_LABELS[settings.speechLocale ?? locale]}
+                  onPress={onOpenLanguage}
+                />
+              </>
+            ) : null}
           </View>
         </View>
 
@@ -172,18 +181,23 @@ export function SettingsScreen({
           </View>
         </View>
 
-        <View style={styles.block}>
-          <Text style={styles.label}>{t('settings.privacySection')}</Text>
-          <View style={styles.card}>
-            <ToggleRow
-              testID="settings-crash-reports"
-              title={t('settings.crashReports')}
-              hint={t('settings.crashReportsHint')}
-              value={settings.crashReports}
-              onChange={confirming(t('settings.crashReports'), setCrashReports)}
-            />
+        {/* The whole section, not just the row: crash reports are the only
+            thing in it, and an empty PRIVACY heading reads as something
+            missing rather than nothing to say. */}
+        {features.crashReporting ? (
+          <View style={styles.block} testID="settings-privacy">
+            <Text style={styles.label}>{t('settings.privacySection')}</Text>
+            <View style={styles.card}>
+              <ToggleRow
+                testID="settings-crash-reports"
+                title={t('settings.crashReports')}
+                hint={t('settings.crashReportsHint')}
+                value={settings.crashReports}
+                onChange={confirming(t('settings.crashReports'), setCrashReports)}
+              />
+            </View>
           </View>
-        </View>
+        ) : null}
 
         <View style={styles.block}>
           <Text style={styles.label}>{t('settings.aboutSection')}</Text>

@@ -2,7 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
-import { TABS, type TabName } from '@/components/TabBar';
+import { tabsFor, type TabName } from '@/components/TabBar';
+import { useBuildFeatures } from '@/application/providers/BuildFeaturesProvider';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { theme } from '@/theme';
 
@@ -20,7 +21,7 @@ type Props = Readonly<{
  * The tablet's navigation — the same four destinations as the tab bar, stood
  * up the left edge.
  *
- * Shares `TABS` with the bar rather than restating it: the two are one set of
+ * Shares `tabsFor` with the bar rather than restating it: the two are one set of
  * destinations in two shells, and a rail that could list different ones would
  * be a bug waiting to happen.
  *
@@ -35,6 +36,7 @@ export function NavRail({
 }: Props): React.JSX.Element {
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
+  const features = useBuildFeatures();
 
   return (
     <View
@@ -50,7 +52,7 @@ export function NavRail({
         <View style={styles.markDash} />
       </View>
 
-      {TABS.map((tab) => {
+      {tabsFor(features).map((tab) => {
         const off = unavailable.includes(tab.name);
         const on = tab.name === active;
         return (

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const base = require('./app.json');
+const variants = require('./build-variant');
 
 /**
  * Layers Firebase on top of `app.json` — but only the parts that are actually
@@ -49,12 +50,22 @@ const credentials = (variable, file) => {
 };
 
 module.exports = () => {
+  // ⚠️ `store` unless something says otherwise — see build-variant.js. Every
+  // branch below that reads `variant` is a no-op for the store build, which
+  // must resolve to exactly the config it always did.
+  const variant = variants.resolveBuildVariant();
+  const has = (feature) => variants.hasFeature(variant, feature);
+
   const expo = { ...base.expo };
-  const androidCredentials = credentials(
-    'GOOGLE_SERVICES_JSON_PATH',
-    ANDROID_CREDENTIALS,
-  );
-  const iosCredentials = credentials('GOOGLE_SERVICE_INFO_PLIST_PATH', IOS_CREDENTIALS);
+  // A build without crash reporting ignores credential files even when they
+  // are on disk: the F-Droid build must not link Firebase because somebody
+  // left a google-services.json in their checkout.
+  const androidCredentials = has('crashReporting')
+    ? credentials('GOOGLE_SERVICES_JSON_PATH', ANDROID_CREDENTIALS)
+    : null;
+  const iosCredentials = has('crashReporting')
+    ? credentials('GOOGLE_SERVICE_INFO_PLIST_PATH', IOS_CREDENTIALS)
+    : null;
   const hasAndroid = androidCredentials !== null;
   const hasIos = iosCredentials !== null;
 
@@ -68,7 +79,10 @@ module.exports = () => {
   // are INSTALLED, credential files or not. Gating this on credentials is what
   // broke CI twice. See the plugin for the full reasoning. If Firebase is ever
   // removed from `package.json`, remove this too.
-  plugins.push('./plugins/withRNFirebaseDisableSPM.js');
+  //
+  // A build without crash reporting has the Firebase packages UNINSTALLED, so
+  // there are no pods to configure — which is the one case this may be off.
+  if (has('crashReporting')) plugins.push('./plugins/withRNFirebaseDisableSPM.js');
 
   // The other half of that bargain. Off SPM, Firebase arrives as ordinary pods,
   // and its Swift pods (FirebaseCrashlytics, FirebaseSessions) import
@@ -106,14 +120,16 @@ module.exports = () => {
   // Unlike expo-audio, this plugin KEEPS an infoPlist string that is already
   // there. Passing ours anyway makes that explicit rather than load-bearing on
   // someone else's `||` chain, and the app.config test pins both.
-  plugins.push([
-    'expo-speech-recognition',
-    {
-      microphonePermission: base.expo.ios.infoPlist.NSMicrophoneUsageDescription,
-      speechRecognitionPermission:
-        base.expo.ios.infoPlist.NSSpeechRecognitionUsageDescription,
-    },
-  ]);
+  if (has('speechInput')) {
+    plugins.push([
+      'expo-speech-recognition',
+      {
+        microphonePermission: base.expo.ios.infoPlist.NSMicrophoneUsageDescription,
+        speechRecognitionPermission:
+          base.expo.ios.infoPlist.NSSpeechRecognitionUsageDescription,
+      },
+    ]);
+  }
 
   plugins.push([
     'expo-audio',
@@ -135,17 +151,38 @@ module.exports = () => {
   // removes it otherwise. Before the cleaner, which must stay last.
   plugins.push('./plugins/withAdiRegistration.js');
 
-  plugins.push(cleaner);
+  // Expo's prebuild writes updates meta-data whether or not expo-updates is
+  // installed. A build without it takes them back out.
+  if (!has('otaUpdates')) plugins.push('./plugins/withoutUpdatesMetadata.js');
 
-  return {
-    ...base,
-    expo: {
-      ...expo,
-      plugins,
-      android: hasAndroid
-        ? { ...expo.android, googleServicesFile: androidCredentials }
-        : expo.android,
-      ios: hasIos ? { ...expo.ios, googleServicesFile: iosCredentials } : expo.ios,
-    },
+  // The cleaner also strips what a variant leaves out — permissions React
+  // Native or a library injects that this build has nothing to use them for.
+  const dropped = variants.droppedPermissions(variant);
+  plugins.push(dropped.length > 0 ? [cleaner, { remove: dropped }] : cleaner);
+
+  const android = hasAndroid
+    ? { ...expo.android, googleServicesFile: androidCredentials }
+    : expo.android;
+
+  const resolved = {
+    ...expo,
+    plugins,
+    android:
+      dropped.length > 0
+        ? {
+            ...android,
+            permissions: android.permissions.filter((name) => !dropped.includes(name)),
+          }
+        : android,
+    ios: hasIos ? { ...expo.ios, googleServicesFile: iosCredentials } : expo.ios,
   };
+
+  // Without over-the-air updates there is no update server to name, and no
+  // runtime version for one to match against.
+  if (!has('otaUpdates')) {
+    delete resolved.updates;
+    delete resolved.runtimeVersion;
+  }
+
+  return { ...base, expo: resolved };
 };

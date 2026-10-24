@@ -412,3 +412,115 @@ describe('the version, declared in two places', () => {
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/u);
   });
 });
+
+/**
+ * The F-Droid variant: what F-Droid compiles from source. It may not link
+ * Firebase, update itself over the air, or ask for a network it has nothing
+ * to send on — and the store variant above must not notice it exists.
+ */
+describe('app.config for the F-Droid variant', () => {
+  type Resolved = ReturnType<typeof loadConfig>['expo'] & {
+    updates?: unknown;
+    runtimeVersion?: unknown;
+    android?: { permissions?: string[]; googleServicesFile?: string; package?: string };
+  };
+
+  const VARIABLE = 'OMNIMORSE_BUILD_VARIANT';
+
+  const fdroid = (present: readonly string[] = []): Resolved => {
+    process.env[VARIABLE] = 'fdroid';
+    try {
+      return loadConfig(present).expo;
+    } finally {
+      delete process.env[VARIABLE];
+    }
+  };
+
+  // ⚠️ With the credential files ON DISK. A developer's checkout usually has
+  // them, and an F-Droid build made from it must still come out clean.
+  it('links no Firebase even when credential files are present', () => {
+    const expo = fdroid([ANDROID, IOS]);
+    const names = expo.plugins.map(nameOf);
+
+    expect(names).not.toContain('@react-native-firebase/app');
+    expect(names).not.toContain('@react-native-firebase/crashlytics');
+    expect(names).not.toContain(DISABLE_SPM);
+    expect(expo.android?.googleServicesFile).toBeUndefined();
+    expect(expo.ios?.googleServicesFile).toBeUndefined();
+  });
+
+  it('names no update server and no runtime version', () => {
+    const expo = fdroid();
+    expect(expo.updates).toBeUndefined();
+    expect(expo.runtimeVersion).toBeUndefined();
+  });
+
+  it('still names them in the store build', () => {
+    const expo = loadConfig([]).expo as Resolved;
+    expect(expo.updates).toStrictEqual({
+      url: 'https://u.expo.dev/2868776d-8058-43b4-928b-44b5fa312998',
+    });
+    expect(expo.runtimeVersion).toStrictEqual({ policy: 'appVersion' });
+  });
+
+  it('declares no network permission, and keeps the rest', () => {
+    expect(fdroid().android?.permissions).toStrictEqual([
+      'android.permission.CAMERA',
+      'android.permission.RECORD_AUDIO',
+      'android.permission.VIBRATE',
+      'android.permission.MODIFY_AUDIO_SETTINGS',
+    ]);
+  });
+
+  // React Native's own manifest injects INTERNET; declaring less is not
+  // enough, so the release manifest has to remove it.
+  it('has the cleaner strip the network permissions, and stay last', () => {
+    const plugins = fdroid().plugins;
+
+    expect(plugins[plugins.length - 1]).toStrictEqual([
+      CLEANER,
+      {
+        remove: [
+          'android.permission.INTERNET',
+          'android.permission.ACCESS_NETWORK_STATE',
+        ],
+      },
+    ]);
+    expect(plugins.filter((plugin) => nameOf(plugin) === CLEANER)).toHaveLength(1);
+  });
+
+  // Expo's prebuild writes updates meta-data even with expo-updates gone.
+  it('strips the updates meta-data in the F-Droid build only', () => {
+    const STRIPPER = './plugins/withoutUpdatesMetadata.js';
+    const plugins = fdroid().plugins.map(nameOf);
+
+    expect(plugins.filter((name) => name === STRIPPER)).toHaveLength(1);
+    expect(plugins.indexOf(STRIPPER)).toBeLessThan(plugins.indexOf(CLEANER));
+    expect(loadConfig([ANDROID, IOS]).expo.plugins.map(nameOf)).not.toContain(STRIPPER);
+  });
+
+  it('keeps the store build’s cleaner exactly as it was', () => {
+    const plugins = loadConfig([ANDROID, IOS]).expo.plugins;
+    expect(plugins[plugins.length - 1]).toBe(CLEANER);
+  });
+
+  // Speech is kept: the platform recogniser is not code in the APK.
+  it('keeps speech input and its plugin', () => {
+    expect(fdroid().plugins.map(nameOf)).toContain('expo-speech-recognition');
+  });
+
+  it('keeps the identity the app is installed under', () => {
+    const expo = fdroid();
+    expect(expo.slug).toBe('morse-app');
+    expect(expo.android?.package).toBe('com.rogeriodocarmo.morse');
+  });
+
+  it('refuses a variant it does not know', () => {
+    process.env[VARIABLE] = 'fdorid';
+    try {
+      expect(() => loadConfig([])).toThrow('Unknown build variant "fdorid"');
+    } finally {
+      delete process.env[VARIABLE];
+    }
+  });
+});

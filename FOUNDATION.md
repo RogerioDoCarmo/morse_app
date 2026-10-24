@@ -147,6 +147,7 @@ back in.
 | `eas-build.yml` | ⚠️ **`workflow_dispatch` only** | EAS production build; **store submit is manual-only** |
 | `firebase-distribution.yml` | ⚠️ **`workflow_dispatch` only** | version-gated APK/IPA distribution |
 | `release.yml` | push of a `v*.*.*` tag | publishes a GitHub Release from the annotated tag's message. **No build artifacts** |
+| `android-mirror.yml` | published release (plain `vX.Y.Z` only) + `workflow_dispatch` | pushes the F-Droid variant's plain-Gradle snapshot to `morse_app-android`. Free; builds nothing. See `notes/FDROID.md` |
 
 ⚠️ **Why the three are dispatch-only.** Both services bill against a monthly
 allowance, and automatic triggers exhausted it without anyone asking. `eas-build.yml`
