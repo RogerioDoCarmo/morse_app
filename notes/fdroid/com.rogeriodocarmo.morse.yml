@@ -21,7 +21,7 @@ Repo: https://github.com/RogerioDoCarmo/morse_app-android.git
 Builds:
   - versionName: 0.3.7
     versionCode: 307
-    commit: REPLACE_WITH_THE_FULL_40_CHARACTER_HASH_OF_THE_MIRROR_COMMIT_TAGGED_v0.3.7
+    commit: 52a6b5dfb6148b97a1f5c026fb40c8a5751d51d9
     subdir: android/app
     sudo:
       - apt-get update
