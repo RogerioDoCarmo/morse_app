@@ -209,6 +209,14 @@ adapted, with maintainer feedback from Miroji's merge request (!43165) already a
 commit hash, Node from Debian, JDK 21, `subdir: android/app`, no summary or description in the
 recipe (Fastlane supplies them), and `useLegacyPackaging`.
 
+⚠️ **CMake and Ninja come from Debian.** `expo-modules-core` builds native code with CMake, and
+Gradle asks for exactly 3.31.6, which F-Droid's build image does not carry: the first pipeline on
+!54504 stopped at `[CXX1300] CMake '3.31.6' was not found in SDK, PATH, or by cmake.dir property`.
+Debian trixie (the `buildserver-trixie` image) packages `cmake` 3.31.6-2, and Gradle accepts a
+CMake on `PATH` when the version matches, so `apt-get install cmake ninja-build` in `sudo` is the
+whole fix. ⚠️ When an SDK bump moves the requested version, this breaks again; check what trixie
+ships before reaching for anything else.
+
 ⚠️ **`react-native-worklets` gets its own JDK 21 `sed`.** Its `android/build.gradle.kts` hard-codes
 Java and Kotlin 17, so once the React Native Gradle plugin is moved to 21 the two disagree. Miroji's
 recipe needed the same line for the older `build.gradle` of that package (its commit "Restore
