@@ -209,6 +209,12 @@ adapted, with maintainer feedback from Miroji's merge request (!43165) already a
 commit hash, Node from Debian, JDK 21, `subdir: android/app`, no summary or description in the
 recipe (Fastlane supplies them), and `useLegacyPackaging`.
 
+⚠️ **`react-native-worklets` gets its own JDK 21 `sed`.** Its `android/build.gradle.kts` hard-codes
+Java and Kotlin 17, so once the React Native Gradle plugin is moved to 21 the two disagree. Miroji's
+recipe needed the same line for the older `build.gradle` of that package (its commit "Restore
+datetimepicker jvmTarget sed" put it back after it was dropped). Added before the first pipeline, on
+that evidence rather than a failure seen here, since this machine builds on JDK 17.
+
 `scanignore` keeps what the build needs and `scandelete: node_modules` removes everything else
 the scanner flags. Six entries, each matched by the source scan above:
 
