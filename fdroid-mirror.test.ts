@@ -8,6 +8,8 @@ const mirror = require('./tools/fdroid-mirror.js') as {
   LIMITS: Record<string, number>;
   PRIVACY: Record<string, { store: string; fdroid: string }>;
   SCREENSHOTS_LEFT_OUT: readonly string[];
+  OTHER_STORES: RegExp;
+  currentVersion: () => { versionName: string; versionCode: number };
   versionFromTag: (tag: string) => { versionName: string; versionCode: number };
   fdroidPackageJson: (pkg: Record<string, unknown>) => {
     omnimorse?: unknown;
@@ -218,6 +220,37 @@ describe('the F-Droid listing', () => {
     );
   });
 
+  // An F-Droid listing stands on its own: the reviewer deleted the App Store
+  // link from the first RFP.
+  it.each([
+    'Apple',
+    'App Store',
+    'iPhone',
+    'iPad',
+    'iOS',
+    'Google Play',
+    'Play Store',
+    'Play Console',
+  ])('refuses a field that names %s', (store) => {
+    const named = listing('en-US').replace(
+      /## Short description\n\n```text\n[^`]*```/u,
+      `## Short description\n\n\`\`\`text\nAlso on ${store.toLowerCase()}.\n\`\`\``,
+    );
+    expect(() => mirror.fastlaneText('en-US', named)).toThrow(
+      `en-US short description names "${store.toLowerCase()}"; an F-Droid listing names no other store.`,
+    );
+  });
+
+  it('passes words that only contain a store name', () => {
+    const plain = listing('en-US').replace(
+      /## Short description\n\n```text\n[^`]*```/u,
+      '## Short description\n\n```text\nDios mío: a display of radios, playful and applied.\n```',
+    );
+    expect(mirror.fastlaneText('en-US', plain).short).toBe(
+      'Dios mío: a display of radios, playful and applied.',
+    );
+  });
+
   it('uses the newest screenshot set at or below the version', () => {
     expect(mirror.screenshotVersion('0.3.7')).toBe('0.3.7');
     expect(mirror.screenshotVersion('0.3.9')).toBe('0.3.7');
@@ -283,5 +316,61 @@ describe('the F-Droid listing', () => {
           ),
       ).toBe(true);
     });
+  });
+});
+
+/**
+ * The repository keeps its own copy of the Fastlane tree, because F-Droid's
+ * RFP bot and its reviewers read the SourceCode repository, not the mirror.
+ * When this fails, the listings or the version changed: run
+ * `node tools/fdroid-mirror.js source` and commit the result.
+ */
+describe('this repository’s own fastlane/', () => {
+  const root = path.join(__dirname, 'fastlane', 'metadata', 'android');
+  let out: string;
+  let generated: string[];
+
+  beforeAll(() => {
+    out = fs.mkdtempSync(path.join(os.tmpdir(), 'fastlane-source-'));
+    const { versionName, versionCode } = mirror.currentVersion();
+    generated = mirror.writeFastlane(out, versionCode, versionName);
+  });
+
+  afterAll(() => {
+    fs.rmSync(out, { recursive: true, force: true });
+  });
+
+  it('numbers the version app.json declares', () => {
+    const appJson = JSON.parse(
+      fs.readFileSync(path.join(__dirname, 'app.json'), 'utf8'),
+    ) as { expo: { version: string } };
+    expect(mirror.currentVersion()).toStrictEqual(
+      mirror.versionFromTag(`v${appJson.expo.version}`),
+    );
+  });
+
+  it('matches what the listings generate, byte for byte', () => {
+    const stale = generated.filter((file) => {
+      const committed = path.join(__dirname, file);
+      return (
+        !fs.existsSync(committed) ||
+        !fs.readFileSync(committed).equals(fs.readFileSync(path.join(out, file)))
+      );
+    });
+    expect(stale).toStrictEqual([]);
+  });
+
+  // Older changelogs stay: F-Droid shows each one for the version it describes.
+  it('holds nothing else but changelogs of earlier versions', () => {
+    const { versionCode } = mirror.currentVersion();
+    const extra = (fs.readdirSync(root, { recursive: true }) as string[])
+      .map((file) => `fastlane/metadata/android/${file.split(path.sep).join('/')}`)
+      .filter((file) => fs.statSync(path.join(__dirname, file)).isFile())
+      .filter((file) => !generated.includes(file))
+      .filter((file) => {
+        const match = /\/changelogs\/(\d+)\.txt$/u.exec(file);
+        return match === null || Number(match[1]) >= versionCode;
+      });
+    expect(extra).toStrictEqual([]);
   });
 });

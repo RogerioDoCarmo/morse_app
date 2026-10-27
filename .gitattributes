@@ -1,0 +1,3 @@
+# F-Droid requires LF in Fastlane text, and fdroid-mirror.test.ts compares it byte for byte.
+fastlane/**/*.txt text eol=lf
+fastlane/**/*.png binary

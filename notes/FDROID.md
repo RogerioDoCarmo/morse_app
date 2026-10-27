@@ -157,6 +157,19 @@ has changed**, so the two cannot drift silently. Screenshots come from the newes
 `store-assets/<version>/` set at or below the release; `f-settings.png` is left out because it
 shows the crash-report switch.
 
+**A second copy lives in this repository's `fastlane/`.** F-Droid builds from the mirror and
+reads its Fastlane there, but the RFP bot and the reviewers read the `SourceCode` repository:
+on rfp#4676 the bot reported "Fastlane was not found in your repo!" and a maintainer asked for
+"icon, pics, txt", although the mirror had all of it. The copy is generated, never edited:
+`node tools/fdroid-mirror.js source` rewrites it for the version in `app.json`, and
+`fdroid-mirror.test.ts` fails when it no longer matches the listings, so **a version bump
+needs that command run and committed**. Older changelogs stay, as they do in the mirror.
+
+⚠️ **No field names another store.** The generator refuses Apple, App Store, iPhone, iPad, iOS,
+Google Play, Play Store and Play Console in any F-Droid field. The app is judged on its own
+there: the reviewer deleted the App Store link from the RFP before closing the first merge
+request.
+
 ## Verification, 22–23 October 2026
 
 All on this Windows machine, from a source tree exported with `git archive HEAD` and taken
