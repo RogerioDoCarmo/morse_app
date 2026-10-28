@@ -9,6 +9,7 @@ const mirror = require('./tools/fdroid-mirror.js') as {
   PRIVACY: Record<string, { store: string; fdroid: string }>;
   SCREENSHOTS_LEFT_OUT: readonly string[];
   OTHER_STORES: RegExp;
+  fdroidPrivacy: (source: string) => string;
   currentVersion: () => { versionName: string; versionCode: number };
   versionFromTag: (tag: string) => { versionName: string; versionCode: number };
   fdroidPackageJson: (pkg: Record<string, unknown>) => {
@@ -139,11 +140,21 @@ describe('the mirror’s app.json', () => {
     expect(JSON.stringify(out)).not.toContain('u.expo.dev');
   });
 
+  // Dead data in an Android-only tree, and its permission strings name the
+  // platform's vendor.
+  it('drops the iOS section', () => {
+    const out = mirror.fdroidAppJson(appJson);
+    expect(out.expo.ios).toBeUndefined();
+    expect(JSON.stringify(out)).not.toMatch(/Apple|NSCameraUsageDescription/u);
+    expect(appJson.expo.ios).toBeDefined();
+  });
+
   it('keeps everything else, the version and identity first of all', () => {
     const out = mirror.fdroidAppJson(appJson);
     const rest = { ...appJson.expo };
     delete rest.updates;
     delete rest.runtimeVersion;
+    delete rest.ios;
     expect(out.expo).toStrictEqual(rest);
     expect(out.expo.version).toBe(appJson.expo.version);
     expect(appJson.expo.updates).toBeDefined();
@@ -254,8 +265,24 @@ describe('the F-Droid listing', () => {
   it('uses the newest screenshot set at or below the version', () => {
     expect(mirror.screenshotVersion('0.3.7')).toBe('0.3.7');
     expect(mirror.screenshotVersion('0.3.9')).toBe('0.3.7');
-    expect(mirror.screenshotVersion('0.3.5')).toBe('0.3.5');
+    expect(mirror.screenshotVersion('0.3.6')).toBe('0.3.6');
+    expect(mirror.screenshotVersion('0.3.5')).toBeNull();
     expect(mirror.screenshotVersion('0.1.0')).toBeNull();
+  });
+
+  // A bump writes store-assets/<version>/listing/ before anyone captures
+  // screenshots for that version.
+  it('passes over a version folder that holds no screenshots', () => {
+    const assets = fs.mkdtempSync(path.join(os.tmpdir(), 'fdroid-assets-'));
+    try {
+      fs.mkdirSync(path.join(assets, '0.3.7', 'en-US', 'play-screenshots'), {
+        recursive: true,
+      });
+      fs.mkdirSync(path.join(assets, '0.3.8', 'listing'), { recursive: true });
+      expect(mirror.screenshotVersion('0.3.8', assets)).toBe('0.3.7');
+    } finally {
+      fs.rmSync(assets, { recursive: true, force: true });
+    }
   });
 
   // The Settings screenshot shows the crash-report switch.
@@ -372,5 +399,55 @@ describe('this repository’s own fastlane/', () => {
         return match === null || Number(match[1]) >= versionCode;
       });
     expect(extra).toStrictEqual([]);
+  });
+});
+
+/**
+ * The full policy describes crash reports, update checks and iOS speech
+ * recognition. The mirror F-Droid reviews carries only the F-Droid section.
+ */
+describe('the build mirror’s PRIVACY.md', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'PRIVACY.md'), 'utf8');
+  const policy = mirror.fdroidPrivacy(source);
+
+  it('is the F-Droid section alone, under its own title and date', () => {
+    expect(
+      policy.startsWith('# Privacy Policy — OmniMorse (F-Droid build)\n\nLast updated: '),
+    ).toBe(true);
+    expect(policy).toContain('It has no internet permission, so it cannot');
+    expect(policy).toContain('\n## What can leave your device\n');
+    expect(policy).not.toMatch(/^###/mu);
+    expect(policy).not.toContain('fdroid-policy');
+    expect(policy.endsWith('<https://github.com/RogerioDoCarmo/morse_app>\n')).toBe(true);
+  });
+
+  it('carries nothing the F-Droid build does not have', () => {
+    expect(policy).not.toMatch(/Crashlytics|Firebase|over-the-air|Send crash reports/u);
+    expect(policy).not.toMatch(mirror.OTHER_STORES);
+  });
+
+  it('refuses a policy without exactly one marked section', () => {
+    expect(() => mirror.fdroidPrivacy('# Policy\n\nLast updated: today.\n')).toThrow(
+      'PRIVACY.md needs exactly one fdroid-policy start and end marker.',
+    );
+  });
+
+  it('refuses an F-Droid section that names another store', () => {
+    const named = source.replace(
+      'Reading decoded text aloud',
+      'Also on the App Store. Reading decoded text aloud',
+    );
+    expect(() => mirror.fdroidPrivacy(named)).toThrow(
+      'The F-Droid policy names "App Store"; it names no other store.',
+    );
+  });
+
+  it('is what the mirror ships instead of the full policy', () => {
+    const script = fs.readFileSync(
+      path.join(__dirname, 'tools', 'fdroid-assemble-mirror.sh'),
+      'utf8',
+    );
+    expect(script).toContain('fdroid-mirror.js" privacy "$mirror_dir/PRIVACY.md"');
+    expect(script).not.toMatch(/^\s+PRIVACY\.md$/mu);
   });
 });

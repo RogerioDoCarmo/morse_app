@@ -165,6 +165,12 @@ on rfp#4676 the bot reported "Fastlane was not found in your repo!" and a mainta
 `fdroid-mirror.test.ts` fails when it no longer matches the listings, so **a version bump
 needs that command run and committed**. Older changelogs stay, as they do in the mirror.
 
+**The mirror's `PRIVACY.md` is the F-Droid section alone.** The full policy describes crash
+reports, update checks and iOS speech recognition, none of which this build has. The section
+between the `fdroid-policy` markers in `PRIVACY.md` stands alone, and
+`node tools/fdroid-mirror.js privacy` writes it, with its own title and date, as the mirror's
+policy. `docs/privacy-policy.html` carries the same section as number 7.
+
 ⚠️ **No field names another store.** The generator refuses Apple, App Store, iPhone, iPad, iOS,
 Google Play, Play Store and Play Console in any F-Droid field. The app is judged on its own
 there: the reviewer deleted the App Store link from the RFP before closing the first merge
@@ -198,7 +204,10 @@ repository, so no parent `node_modules` could mask a missing dependency.
 - **Bundle**: no `crashlytics`, no `getCrashlytics`, no `u.expo.dev`, no `expo-updates`. Two
   strings did survive the first build and were fixed: the Firebase adapter's own code (now
   replaced by a `.fdroid.ts` twin) and the update URL inside `app.json` (now stripped from the
-  mirror's copy). Bundling also works under **Node 20.19.2**, Debian trixie's version.
+  mirror's copy). The mirror's `app.json` has no `ios` section either: it was dead data in an
+  Android tree, and its permission strings named the platform's vendor. `app.config.js` reads
+  those strings with optional chaining so the F-Droid config still resolves without them.
+  Bundling also works under **Node 20.19.2**, Debian trixie's version.
 - **F-Droid scanner, APK**: `fdroid scanner --refresh --exit-code` on the APK (fdroidserver
   2.4.5, SUSS signatures refreshed) ran `dexdump` over all four dex files and exited 0.
 - **F-Droid scanner, source**: `fdroidserver.scanner.scan_source`, the function `fdroid build`

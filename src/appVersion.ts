@@ -33,7 +33,7 @@ export const APP_BUILD: string | null = Application.nativeBuildVersion;
  * What Settings shows, and what a tester should quote: `0.3.4 (13)`.
  *
  * ⚠️ THE BUILD NUMBER IS THE HALF THAT IDENTIFIES THE BINARY. On 12 September
- * the Firebase testers had 0.3.4 (10) and TestFlight had 0.3.4 (13) — an hour
+ * one group of testers had 0.3.4 (10) and another had 0.3.4 (13) — an hour
  * apart, from different commits, differing in real app behaviour. Both called
  * themselves 0.3.4, so "0.3.4 does X" could not be matched to code without
  * asking which build, and the version line on screen could not answer it.

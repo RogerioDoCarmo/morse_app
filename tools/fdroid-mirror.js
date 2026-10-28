@@ -6,9 +6,10 @@
  *   node tools/fdroid-mirror.js version <tag>            prints "<versionName> <versionCode>"
  *   node tools/fdroid-mirror.js excluded                 prints the packages to uninstall
  *   node tools/fdroid-mirror.js package <package.json>   marks a package.json as the F-Droid build
- *   node tools/fdroid-mirror.js appjson <app.json>       drops the update settings from app.json
+ *   node tools/fdroid-mirror.js appjson <app.json>       drops the update and iOS settings from app.json
  *   node tools/fdroid-mirror.js fastlane <out-dir> <versionCode> <versionName>
  *   node tools/fdroid-mirror.js source                   rewrites this repository's fastlane/
+ *   node tools/fdroid-mirror.js privacy <out-file>       the F-Droid build's PRIVACY.md
  *
  * The repository root keeps its own copy of the Fastlane tree, for F-Droid's
  * RFP bot and reviewers, who read the SourceCode repository, not the mirror.
@@ -105,12 +106,17 @@ function fdroidPackageJson(pkg) {
 }
 
 /**
- * The mirror's copy of app.json, without the over-the-air update settings.
+ * The mirror's copy of app.json, without the over-the-air update settings or
+ * the iOS section.
  *
- * `app.config.js` already drops them from the F-Droid config, so the native
- * project is the same either way. This is for the BUNDLE: `src/appVersion.ts`
- * imports app.json whole to read the version, so without this the update
- * server's URL would ride along in the F-Droid JavaScript as dead data.
+ * `app.config.js` already drops the update settings from the F-Droid config,
+ * so the native project is the same either way. This is for the BUNDLE:
+ * `src/appVersion.ts` imports app.json whole to read the version, so without
+ * this the update server's URL would ride along in the F-Droid JavaScript as
+ * dead data.
+ *
+ * The iOS section is the same kind of dead data, and its permission strings
+ * name the platform's vendor, which nothing in the F-Droid tree should.
  *
  * @param {Record<string, any>} appJson
  * @returns {Record<string, any>}
@@ -119,6 +125,7 @@ function fdroidAppJson(appJson) {
   const next = JSON.parse(JSON.stringify(appJson));
   delete next.expo.updates;
   delete next.expo.runtimeVersion;
+  delete next.expo.ios;
   return next;
 }
 
@@ -202,6 +209,32 @@ const OTHER_STORES =
   /\b(?:Apple|App Store|iPhone|iPad|iOS|Google Play|Play Store|Play Console)\b/iu;
 
 /**
+ * The build mirror's PRIVACY.md: the F-Droid section of this repository's
+ * policy, on its own.
+ *
+ * ⚠️ The full policy describes crash reports, update checks and iOS speech
+ * recognition, none of which the F-Droid build has. Copied as it is, the
+ * mirror F-Droid reviews would carry a policy that is wrong for that build.
+ * The section between the `fdroid-policy` markers is written to stand alone,
+ * and it is one section of one file, so the two cannot drift apart.
+ *
+ * @param {string} source PRIVACY.md
+ * @returns {string}
+ */
+function fdroidPrivacy(source) {
+  const parts = source.split(/^<!-- fdroid-policy:(?:start|end)\b.*-->$/mu);
+  if (parts.length !== 3)
+    throw new Error('PRIVACY.md needs exactly one fdroid-policy start and end marker.');
+  const updated = /^Last updated: (.+)$/mu.exec(source);
+  if (updated === null) throw new Error('PRIVACY.md has no "Last updated:" line.');
+  const body = parts[1].trim().replace(/^###/gmu, '##');
+  const store = OTHER_STORES.exec(body);
+  if (store !== null)
+    throw new Error(`The F-Droid policy names "${store[0]}"; it names no other store.`);
+  return `# Privacy Policy — OmniMorse (F-Droid build)\n\nLast updated: ${updated[1]}\n\n${body}\n`;
+}
+
+/**
  * The text of one `## Section` fenced block, the way `store-listing.test.ts`
  * reads it.
  *
@@ -275,7 +308,13 @@ function fastlaneText(listingLocale, source) {
 }
 
 /**
- * The newest store-assets version folder at or below `versionName`, or null.
+ * The newest store-assets version folder at or below `versionName` that holds
+ * Play screenshots, or null.
+ *
+ * ⚠️ A version bump creates `store-assets/<version>/` with the listing alone
+ * (tools/render-version-listing.py), long before anyone captures screenshots
+ * for it. Taking the newest folder regardless would hand the mirror an empty
+ * screenshot set the day the version changes.
  *
  * @param {string} versionName
  * @param {string} [assets]
@@ -290,6 +329,7 @@ function screenshotVersion(versionName, assets = path.join(ROOT, 'store-assets')
   const candidates = fs
     .readdirSync(assets)
     .filter((name) => /^\d+\.\d+\.\d+$/u.test(name) && key(name) <= key(versionName))
+    .filter((name) => fs.existsSync(path.join(assets, name, 'en-US', 'play-screenshots')))
     .sort((a, b) => key(b) - key(a));
   return candidates[0] ?? null;
 }
@@ -396,6 +436,11 @@ function main(argv) {
       process.stdout.write(`${files.join('\n')}\n`);
       return;
     }
+    case 'privacy': {
+      const source = fs.readFileSync(path.join(ROOT, 'PRIVACY.md'), 'utf8');
+      fs.writeFileSync(args[0], fdroidPrivacy(source));
+      return;
+    }
     case 'source': {
       const { versionName, versionCode } = currentVersion();
       const files = writeFastlane(ROOT, versionCode, versionName);
@@ -424,6 +469,7 @@ module.exports = {
   PRIVACY,
   SCREENSHOTS_LEFT_OUT,
   OTHER_STORES,
+  fdroidPrivacy,
   currentVersion,
   versionFromTag,
   fdroidPackageJson,
