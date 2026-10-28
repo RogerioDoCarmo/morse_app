@@ -265,8 +265,24 @@ describe('the F-Droid listing', () => {
   it('uses the newest screenshot set at or below the version', () => {
     expect(mirror.screenshotVersion('0.3.7')).toBe('0.3.7');
     expect(mirror.screenshotVersion('0.3.9')).toBe('0.3.7');
-    expect(mirror.screenshotVersion('0.3.5')).toBe('0.3.5');
+    expect(mirror.screenshotVersion('0.3.6')).toBe('0.3.6');
+    expect(mirror.screenshotVersion('0.3.5')).toBeNull();
     expect(mirror.screenshotVersion('0.1.0')).toBeNull();
+  });
+
+  // A bump writes store-assets/<version>/listing/ before anyone captures
+  // screenshots for that version.
+  it('passes over a version folder that holds no screenshots', () => {
+    const assets = fs.mkdtempSync(path.join(os.tmpdir(), 'fdroid-assets-'));
+    try {
+      fs.mkdirSync(path.join(assets, '0.3.7', 'en-US', 'play-screenshots'), {
+        recursive: true,
+      });
+      fs.mkdirSync(path.join(assets, '0.3.8', 'listing'), { recursive: true });
+      expect(mirror.screenshotVersion('0.3.8', assets)).toBe('0.3.7');
+    } finally {
+      fs.rmSync(assets, { recursive: true, force: true });
+    }
   });
 
   // The Settings screenshot shows the crash-report switch.

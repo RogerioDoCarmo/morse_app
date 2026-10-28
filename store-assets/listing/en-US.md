@@ -98,7 +98,11 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.7 on both stores. Replace for each release; keep the shape.
+For 0.3.8. Replace for each release; keep the shape.
+
+0.3.8 was cut for the F-Droid build and changes no app code: comments, the
+privacy policy and the build mirror only. No store build of it exists yet;
+if one is made, re-read these notes first.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -116,10 +120,6 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• The app now says what stops working when you refuse the microphone or the camera, instead of sitting there silently.
-• Tap any letter in Learn to hear just that one.
-• The ring on the current letter is fixed: the border stays still and one mark travels it.
-• The volume warning sits above the button, where you can read it, and goes away by itself.
-• The microphone pulses while it is listening.
-• The pulsing dot now sits left of the field, level with the text.
+• Nothing changes in how the app works.
+• The privacy policy gains a section for the build with no internet access.
 ```
