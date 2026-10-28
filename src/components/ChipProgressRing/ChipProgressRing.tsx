@@ -10,13 +10,13 @@ const REVOLUTION_MS = 1100;
  * How many revolutions before it rests.
  *
  * ⚠️ FINITE, and 20 is a deliberate number rather than a large one. The four
- * beats {@link TapHalo} uses were not enough — a TestFlight tester finished
+ * beats {@link TapHalo} uses were not enough — a tester finished
  * 0.3.4 never discovering the chips are pressable — so this runs long enough to
  * still be turning while someone decides what to touch.
  *
  * ⚠️ It must NOT be infinite. Maestro waits for the UI to settle after every
  * command, and 12 flows traverse this carousel through `dismiss-first-run.yaml`.
- * An endless animation also cost the Play promo tour TWENTY-THREE SECONDS
+ * An endless animation also cost the promo tour TWENTY-THREE SECONDS
  * against a 180-second `screenrecord` ceiling, truncating it and losing Speak,
  * Tap and Learn — and `video/tour.yaml` swipes THROUGH these slides rather than
  * skipping them, so it would pay that cost in full.

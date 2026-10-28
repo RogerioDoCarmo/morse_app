@@ -95,14 +95,15 @@
     <main>
       <header>
         <h1>Privacy Policy</h1>
-        <div class="updated">OmniMorse · Last updated: 11 September 2026</div>
+        <div class="updated">OmniMorse · Last updated: 28 October 2026</div>
       </header>
 
       <p class="lede">
         <strong>Short version:</strong> OmniMorse translates text to Morse code and back.
         It has no accounts, no advertising, no analytics, and no way to identify you. Your
         settings and your messages stay on your device. The only thing that leaves it is a
-        crash report, and you can switch that off.
+        crash report, and you can switch that off. The F-Droid build has no crash
+        reporting and no internet permission at all: see section 7.
       </p>
 
       <h2>1. Who we are</h2>
@@ -189,28 +190,57 @@
         either.
       </p>
 
-      <h2>7. Data sharing and selling</h2>
+      <h2 id="fdroid">7. The F-Droid build</h2>
+      <p>
+        The OmniMorse build published on F-Droid is built from this same source with crash
+        reporting and update checks removed. For that build, this section is the whole
+        policy.
+      </p>
+      <p>
+        <strong>What stays on your device.</strong> Your settings and your messages,
+        exactly as in section 2.
+      </p>
+      <p>
+        <strong>Nothing the app sends itself.</strong> It has no internet permission, so
+        it cannot open a network connection. There are no crash reports, no analytics and
+        no update checks.
+      </p>
+      <p>
+        <strong>Speech input is the one exception.</strong> On the Speak tab the app asks
+        your device's own speech-recognition service to turn what you say into text.
+        Depending on which service is installed, it may send your audio to its provider to
+        be transcribed; on most phones that service is Google's. OmniMorse receives only
+        the resulting text, holds it in memory, and discards it when you leave the screen.
+        This is why F-Droid lists the app with the NonFreeNet anti-feature. Reading
+        decoded text aloud uses your device's own text-to-speech engine.
+      </p>
+      <p>
+        <strong>Permissions.</strong> The camera, only to switch the torch on and off; the
+        microphone, only while recording on the Speak tab. Both are optional.
+      </p>
+
+      <h2>8. Data sharing and selling</h2>
       <p>
         OmniMorse sells nothing and shares nothing. The only data that leaves your device
         is the crash diagnostics described above, sent to Google solely so the app's
         faults can be fixed.
       </p>
 
-      <h2>8. Children's privacy</h2>
+      <h2>9. Children's privacy</h2>
       <p>
         OmniMorse does not knowingly collect any personal information from anyone,
         including children. There is no account, no profile, and no way to submit content
         to us.
       </p>
 
-      <h2>9. Changes to this policy</h2>
+      <h2>10. Changes to this policy</h2>
       <p>
         If this policy changes, the updated version will be posted at this same URL with a
         revised "Last updated" date. The change is also visible in the app's public
         repository history.
       </p>
 
-      <h2>10. Contact</h2>
+      <h2>11. Contact</h2>
       <p>
         Questions about this policy? Contact
         <a href="mailto:contact@rogeriodocarmo.com">contact@rogeriodocarmo.com</a>.

@@ -10,7 +10,7 @@ import type { MorseMessage } from '@/core/domain/morse';
  * A message, the four ways it can go out, and the control state for the strip.
  *
  * Lifted out of the Translator when Speak and Tap needed the same thing. A
- * TestFlight tester went looking on those two screens for the way to feel a
+ * tester went looking on those two screens for the way to feel a
  * message as vibration or watch it on the screen, the way the Translator
  * offers, and found nothing — the flows had output and the other two did not.
  *
@@ -50,7 +50,7 @@ export function useOutputChannels(
     // ⚠️ A REFUSAL IS REPORTED NOW. This used to swallow the answer: the
     // chip stayed dark, nothing appeared, and the only way to learn why was to
     // guess. The caller shows `lightDenied` as a toast with a route to the
-    // settings app — which is what Apple's 5.1.1(iv) notes asked for.
+    // settings app — which is what the store review's permission notes asked for.
     if (await ensure('camera')) {
       playback.toggleChannel('light');
       return;

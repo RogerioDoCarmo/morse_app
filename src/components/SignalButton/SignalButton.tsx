@@ -16,8 +16,8 @@ type Props = Readonly<{
 /**
  * The control that puts a message out, on whichever channels are switched on.
  *
- * Lifted out of the Translator when Speak and Tap needed it too: a tester on
- * TestFlight went looking for a way to feel a transcript as vibration and
+ * Lifted out of the Translator when Speak and Tap needed it too: a tester
+ * went looking for a way to feel a transcript as vibration and
  * found nothing there. Three copies of this would have been three chances for
  * one of them to drift.
  *

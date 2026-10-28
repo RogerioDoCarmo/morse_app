@@ -165,6 +165,12 @@ on rfp#4676 the bot reported "Fastlane was not found in your repo!" and a mainta
 `fdroid-mirror.test.ts` fails when it no longer matches the listings, so **a version bump
 needs that command run and committed**. Older changelogs stay, as they do in the mirror.
 
+**The mirror's `PRIVACY.md` is the F-Droid section alone.** The full policy describes crash
+reports, update checks and iOS speech recognition, none of which this build has. The section
+between the `fdroid-policy` markers in `PRIVACY.md` stands alone, and
+`node tools/fdroid-mirror.js privacy` writes it, with its own title and date, as the mirror's
+policy. `docs/privacy-policy.html` carries the same section as number 7.
+
 ⚠️ **No field names another store.** The generator refuses Apple, App Store, iPhone, iPad, iOS,
 Google Play, Play Store and Play Console in any F-Droid field. The app is judged on its own
 there: the reviewer deleted the App Store link from the RFP before closing the first merge
