@@ -515,6 +515,34 @@ describe('app.config for the F-Droid variant', () => {
     expect(expo.android?.package).toBe('com.rogeriodocarmo.morse');
   });
 
+  // The mirror resolves this config against its own app.json, which has no
+  // ios section (tools/fdroid-mirror.js drops it).
+  it('resolves against the mirror’s app.json, which has no ios section', () => {
+    const mirrored = structuredClone(
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./app.json') as { expo: { ios?: unknown } },
+    );
+    delete mirrored.expo.ios;
+    let expo: Resolved | undefined;
+    jest.isolateModules(() => {
+      jest.doMock('./app.json', () => mirrored);
+      expo = fdroid();
+    });
+
+    expect(expo?.ios).toBeUndefined();
+    expect(expo?.android?.package).toBe('com.rogeriodocarmo.morse');
+    const audio = expo?.plugins.find((plugin) => nameOf(plugin) === 'expo-audio');
+    expect(audio).toStrictEqual([
+      'expo-audio',
+      {
+        microphonePermission: undefined,
+        recordAudioAndroid: false,
+        enableBackgroundPlayback: false,
+        enableBackgroundRecording: false,
+      },
+    ]);
+  });
+
   it('refuses a variant it does not know', () => {
     process.env[VARIABLE] = 'fdorid';
     try {

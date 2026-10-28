@@ -204,7 +204,10 @@ repository, so no parent `node_modules` could mask a missing dependency.
 - **Bundle**: no `crashlytics`, no `getCrashlytics`, no `u.expo.dev`, no `expo-updates`. Two
   strings did survive the first build and were fixed: the Firebase adapter's own code (now
   replaced by a `.fdroid.ts` twin) and the update URL inside `app.json` (now stripped from the
-  mirror's copy). Bundling also works under **Node 20.19.2**, Debian trixie's version.
+  mirror's copy). The mirror's `app.json` has no `ios` section either: it was dead data in an
+  Android tree, and its permission strings named the platform's vendor. `app.config.js` reads
+  those strings with optional chaining so the F-Droid config still resolves without them.
+  Bundling also works under **Node 20.19.2**, Debian trixie's version.
 - **F-Droid scanner, APK**: `fdroid scanner --refresh --exit-code` on the APK (fdroidserver
   2.4.5, SUSS signatures refreshed) ran `dexdump` over all four dex files and exited 0.
 - **F-Droid scanner, source**: `fdroidserver.scanner.scan_source`, the function `fdroid build`

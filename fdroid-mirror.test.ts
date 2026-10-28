@@ -140,11 +140,21 @@ describe('the mirror’s app.json', () => {
     expect(JSON.stringify(out)).not.toContain('u.expo.dev');
   });
 
+  // Dead data in an Android-only tree, and its permission strings name the
+  // platform's vendor.
+  it('drops the iOS section', () => {
+    const out = mirror.fdroidAppJson(appJson);
+    expect(out.expo.ios).toBeUndefined();
+    expect(JSON.stringify(out)).not.toMatch(/Apple|NSCameraUsageDescription/u);
+    expect(appJson.expo.ios).toBeDefined();
+  });
+
   it('keeps everything else, the version and identity first of all', () => {
     const out = mirror.fdroidAppJson(appJson);
     const rest = { ...appJson.expo };
     delete rest.updates;
     delete rest.runtimeVersion;
+    delete rest.ios;
     expect(out.expo).toStrictEqual(rest);
     expect(out.expo.version).toBe(appJson.expo.version);
     expect(appJson.expo.updates).toBeDefined();
