@@ -100,7 +100,11 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.7 on both stores. Replace for each release; keep the shape.
+For 0.3.8. Replace for each release; keep the shape.
+
+0.3.8 was cut for the F-Droid build and changes no app code: comments, the
+privacy policy and the build mirror only. No store build of it exists yet;
+if one is made, re-read these notes first.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -118,10 +122,6 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• Agora o app explica o que para de funcionar quando você recusa o microfone ou a câmera, em vez de ficar parado sem dizer nada.
-• Toque em qualquer letra em Aprender para ouvir só ela.
-• O anel da letra atual foi corrigido: a borda fica parada e só uma marca dá a volta.
-• O aviso de volume aparece acima do botão, onde dá para ler, e some sozinho.
-• O microfone pulsa enquanto está ouvindo.
-• O ponto que pulsa agora fica à esquerda do campo, alinhado com o texto.
+• Nada muda no funcionamento do app.
+• A política de privacidade ganha uma seção para a versão sem acesso à internet.
 ```

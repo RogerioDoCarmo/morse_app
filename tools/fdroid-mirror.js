@@ -302,7 +302,13 @@ function fastlaneText(listingLocale, source) {
 }
 
 /**
- * The newest store-assets version folder at or below `versionName`, or null.
+ * The newest store-assets version folder at or below `versionName` that holds
+ * Play screenshots, or null.
+ *
+ * ⚠️ A version bump creates `store-assets/<version>/` with the listing alone
+ * (tools/render-version-listing.py), long before anyone captures screenshots
+ * for it. Taking the newest folder regardless would hand the mirror an empty
+ * screenshot set the day the version changes.
  *
  * @param {string} versionName
  * @param {string} [assets]
@@ -317,6 +323,7 @@ function screenshotVersion(versionName, assets = path.join(ROOT, 'store-assets')
   const candidates = fs
     .readdirSync(assets)
     .filter((name) => /^\d+\.\d+\.\d+$/u.test(name) && key(name) <= key(versionName))
+    .filter((name) => fs.existsSync(path.join(assets, name, 'en-US', 'play-screenshots')))
     .sort((a, b) => key(b) - key(a));
   return candidates[0] ?? null;
 }
