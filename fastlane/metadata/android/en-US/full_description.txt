@@ -1,0 +1,19 @@
+OmniMorse turns text into Morse code and Morse code back into text.
+
+Type a message and watch it become dots and dashes letter by letter. Say it out loud and let the phone transcribe it. Or tap it in yourself on a key that measures how long you hold it — press briefly for a dot, hold for a dash — with a cut-off you can set to match your own speed.
+
+FOUR WAYS TO SEND IT
+
+A message can go out as sound, as the camera flash, as a flashing screen, or as vibration. Switch any of them on or off, even while a message is playing. They run together, in step, from one clock.
+
+LEARN IT PROPERLY
+
+Tap any letter to hear just that one — the quickest way to learn the rhythm. The Learn tab has the full alphabet, the timing rules that make the silences matter as much as the marks, and five things that actually work for memorising it.
+
+IN YOUR LANGUAGE
+
+The whole interface is in English, Brazilian Portuguese and Spanish. So is speech input, where your device supports it.
+
+PRIVATE BY DEFAULT
+
+No account. No advertising. No analytics. No crash reporting. This build has no internet permission at all, so nothing you type or key can leave your phone. Speech input uses your device’s own speech recogniser; depending on which one is installed, it may send your audio to its provider to be transcribed.

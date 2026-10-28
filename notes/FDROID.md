@@ -157,6 +157,19 @@ has changed**, so the two cannot drift silently. Screenshots come from the newes
 `store-assets/<version>/` set at or below the release; `f-settings.png` is left out because it
 shows the crash-report switch.
 
+**A second copy lives in this repository's `fastlane/`.** F-Droid builds from the mirror and
+reads its Fastlane there, but the RFP bot and the reviewers read the `SourceCode` repository:
+on rfp#4676 the bot reported "Fastlane was not found in your repo!" and a maintainer asked for
+"icon, pics, txt", although the mirror had all of it. The copy is generated, never edited:
+`node tools/fdroid-mirror.js source` rewrites it for the version in `app.json`, and
+`fdroid-mirror.test.ts` fails when it no longer matches the listings, so **a version bump
+needs that command run and committed**. Older changelogs stay, as they do in the mirror.
+
+⚠️ **No field names another store.** The generator refuses Apple, App Store, iPhone, iPad, iOS,
+Google Play, Play Store and Play Console in any F-Droid field. The app is judged on its own
+there: the reviewer deleted the App Store link from the RFP before closing the first merge
+request.
+
 ## Verification, 22–23 October 2026
 
 All on this Windows machine, from a source tree exported with `git archive HEAD` and taken
@@ -209,6 +222,20 @@ adapted, with maintainer feedback from Miroji's merge request (!43165) already a
 commit hash, Node from Debian, JDK 21, `subdir: android/app`, no summary or description in the
 recipe (Fastlane supplies them), and `useLegacyPackaging`.
 
+⚠️ **CMake and Ninja come from Debian.** `expo-modules-core` builds native code with CMake, and
+Gradle asks for exactly 3.31.6, which F-Droid's build image does not carry: the first pipeline on
+!54504 stopped at `[CXX1300] CMake '3.31.6' was not found in SDK, PATH, or by cmake.dir property`.
+Debian trixie (the `buildserver-trixie` image) packages `cmake` 3.31.6-2, and Gradle accepts a
+CMake on `PATH` when the version matches, so `apt-get install cmake ninja-build` in `sudo` is the
+whole fix. ⚠️ When an SDK bump moves the requested version, this breaks again; check what trixie
+ships before reaching for anything else.
+
+⚠️ **`react-native-worklets` gets its own JDK 21 `sed`.** Its `android/build.gradle.kts` hard-codes
+Java and Kotlin 17, so once the React Native Gradle plugin is moved to 21 the two disagree. Miroji's
+recipe needed the same line for the older `build.gradle` of that package (its commit "Restore
+datetimepicker jvmTarget sed" put it back after it was dropped). Added before the first pipeline, on
+that evidence rather than a failure seen here, since this machine builds on JDK 17.
+
 `scanignore` keeps what the build needs and `scandelete: node_modules` removes everything else
 the scanner flags. Six entries, each matched by the source scan above:
 
@@ -224,9 +251,9 @@ the scanner flags. Six entries, each matched by the source scan above:
 Miroji's `autolinking_implementation.gradle` entry is gone: the scanner no longer flags it in
 SDK 57, and an unused entry is an error.
 
-⚠️ `commit:` is a placeholder. After the first mirror run, take the hash from that run's job
-summary. Re-mirroring a tag rewrites the mirror's history for it, so the hash must be updated
-after any re-run.
+`commit:` is `52a6b5dfb6148b97a1f5c026fb40c8a5751d51d9`, the mirror commit from the first run
+(`v0.3.7+fdroid`, 24 October 2026), tagged `v0.3.7` in the mirror. ⚠️ Re-mirroring a tag rewrites
+the mirror's history for it, so take the new hash from that run's job summary after any re-run.
 
 ## Privacy policy
 

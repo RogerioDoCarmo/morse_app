@@ -8,6 +8,11 @@
  *   node tools/fdroid-mirror.js package <package.json>   marks a package.json as the F-Droid build
  *   node tools/fdroid-mirror.js appjson <app.json>       drops the update settings from app.json
  *   node tools/fdroid-mirror.js fastlane <out-dir> <versionCode> <versionName>
+ *   node tools/fdroid-mirror.js source                   rewrites this repository's fastlane/
+ *
+ * The repository root keeps its own copy of the Fastlane tree, for F-Droid's
+ * RFP bot and reviewers, who read the SourceCode repository, not the mirror.
+ * `fdroid-mirror.test.ts` fails when that copy drifts from the listings.
  *
  * ⚠️ Plain Node, no dependencies: the workflow runs it before anything is
  * installed for the mirror, and F-Droid never runs it at all.
@@ -189,6 +194,14 @@ const PRIVACY = Object.freeze({
 const SCREENSHOTS_LEFT_OUT = Object.freeze(['f-settings.png']);
 
 /**
+ * Other stores' names. An F-Droid listing stands on its own: the reviewer
+ * deleted the App Store link from the OmniMorse RFP before closing the first
+ * merge request, so no field may name another store or platform.
+ */
+const OTHER_STORES =
+  /\b(?:Apple|App Store|iPhone|iPad|iOS|Google Play|Play Store|Play Console)\b/iu;
+
+/**
  * The text of one `## Section` fenced block, the way `store-listing.test.ts`
  * reads it.
  *
@@ -215,6 +228,11 @@ function within(text, limit, what) {
   const length = [...text].length;
   if (length > limit)
     throw new Error(`${what} is ${length} characters; F-Droid allows ${limit}.`);
+  const store = OTHER_STORES.exec(text);
+  if (store !== null)
+    throw new Error(
+      `${what} names "${store[0]}"; an F-Droid listing names no other store.`,
+    );
   return text;
 }
 
@@ -340,6 +358,16 @@ function writeFastlane(outDir, versionCode, versionName) {
   return written;
 }
 
+/**
+ * The version app.json declares, as F-Droid would number it.
+ *
+ * @returns {{ versionName: string, versionCode: number }}
+ */
+function currentVersion() {
+  const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+  return versionFromTag(`v${appJson.expo.version}`);
+}
+
 function main(argv) {
   const [command, ...args] = argv;
   switch (command) {
@@ -368,6 +396,12 @@ function main(argv) {
       process.stdout.write(`${files.join('\n')}\n`);
       return;
     }
+    case 'source': {
+      const { versionName, versionCode } = currentVersion();
+      const files = writeFastlane(ROOT, versionCode, versionName);
+      process.stdout.write(`${files.join('\n')}\n`);
+      return;
+    }
     default:
       throw new Error(
         `Unknown command "${command}". See the header of tools/fdroid-mirror.js.`,
@@ -389,6 +423,8 @@ module.exports = {
   LIMITS,
   PRIVACY,
   SCREENSHOTS_LEFT_OUT,
+  OTHER_STORES,
+  currentVersion,
   versionFromTag,
   fdroidPackageJson,
   fdroidAppJson,

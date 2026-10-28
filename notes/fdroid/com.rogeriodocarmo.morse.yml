@@ -21,11 +21,11 @@ Repo: https://github.com/RogerioDoCarmo/morse_app-android.git
 Builds:
   - versionName: 0.3.7
     versionCode: 307
-    commit: REPLACE_WITH_THE_FULL_40_CHARACTER_HASH_OF_THE_MIRROR_COMMIT_TAGGED_v0.3.7
+    commit: 52a6b5dfb6148b97a1f5c026fb40c8a5751d51d9
     subdir: android/app
     sudo:
       - apt-get update
-      - apt-get install -y nodejs npm
+      - apt-get install -y nodejs npm cmake ninja-build
       - npm install -g pnpm@10.4.1
     init:
       - cd ../..
@@ -38,6 +38,7 @@ Builds:
       - cd ../..
       - sed -i '/jvmToolchain\|JavaVersion/s/17/21/' node_modules/@react-native/gradle-plugin/*/build.gradle.kts
         node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/JdkConfiguratorUtils.kt
+      - sed -i '/jvmTarget\|JavaVersion/s/17/21/' node_modules/react-native-worklets/android/build.gradle.kts
       - sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=armeabi-v7a,arm64-v8a/'
         android/gradle.properties
       - sed -i 's/^expo.useLegacyPackaging=.*/expo.useLegacyPackaging=true/' android/gradle.properties
