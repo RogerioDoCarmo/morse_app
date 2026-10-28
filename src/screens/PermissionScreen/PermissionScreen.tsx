@@ -65,15 +65,16 @@ type Props = Readonly<{
  * working — but the way past is the OS dialog, not a button here.
  *
  * ⚠️ BEFORE the prompt there is exactly ONE action, and it leads to the prompt.
- * App Review rejected 0.3.4 (13) under guideline 5.1.1(iv) for the two things
- * that used to be here: a primary button reading "Allow microphone access"
- * (Apple asks for "Continue" or "Next"), and a "Not now" button that let the
- * user close this screen and DELAY the system request. Apple's words: "The user
- * should always proceed to the permission request after the message."
+ * Store review rejected 0.3.4 (13) under its permission guideline for the two
+ * things that used to be here: a primary button reading "Allow microphone
+ * access" (the reviewers ask for "Continue" or "Next"), and a "Not now" button
+ * that let the user close this screen and DELAY the system request. The
+ * review's words: "The user should always proceed to the permission request
+ * after the message."
  *
  * The blocked state is different and keeps its second button: the OS will not
  * show a prompt once a permission is blocked, so "Open Settings" plus a way
- * back is the only thing that can be offered — and it is what Apple's own
+ * back is the only thing that can be offered — and it is what the store's own
  * guidance suggests for that case.
  */
 export function PermissionScreen({

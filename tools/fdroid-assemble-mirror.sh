@@ -36,7 +36,6 @@ items=(
   pnpm-lock.yaml
   tsconfig.json
   LICENSE
-  PRIVACY.md
 )
 for item in "${items[@]}"; do
   if [ -e "$source_dir/$item" ]; then
@@ -60,5 +59,9 @@ grep -q "versionCode $version_code$" "$mirror_dir/android/app/build.gradle"
 # package through node_modules/.pnpm/<name@version_hash>/, which no recipe can
 # name stably. Hoisted gives a flat node_modules with plain paths.
 echo "node-linker=hoisted" > "$mirror_dir/.npmrc"
+
+# The F-Droid section of PRIVACY.md alone: the full policy describes crash
+# reports and update checks this build does not have.
+node "$source_dir/tools/fdroid-mirror.js" privacy "$mirror_dir/PRIVACY.md"
 
 node "$source_dir/tools/fdroid-mirror.js" fastlane "$mirror_dir" "$version_code" "$version_name" > /dev/null
