@@ -104,6 +104,10 @@ module.exports = () => {
     { ios: { useFrameworks: 'static' }, android: { cmakeVersion: '3.31.6' } },
   ]);
 
+  // The F-Droid mirror's app.json has no ios section (tools/fdroid-mirror.js
+  // drops it), so these strings may be absent. Android never reads them.
+  const infoPlist = base.expo.ios?.infoPlist ?? {};
+
   // expo-audio is configured HERE rather than in app.json so its microphone
   // string can be read from the one place that owns it.
   //
@@ -124,9 +128,8 @@ module.exports = () => {
     plugins.push([
       'expo-speech-recognition',
       {
-        microphonePermission: base.expo.ios.infoPlist.NSMicrophoneUsageDescription,
-        speechRecognitionPermission:
-          base.expo.ios.infoPlist.NSSpeechRecognitionUsageDescription,
+        microphonePermission: infoPlist.NSMicrophoneUsageDescription,
+        speechRecognitionPermission: infoPlist.NSSpeechRecognitionUsageDescription,
       },
     ]);
   }
@@ -134,7 +137,7 @@ module.exports = () => {
   plugins.push([
     'expo-audio',
     {
-      microphonePermission: base.expo.ios.infoPlist.NSMicrophoneUsageDescription,
+      microphonePermission: infoPlist.NSMicrophoneUsageDescription,
       // The microphone is for speech input, declared in app.json. Nothing here
       // records anything.
       recordAudioAndroid: false,
