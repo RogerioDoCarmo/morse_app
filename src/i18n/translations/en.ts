@@ -64,6 +64,7 @@ export const en: TranslationMap = {
   'tap.clear': 'Clear',
   'tap.read': 'Read',
   'tap.placeholder': 'What you key appears here.',
+  'tap.wpm': '{{wpm}} WPM',
   'learn.title': 'Learn',
   'learn.whatTitle': 'What Morse code is',
   'learn.whatBody':

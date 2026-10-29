@@ -715,3 +715,68 @@ describe('the keying rule sits with the key, not in the message', () => {
     expect(screen.getByTestId('tap-hint')).toBeOnTheScreen();
   });
 });
+
+/**
+ * The speed the message was keyed at. The decoder has always measured each
+ * press to tell a dot from a dash; this is the first time it says so.
+ */
+describe('the keying speed', () => {
+  it('shows nothing before anything has been keyed', () => {
+    show();
+    expect(screen.queryByTestId('tap-wpm')).toBeNull();
+  });
+
+  // 1200 / 100ms is 12 words per minute.
+  it('reports the speed of the first mark', () => {
+    show();
+    hold(100);
+
+    expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 WPM');
+  });
+
+  // A: a 100ms dot, 100ms of silence, a 300ms dash — five units in 500ms.
+  it('measures across a whole letter', () => {
+    show();
+    hold(100);
+    wait(100);
+    hold(300);
+
+    expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 WPM');
+  });
+
+  // Pausing to think between letters is not keying slowly.
+  it('does not count the pause between letters', () => {
+    show();
+    hold(100);
+    wait(700);
+    hold(100);
+
+    expect(screen.getByTestId('tap-decoded')).toHaveTextContent('EE');
+    expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 WPM');
+  });
+
+  it('follows the hand as it slows down', () => {
+    show();
+    hold(100);
+    wait(700);
+    hold(150);
+
+    // Two dots in 250ms.
+    expect(screen.getByTestId('tap-wpm')).toHaveTextContent('10 WPM');
+  });
+
+  it('goes with the message when it is cleared', () => {
+    show();
+    hold(100);
+    fireEvent.press(screen.getByTestId('tap-clear'));
+
+    expect(screen.queryByTestId('tap-wpm')).toBeNull();
+  });
+
+  it('is written the way each language abbreviates it', () => {
+    show('pt-BR');
+    hold(100);
+
+    expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 PPM');
+  });
+});

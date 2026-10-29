@@ -72,6 +72,10 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-decoded'
 - assertVisible:
     id: 'tap-clear'
+# The speed it was keyed at. Its VALUE is a unit test's job: it is whatever a
+# thumb or Maestro's tap happened to hold, so only its presence is stable here.
+- assertVisible:
+    id: 'tap-wpm'
 
 # And the row empties once the letter is committed, which IS stable to assert
 # for exactly the reason above.
@@ -172,6 +176,8 @@ appId: com.rogeriodocarmo.morse
     id: 'tap-empty'
 - assertNotVisible:
     id: 'tap-clear'
+- assertNotVisible:
+    id: 'tap-wpm'
 # It goes with the message it was going to read.
 - assertNotVisible:
     id: 'tap-read'

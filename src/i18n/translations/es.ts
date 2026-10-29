@@ -63,6 +63,7 @@ export const es: TranslationMap = {
   'tap.clear': 'Borrar',
   'tap.read': 'Leer',
   'tap.placeholder': 'Lo que tecleas aparece aquí.',
+  'tap.wpm': '{{wpm}} PPM',
   'learn.title': 'Aprender',
   'learn.whatTitle': 'Qué es el código Morse',
   'learn.whatBody':

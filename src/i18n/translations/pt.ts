@@ -63,6 +63,7 @@ export const ptBR: TranslationMap = {
   'tap.clear': 'Limpar',
   'tap.read': 'Ler',
   'tap.placeholder': 'O que você digitar aparece aqui.',
+  'tap.wpm': '{{wpm}} PPM',
   'learn.title': 'Aprender',
   'learn.whatTitle': 'O que é o código Morse',
   'learn.whatBody':

@@ -21,6 +21,7 @@ import {
   tapsToMorse,
   type TapPress,
 } from '@/core/domain/tapping';
+import { keyedWpm } from '@/core/domain/keyingSpeed';
 import { encode, type MorseSymbol } from '@/core/domain/morse';
 import { unitMsForWpm } from '@/core/domain/timeline';
 import { theme } from '@/theme';
@@ -71,6 +72,10 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
 
   const morse = useMemo(() => tapsToMorse(presses, unitMs), [presses, unitMs]);
   const text = useMemo(() => decodeTaps(presses, unitMs), [presses, unitMs]);
+  // The speed this hand keyed at. The decoder measured every press to tell a
+  // dot from a dash and never said so; a learner could not tell a steady fist
+  // from a drifting one.
+  const wpm = useMemo(() => keyedWpm(presses, unitMs), [presses, unitMs]);
 
   // What was tapped in goes back out the same four ways the Translator offers.
   // A tester came here looking for it and found the key was input only.
@@ -303,9 +308,14 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 </Text>
               )}
               <View style={styles.monoFooter}>
-                <Text testID="tap-morse" style={styles.mono}>
+                <Text testID="tap-morse" style={[styles.mono, styles.morse]}>
                   {morse}
                 </Text>
+                {wpm === null ? null : (
+                  <Text testID="tap-wpm" style={styles.mono}>
+                    {t('tap.wpm', { wpm: String(wpm) })}
+                  </Text>
+                )}
               </View>
             </Card>
 
@@ -487,12 +497,17 @@ const styles = StyleSheet.create({
     color: theme.color.ink,
   },
   monoFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.color.border,
     paddingTop: theme.spacing.md,
     marginTop: theme.spacing.md,
   },
   mono: { ...theme.type.mono, color: theme.color.muted },
+  // The message takes the row and wraps; the speed keeps its place at the end.
+  morse: { flex: 1 },
   letterRow: {
     flexDirection: 'row',
     alignItems: 'center',
