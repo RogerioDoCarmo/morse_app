@@ -457,3 +457,45 @@ describe('the F-Droid mirror workflow', () => {
     expect(body).toContain('firebase|crashlytics|com\\.google\\.android\\.gms');
   });
 });
+
+/**
+ * ⚠️ `curl … | bash` FAILS QUIETLY. A `run:` with no `shell:` key runs under
+ * `bash -e`, which judges a pipe by its last command: on 29 October the DNS
+ * lookup for get.maestro.mobile.dev failed, bash read an empty script and
+ * exited 0, and the step went green. The run failed one step later with
+ * `maestro: command not found`, which points at the wrong step.
+ */
+describe('a failed download fails the step that made it', () => {
+  const files = [
+    ...fs
+      .readdirSync(path.join(__dirname, '.github', 'workflows'))
+      .map((name) => `.github/workflows/${name}`),
+    ...fs
+      .readdirSync(path.join(__dirname, '.github', 'actions'))
+      .map((name) => `.github/actions/${name}/action.yml`),
+  ];
+
+  /** Every step that pipes a download into a shell, as `file: step`. */
+  const piped = files.flatMap((file) =>
+    fs
+      .readFileSync(path.join(__dirname, file), 'utf8')
+      .split(/\n(?= *- name: )/u)
+      .filter((step) => /curl [^\n]*\| *(ba)?sh\b/u.test(step))
+      .map((step) => ({ file, step })),
+  );
+
+  it('finds the Maestro installs it guards', () => {
+    expect(piped.map(({ file }) => file).sort()).toStrictEqual([
+      '.github/actions/build-android-app/action.yml',
+      '.github/workflows/e2e.yml',
+      '.github/workflows/e2e.yml',
+      '.github/workflows/screenshots.yml',
+    ]);
+  });
+
+  // `shell: bash` spelled out runs `bash -eo pipefail`; `set -o pipefail`
+  // says the same thing where a reader can see it.
+  it.each(piped)('$file pipes with pipefail', ({ step }) => {
+    expect(step).toMatch(/set -o pipefail|shell: bash/u);
+  });
+});
