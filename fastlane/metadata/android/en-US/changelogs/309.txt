@@ -1,0 +1,2 @@
+• The Tap screen now shows how fast you keyed, in words per minute. It counts your dots, dashes and the silences inside each letter, so pausing between letters or words does not slow it down.
+• The privacy policy gains a section for the build with no internet access.
