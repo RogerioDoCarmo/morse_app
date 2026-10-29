@@ -1,0 +1,2 @@
+• A tela Tocar agora mostra a velocidade com que você digitou, em palavras por minuto. Ela conta os pontos, os traços e os silêncios dentro de cada letra, então pausar entre letras ou palavras não a reduz.
+• A política de privacidade ganha uma seção para a versão sem acesso à internet.

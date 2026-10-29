@@ -365,7 +365,10 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       - name: Install Maestro
+        # ⚠️ pipefail: without it a failed download pipes nothing into bash,
+        # which exits 0, and the run fails a step later on a missing maestro.
         run: |
+          set -o pipefail
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 

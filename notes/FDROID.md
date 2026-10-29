@@ -125,7 +125,7 @@ regenerate them the same way.
 | --- | --- | --- | --- |
 | What is mirrored | the app as it is | the **F-Droid variant**: excluded packages uninstalled, then prebuilt with the variant | proprietary dependencies |
 | Packaging source | patches from `main` | everything from the **tag** | the variant is app source; patches match that tag's lockfile |
-| Which releases mirror | every release | plain `vX.Y.Z` only; `+metadata` tags by dispatch | `v0.3.7+appstore` would otherwise move the mirror's `v0.3.7` |
+| Which releases mirror | every release | plain `vX.Y.Z`, dispatched by `release.yml`; `+metadata` tags by hand | `v0.3.7+appstore` would otherwise move the mirror's `v0.3.7` |
 | Safety check | none | refuses to push if the generated project or lockfile names Firebase, GMS, MLKit, the referrer or `expo-updates` | |
 | `hermesc` path | `react-native/sdks/hermesc/linux64-bin` | `hermes-compiler/hermesc/linux64-bin` | moved in React Native 0.86 |
 | Install | `pnpm install --frozen-lockfile` | adds `--prod` | no Storybook, Stryker or Chromatic on F-Droid's server; `prepare` (husky) is dropped from the mirrored `package.json` |
@@ -260,16 +260,27 @@ the scanner flags. Six entries, each matched by the source scan above:
 Miroji's `autolinking_implementation.gradle` entry is gone: the scanner no longer flags it in
 SDK 57, and an unused entry is an error.
 
-`commit:` is `52a6b5dfb6148b97a1f5c026fb40c8a5751d51d9`, the mirror commit from the first run
-(`v0.3.7+fdroid`, 24 October 2026), tagged `v0.3.7` in the mirror. ⚠️ Re-mirroring a tag rewrites
-the mirror's history for it, so take the new hash from that run's job summary after any re-run.
+`commit:` is `356234d6f5c322f744d63bc053d34846a37a282b`, the mirror commit for `v0.3.8`
+(dispatched 29 October 2026). 0.3.8 changes no app code; it exists because the mirror runs its
+tools from the tag, so only a new tag could carry the F-Droid privacy policy and the mirror's
+`app.json` without its `ios` section. Against the 0.3.7 mirror commit (`52a6b5d…`), it changes `PRIVACY.md`,
+`app.json`, `app.config.js`, `package.json`, the version in `android/app/build.gradle`, the 308
+changelogs and five comment-only files; the lockfile and the patches are identical, so the build
+steps from !54504 still apply. ⚠️ Re-mirroring a tag rewrites the mirror's history for it, so take
+the new hash from that run's job summary after any re-run.
+
+⚠️ **`release.yml` starts the mirror; a release event cannot.** It publishes the release with
+`GITHUB_TOKEN`, and GitHub starts no workflow from an event that token caused, so the mirror's old
+`release: published` trigger never fired and 0.3.7 and 0.3.8 were mirrored by hand. From 0.3.9 on,
+`release.yml`'s last step dispatches **Mirror Android Build** for a plain `vX.Y.Z` tag
+(`workflow_dispatch` is the exception GitHub allows). A `+metadata` tag is still mirrored by hand.
 
 ## Privacy policy
 
-`docs/privacy-policy.html` and `PRIVACY.md` describe Crashlytics, and the store build still does
-exactly what they say, so the live policy is unchanged. Once the F-Droid build is published, add
-a short section saying that build has no crash reporting, no update checks and no internet
-permission, and that speech input there goes to the device's recogniser.
+`PRIVACY.md` and `docs/privacy-policy.html` have a self-contained section, "The F-Droid build":
+no crash reporting, no update checks, no internet permission, and speech input through the
+device's recogniser. The mirror's `PRIVACY.md` is that section alone, written by
+`fdroid-mirror.js privacy` from 0.3.8 on.
 
 ## What only the owner can do
 
@@ -279,9 +290,9 @@ In order:
    README and a `.gitignore` (the sync leaves those two alone).
 2. **Create the secret `MORSE_APP_ANDROID_TOKEN`** in `morse_app`: a fine-grained personal access
    token with **Contents: read and write** on `morse_app-android` only.
-3. **Merge `feature/fdroid`** into `develop` and release as usual. A plain `vX.Y.Z` release runs
-   the mirror. For 0.3.7, dispatch **Mirror Android Build** with tag `v0.3.7` once the workflow
-   is on `main`; the tag must contain this branch's code for the variant to exist there.
+3. **Merge `feature/fdroid`** into `develop` and release as usual. `release.yml`
+   starts the mirror for a plain `vX.Y.Z` tag (see above). The tag must
+   contain this branch's code for the variant to exist there.
 4. **Check the run's summary** for the mirror commit hash, and put it in the recipe's `commit:`.
 5. **Fork `fdroid/fdroiddata`** on GitLab and add the recipe as
    `metadata/com.rogeriodocarmo.morse.yml`.

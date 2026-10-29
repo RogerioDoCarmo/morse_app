@@ -18,6 +18,8 @@ on:
 
 permissions:
   contents: write
+  # To dispatch the F-Droid build mirror; see the last step.
+  actions: write
 
 jobs:
   create-release:
@@ -105,6 +107,25 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ⚠️ The release above is published with GITHUB_TOKEN, and GitHub starts
+      # no workflow from an event that token caused, so a `release: published`
+      # trigger on the mirror never fired: 0.3.7 and 0.3.8 were both mirrored
+      # by hand. workflow_dispatch is the exception GitHub allows.
+      #
+      # ⚠️ Plain vX.Y.Z only. `v0.3.7+appstore` and `v0.3.7+storybook` are the
+      # SAME version cut from later commits, and mirroring one would re-point
+      # the mirror's v0.3.7 at it. Such a tag can still be mirrored on purpose,
+      # by dispatching Mirror Android Build by hand.
+      #
+      # `--ref` is the tag, so the mirror runs the workflow that tag carries,
+      # the same way it takes everything else from the tag.
+      - name: Start the F-Droid build mirror
+        if: ${{ !contains(steps.tag.outputs.name, '+') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: gh workflow run android-mirror.yml --ref "$TAG" -f tag="$TAG"
 
       - name: Summary
         run: |
