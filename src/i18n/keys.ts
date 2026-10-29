@@ -64,6 +64,7 @@ export type TranslationKey =
   | 'tap.clear'
   | 'tap.read'
   | 'tap.placeholder'
+  | 'tap.wpm'
   | 'learn.title'
   | 'learn.whatTitle'
   | 'learn.whatBody'

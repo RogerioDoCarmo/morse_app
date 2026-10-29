@@ -249,9 +249,12 @@ This is a real gap. The app **measures** hold duration already — that is how i
 decides dot from dash — but it never reports back. A learner has no way to tell
 a steady fist from a drifting one.
 
-⚠️ `src/core/domain/timeline.ts` already holds the PARIS constant the other
-direction (a unit is `1200/wpm` ms), so the arithmetic exists; what is missing
-is somewhere to put the number.
+✅ **Built for 0.3.9**, the first closed-track update after Google's 28 October
+2026 refusal of production access. `src/core/domain/keyingSpeed.ts` reports
+CHARACTER speed: marks and the silences inside a letter, never the gaps
+between letters or words, which are a learner's thinking time. It shows at the
+end of the Tap card's Morse line. ⚠️ The idea came from the bot, so release
+notes and tester messages must not call it tester feedback.
 
 ### Farnsworth in the Learn tab
 
