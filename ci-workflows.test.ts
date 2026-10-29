@@ -368,7 +368,7 @@ describe('TurboSnap is never asked for without the stats file it needs', () => {
 
 /**
  * The F-Droid build mirror. It pushes to another repository, so it holds a
- * write token, and it runs on every published release — the two facts that
+ * write token, and release.yml starts it for every plain release — the two facts that
  * make a careless edit here expensive in a way nothing else would notice.
  */
 describe('the F-Droid mirror workflow', () => {
@@ -392,12 +392,38 @@ describe('the F-Droid mirror workflow', () => {
     expect(body.match(/repository:/gu)).toHaveLength(1);
   });
 
-  // `v0.3.7+appstore` is the same version from a later commit; mirroring it
-  // by itself would silently move the mirror's v0.3.7.
-  it('mirrors a +metadata release only when dispatched by hand', () => {
-    expect(body).toContain(
-      "if: github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+')",
-    );
+  // A release published with GITHUB_TOKEN starts no workflow, so a release
+  // trigger here would sit dead; 0.3.7 and 0.3.8 were mirrored by hand.
+  it('runs only by dispatch, on the tag it is given', () => {
+    expect(body).not.toMatch(/^ {2}release:/mu);
+    expect(body).toContain('  workflow_dispatch:');
+    expect(body).toContain('TAG: ${{ inputs.tag }}');
+  });
+
+  describe('dispatched by release.yml', () => {
+    const release = stripComments(workflow('release.yml'));
+    const step = release.slice(release.indexOf('- name: Start the F-Droid build mirror'));
+
+    it('after the release exists, with the permission to dispatch', () => {
+      expect(release.indexOf('- name: Start the F-Droid build mirror')).toBeGreaterThan(
+        release.indexOf('- name: Create GitHub Release'),
+      );
+      expect(release).toMatch(/^ {2}actions: write$/mu);
+    });
+
+    it('on the tag, for that tag', () => {
+      expect(step).toContain(
+        'run: gh workflow run android-mirror.yml --ref "$TAG" -f tag="$TAG"',
+      );
+      expect(step).toContain('TAG: ${{ steps.tag.outputs.name }}');
+      expect(step).toContain('GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}');
+    });
+
+    // `v0.3.7+appstore` is the same version from a later commit; mirroring it
+    // by itself would silently move the mirror's v0.3.7.
+    it('for a plain vX.Y.Z only, never a +metadata tag', () => {
+      expect(step).toContain("if: ${{ !contains(steps.tag.outputs.name, '+') }}");
+    });
   });
 
   it('takes the version and the excluded packages from the tested tool', () => {
