@@ -19,9 +19,9 @@ RepoType: git
 Repo: https://github.com/RogerioDoCarmo/morse_app-android.git
 
 Builds:
-  - versionName: 0.3.7
-    versionCode: 307
-    commit: 52a6b5dfb6148b97a1f5c026fb40c8a5751d51d9
+  - versionName: 0.3.8
+    versionCode: 308
+    commit: 356234d6f5c322f744d63bc053d34846a37a282b
     subdir: android/app
     sudo:
       - apt-get update
@@ -55,5 +55,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 0.3.7
-CurrentVersionCode: 307
+CurrentVersion: 0.3.8
+CurrentVersionCode: 308
