@@ -98,11 +98,11 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.8. Replace for each release; keep the shape.
+For 0.3.9. Replace for each release; keep the shape.
 
-0.3.8 was cut for the F-Droid build and changes no app code: comments, the
-privacy policy and the build mirror only. No store build of it exists yet;
-if one is made, re-read these notes first.
+0.3.9 is the first store build since 0.3.7 (0.3.8 had none), so these notes
+carry 0.3.8's privacy-policy line too. ⚠️ The words-per-minute idea came from
+a bot reply on Reddit, not a tester: never present it as tester feedback.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -120,6 +120,6 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• Nothing changes in how the app works.
+• The Tap screen now shows how fast you keyed, in words per minute. It counts your dots, dashes and the silences inside each letter, so pausing between letters or words does not slow it down.
 • The privacy policy gains a section for the build with no internet access.
 ```

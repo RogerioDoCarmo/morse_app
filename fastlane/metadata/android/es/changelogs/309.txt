@@ -1,0 +1,2 @@
+• La pantalla Pulsar ahora muestra a qué velocidad tecleaste, en palabras por minuto. Cuenta los puntos, las rayas y los silencios dentro de cada letra, así que hacer pausas entre letras o palabras no la reduce.
+• La política de privacidad suma una sección para la versión sin acceso a internet.
