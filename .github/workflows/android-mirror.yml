@@ -9,9 +9,10 @@ name: Mirror Android Build
 # build, publishes no Storybook and distributes nothing. The only thing it
 # writes anywhere is a git push to the mirror repository.
 
+# ⚠️ Dispatch only. A `release: published` trigger never fires here: release.yml
+# publishes with GITHUB_TOKEN, and GitHub starts no workflow from an event that
+# token caused. release.yml dispatches this instead, which that token may do.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -24,15 +25,9 @@ permissions:
 
 jobs:
   mirror:
-    # ⚠️ `v0.3.7+appstore` and `v0.3.7+storybook` are releases of the SAME
-    # version 0.3.7 cut from later commits. Mirroring them automatically would
-    # re-point the mirror's v0.3.7 at whichever was published last. Only a
-    # plain vX.Y.Z release mirrors by itself; a +metadata tag can still be
-    # mirrored on purpose, by dispatch.
-    if: github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+')
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+      TAG: ${{ inputs.tag }}
     steps:
       # ⚠️ The packaging comes from the TAG, unlike Miroji's, which takes its
       # patches from main. Here the F-Droid variant is app source — the build

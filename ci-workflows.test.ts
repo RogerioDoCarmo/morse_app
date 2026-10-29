@@ -368,7 +368,7 @@ describe('TurboSnap is never asked for without the stats file it needs', () => {
 
 /**
  * The F-Droid build mirror. It pushes to another repository, so it holds a
- * write token, and it runs on every published release — the two facts that
+ * write token, and release.yml starts it for every plain release — the two facts that
  * make a careless edit here expensive in a way nothing else would notice.
  */
 describe('the F-Droid mirror workflow', () => {
@@ -392,12 +392,38 @@ describe('the F-Droid mirror workflow', () => {
     expect(body.match(/repository:/gu)).toHaveLength(1);
   });
 
-  // `v0.3.7+appstore` is the same version from a later commit; mirroring it
-  // by itself would silently move the mirror's v0.3.7.
-  it('mirrors a +metadata release only when dispatched by hand', () => {
-    expect(body).toContain(
-      "if: github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+')",
-    );
+  // A release published with GITHUB_TOKEN starts no workflow, so a release
+  // trigger here would sit dead; 0.3.7 and 0.3.8 were mirrored by hand.
+  it('runs only by dispatch, on the tag it is given', () => {
+    expect(body).not.toMatch(/^ {2}release:/mu);
+    expect(body).toContain('  workflow_dispatch:');
+    expect(body).toContain('TAG: ${{ inputs.tag }}');
+  });
+
+  describe('dispatched by release.yml', () => {
+    const release = stripComments(workflow('release.yml'));
+    const step = release.slice(release.indexOf('- name: Start the F-Droid build mirror'));
+
+    it('after the release exists, with the permission to dispatch', () => {
+      expect(release.indexOf('- name: Start the F-Droid build mirror')).toBeGreaterThan(
+        release.indexOf('- name: Create GitHub Release'),
+      );
+      expect(release).toMatch(/^ {2}actions: write$/mu);
+    });
+
+    it('on the tag, for that tag', () => {
+      expect(step).toContain(
+        'run: gh workflow run android-mirror.yml --ref "$TAG" -f tag="$TAG"',
+      );
+      expect(step).toContain('TAG: ${{ steps.tag.outputs.name }}');
+      expect(step).toContain('GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}');
+    });
+
+    // `v0.3.7+appstore` is the same version from a later commit; mirroring it
+    // by itself would silently move the mirror's v0.3.7.
+    it('for a plain vX.Y.Z only, never a +metadata tag', () => {
+      expect(step).toContain("if: ${{ !contains(steps.tag.outputs.name, '+') }}");
+    });
   });
 
   it('takes the version and the excluded packages from the tested tool', () => {
@@ -429,5 +455,47 @@ describe('the F-Droid mirror workflow', () => {
       at('Commit and push'),
     );
     expect(body).toContain('firebase|crashlytics|com\\.google\\.android\\.gms');
+  });
+});
+
+/**
+ * ⚠️ `curl … | bash` FAILS QUIETLY. A `run:` with no `shell:` key runs under
+ * `bash -e`, which judges a pipe by its last command: on 29 October the DNS
+ * lookup for get.maestro.mobile.dev failed, bash read an empty script and
+ * exited 0, and the step went green. The run failed one step later with
+ * `maestro: command not found`, which points at the wrong step.
+ */
+describe('a failed download fails the step that made it', () => {
+  const files = [
+    ...fs
+      .readdirSync(path.join(__dirname, '.github', 'workflows'))
+      .map((name) => `.github/workflows/${name}`),
+    ...fs
+      .readdirSync(path.join(__dirname, '.github', 'actions'))
+      .map((name) => `.github/actions/${name}/action.yml`),
+  ];
+
+  /** Every step that pipes a download into a shell, as `file: step`. */
+  const piped = files.flatMap((file) =>
+    fs
+      .readFileSync(path.join(__dirname, file), 'utf8')
+      .split(/\n(?= *- name: )/u)
+      .filter((step) => /curl [^\n]*\| *(ba)?sh\b/u.test(step))
+      .map((step) => ({ file, step })),
+  );
+
+  it('finds the Maestro installs it guards', () => {
+    expect(piped.map(({ file }) => file).sort()).toStrictEqual([
+      '.github/actions/build-android-app/action.yml',
+      '.github/workflows/e2e.yml',
+      '.github/workflows/e2e.yml',
+      '.github/workflows/screenshots.yml',
+    ]);
+  });
+
+  // `shell: bash` spelled out runs `bash -eo pipefail`; `set -o pipefail`
+  // says the same thing where a reader can see it.
+  it.each(piped)('$file pipes with pipefail', ({ step }) => {
+    expect(step).toMatch(/set -o pipefail|shell: bash/u);
   });
 });

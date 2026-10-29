@@ -125,7 +125,7 @@ regenerate them the same way.
 | --- | --- | --- | --- |
 | What is mirrored | the app as it is | the **F-Droid variant**: excluded packages uninstalled, then prebuilt with the variant | proprietary dependencies |
 | Packaging source | patches from `main` | everything from the **tag** | the variant is app source; patches match that tag's lockfile |
-| Which releases mirror | every release | **all by dispatch** (see below); `+metadata` tags would be skipped anyway | `v0.3.7+appstore` would otherwise move the mirror's `v0.3.7` |
+| Which releases mirror | every release | plain `vX.Y.Z`, dispatched by `release.yml`; `+metadata` tags by hand | `v0.3.7+appstore` would otherwise move the mirror's `v0.3.7` |
 | Safety check | none | refuses to push if the generated project or lockfile names Firebase, GMS, MLKit, the referrer or `expo-updates` | |
 | `hermesc` path | `react-native/sdks/hermesc/linux64-bin` | `hermes-compiler/hermesc/linux64-bin` | moved in React Native 0.86 |
 | Install | `pnpm install --frozen-lockfile` | adds `--prod` | no Storybook, Stryker or Chromatic on F-Droid's server; `prepare` (husky) is dropped from the mirrored `package.json` |
@@ -269,10 +269,11 @@ changelogs and five comment-only files; the lockfile and the patches are identic
 steps from !54504 still apply. ⚠️ Re-mirroring a tag rewrites the mirror's history for it, so take
 the new hash from that run's job summary after any re-run.
 
-⚠️ **A release does not start the mirror by itself.** `release.yml` publishes the release with
-`GITHUB_TOKEN`, and GitHub starts no workflow from an event that token caused, so the
-`release: published` trigger never fires. Both 0.3.7 and 0.3.8 were mirrored by dispatching
-**Mirror Android Build** with the tag.
+⚠️ **`release.yml` starts the mirror; a release event cannot.** It publishes the release with
+`GITHUB_TOKEN`, and GitHub starts no workflow from an event that token caused, so the mirror's old
+`release: published` trigger never fired and 0.3.7 and 0.3.8 were mirrored by hand. From 0.3.9 on,
+`release.yml`'s last step dispatches **Mirror Android Build** for a plain `vX.Y.Z` tag
+(`workflow_dispatch` is the exception GitHub allows). A `+metadata` tag is still mirrored by hand.
 
 ## Privacy policy
 
@@ -289,8 +290,8 @@ In order:
    README and a `.gitignore` (the sync leaves those two alone).
 2. **Create the secret `MORSE_APP_ANDROID_TOKEN`** in `morse_app`: a fine-grained personal access
    token with **Contents: read and write** on `morse_app-android` only.
-3. **Merge `feature/fdroid`** into `develop` and release as usual. Then dispatch
-   **Mirror Android Build** with the tag (a release does not start it; see above). The tag must
+3. **Merge `feature/fdroid`** into `develop` and release as usual. `release.yml`
+   starts the mirror for a plain `vX.Y.Z` tag (see above). The tag must
    contain this branch's code for the variant to exist there.
 4. **Check the run's summary** for the mirror commit hash, and put it in the recipe's `commit:`.
 5. **Fork `fdroid/fdroiddata`** on GitLab and add the recipe as
