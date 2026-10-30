@@ -4,17 +4,17 @@ import { LanguageScreen } from './LanguageScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 
-function show(ports: FakePorts = createFakePorts()) {
+async function show(ports: FakePorts = createFakePorts()) {
   const onBack = jest.fn();
-  const view = renderWithProviders(<LanguageScreen onBack={onBack} />, { ports });
+  const view = await renderWithProviders(<LanguageScreen onBack={onBack} />, { ports });
   return { ...view, onBack };
 }
 
 describe('the interface language', () => {
   // Endonyms, so a user who cannot read the current interface can still find
   // their own language in the list.
-  it('lists each language in its own words', () => {
-    show();
+  it('lists each language in its own words', async () => {
+    await show();
     expect(screen.getByTestId('interface-en')).toHaveTextContent(/English/u);
     expect(screen.getByTestId('interface-pt-BR')).toHaveTextContent(
       /Português \(Brasil\)/u,
@@ -22,22 +22,22 @@ describe('the interface language', () => {
     expect(screen.getByTestId('interface-es')).toHaveTextContent(/Español/u);
   });
 
-  it('also names each one in the language being read', () => {
-    show();
+  it('also names each one in the language being read', async () => {
+    await show();
     expect(screen.getByTestId('interface-pt-BR')).toHaveTextContent(
       /Brazilian Portuguese/u,
     );
   });
 
-  it('marks the current one as selected, and only that one', () => {
-    show();
+  it('marks the current one as selected, and only that one', async () => {
+    await show();
     expect(screen.getByTestId('interface-en')).toBeSelected();
     expect(screen.getByTestId('interface-es')).not.toBeSelected();
   });
 
-  it('switches the interface, which retranslates the screen around it', () => {
-    show();
-    fireEvent.press(screen.getByTestId('interface-es'));
+  it('switches the interface, which retranslates the screen around it', async () => {
+    await show();
+    await fireEvent.press(screen.getByTestId('interface-es'));
     expect(screen.getByTestId('interface-es')).toBeSelected();
     expect(screen.getByText('RECONOCIMIENTO DE VOZ')).toBeOnTheScreen();
   });
@@ -53,16 +53,16 @@ describe('the interface language', () => {
  * coupling; they are not a weakening of them.
  */
 describe('the recogniser language', () => {
-  it('offers the recognisers without hiding them behind a switch', () => {
-    show();
+  it('offers the recognisers without hiding them behind a switch', async () => {
+    await show();
     expect(screen.getByTestId('language-recogniser')).toBeTruthy();
     expect(screen.queryByTestId('speech-follows')).toBeNull();
   });
 
   it('picks a recogniser and stores it', async () => {
     const ports = createFakePorts();
-    show(ports);
-    fireEvent.press(screen.getByTestId('recogniser-pt-BR'));
+    await show(ports);
+    await fireEvent.press(screen.getByTestId('recogniser-pt-BR'));
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
         key: 'settings.speechLocale',
@@ -77,8 +77,8 @@ describe('the recogniser language', () => {
    */
   it('does not move when the interface language changes', async () => {
     const ports = createFakePorts();
-    show(ports);
-    fireEvent.press(screen.getByTestId('recogniser-es'));
+    await show(ports);
+    await fireEvent.press(screen.getByTestId('recogniser-es'));
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
         key: 'settings.speechLocale',
@@ -86,7 +86,7 @@ describe('the recogniser language', () => {
       });
     });
 
-    fireEvent.press(screen.getByTestId('interface-pt-BR'));
+    await fireEvent.press(screen.getByTestId('interface-pt-BR'));
 
     // Changing the interface wrote nothing further to the recogniser.
     const speechWrites = ports.calls.stored.filter(
@@ -97,21 +97,21 @@ describe('the recogniser language', () => {
 });
 
 describe('the screen itself', () => {
-  it('explains that recognisers depend on the device', () => {
-    show();
+  it('explains that recognisers depend on the device', async () => {
+    await show();
     expect(
       screen.getByText(/depends on what your device has installed/u),
     ).toBeOnTheScreen();
   });
 
-  it('goes back', () => {
-    const { onBack } = show();
-    fireEvent.press(screen.getByTestId('language-back'));
+  it('goes back', async () => {
+    const { onBack } = await show();
+    await fireEvent.press(screen.getByTestId('language-back'));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('shows no tab bar — it is reached from Settings, not the tabs', () => {
-    show();
+  it('shows no tab bar — it is reached from Settings, not the tabs', async () => {
+    await show();
     expect(screen.queryByTestId('tab-translate')).toBeNull();
   });
 });
@@ -125,9 +125,9 @@ describe('the screen itself', () => {
  * its own label. Only the tick's id means the same thing on both platforms.
  */
 describe('which row is selected', () => {
-  it('ticks the interface language and no other', () => {
-    show();
-    fireEvent.press(screen.getByTestId('interface-pt-BR'));
+  it('ticks the interface language and no other', async () => {
+    await show();
+    await fireEvent.press(screen.getByTestId('interface-pt-BR'));
 
     expect(screen.getByTestId('interface-pt-BR-tick')).toBeTruthy();
     expect(screen.queryByTestId('interface-en-tick')).toBeNull();
@@ -139,10 +139,10 @@ describe('which row is selected', () => {
    * introduced, and it is what `language.yaml` reads back after setting the
    * interface from the Translator header.
    */
-  it('ticks the recogniser separately from the interface', () => {
-    show();
-    fireEvent.press(screen.getByTestId('interface-pt-BR'));
-    fireEvent.press(screen.getByTestId('recogniser-es'));
+  it('ticks the recogniser separately from the interface', async () => {
+    await show();
+    await fireEvent.press(screen.getByTestId('interface-pt-BR'));
+    await fireEvent.press(screen.getByTestId('recogniser-es'));
 
     expect(screen.getByTestId('interface-pt-BR-tick')).toBeTruthy();
     expect(screen.getByTestId('recogniser-es-tick')).toBeTruthy();

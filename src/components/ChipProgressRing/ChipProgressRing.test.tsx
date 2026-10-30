@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Rect } from 'react-native-svg';
+import type { TestInstance } from 'test-renderer';
 import { theme } from '@/theme';
 import { ChipProgressRing } from './ChipProgressRing';
 
@@ -15,10 +15,10 @@ const HEIGHT = 40;
  * ring renders its outer `View` and no SVG at all — and every assertion about
  * the track and the mark would pass vacuously against an empty element.
  */
-const layOut = (width = WIDTH, height = HEIGHT): void => {
+const layOut = async (width = WIDTH, height = HEIGHT): Promise<void> => {
   // ⚠️ `includeHiddenElements`: the ring sets `accessibilityElementsHidden`,
   // so RNTL treats it as hidden and a plain query finds nothing.
-  fireEvent(
+  await fireEvent(
     screen.getByTestId('chip-progress-ring', { includeHiddenElements: true }),
     'layout',
     {
@@ -27,29 +27,35 @@ const layOut = (width = WIDTH, height = HEIGHT): void => {
   );
 };
 
-type SvgRect = { props: Record<string, unknown> };
+/**
+ * ⚠️ `Rect` IS A PLAIN HOST ELEMENT HERE. The test renderer only keeps host
+ * elements, and the real one is `RNSVGRect`, whose props react-native-svg has
+ * already rewritten — colours processed, the dash string split. Mocking it as
+ * a host element keeps the props the component actually passes, which is
+ * what every assertion below is about.
+ */
+jest.mock('react-native-svg', () => ({
+  // The spread drops the non-enumerable flag, and without it the default
+  // `Svg` import resolves to this whole object.
+  __esModule: true,
+  ...jest.requireActual<Record<string, unknown>>('react-native-svg'),
+  Rect: 'Rect',
+}));
 
-const rects = (): SvgRect[] => {
-  // ⚠️ `UNSAFE_getAllByType` is typed `any[]` — the tree it walks has no
-  // static shape — so the narrowing happens here, once, through a typed local.
-  // Returning the call directly is an unsafe return; asserting on it is an
-  // unnecessary one, because an `any` receiver accepts anything. The local is
-  // the only spelling that is neither.
-  const found: SvgRect[] = screen.UNSAFE_getAllByType(Rect);
-  return found;
-};
+const rects = (): TestInstance[] =>
+  screen.container.queryAll((node) => node.type === 'Rect');
 
 describe('ChipProgressRing', () => {
-  it('draws nothing until it has been measured', () => {
-    render(<ChipProgressRing />);
+  it('draws nothing until it has been measured', async () => {
+    await render(<ChipProgressRing />);
     // The dash lengths are absolute SVG units, so a ring drawn before the
     // measurement would size its segment against a perimeter of zero.
-    expect(screen.UNSAFE_queryAllByType(Rect)).toHaveLength(0);
+    expect(rects()).toHaveLength(0);
   });
 
-  it('draws a track and one travelling mark', () => {
-    render(<ChipProgressRing />);
-    layOut();
+  it('draws a track and one travelling mark', async () => {
+    await render(<ChipProgressRing />);
+    await layOut();
 
     const all = rects();
     expect(all).toHaveLength(2);
@@ -68,9 +74,9 @@ describe('ChipProgressRing', () => {
    * literally — rather than "the mark differs from the track" — is what makes
    * the swap fail here instead of on someone's phone.
    */
-  it('lights the mark and leaves the track dim', () => {
-    render(<ChipProgressRing />);
-    layOut();
+  it('lights the mark and leaves the track dim', async () => {
+    await render(<ChipProgressRing />);
+    await layOut();
 
     const [track, mark] = rects();
     expect(track?.props.stroke).toBe('#e7f6f3');
@@ -87,9 +93,9 @@ describe('ChipProgressRing', () => {
    * separate components with separate style sheets, and the two radii were
    * two points apart for a whole build.
    */
-  it('traces the chip’s own corner radius', () => {
-    render(<ChipProgressRing />);
-    layOut();
+  it('traces the chip’s own corner radius', async () => {
+    await render(<ChipProgressRing />);
+    await layOut();
 
     for (const rect of rects()) {
       expect(rect.props.rx).toBe(14);
@@ -102,9 +108,9 @@ describe('ChipProgressRing', () => {
    * chip's width depends on its letter, so a hardcoded dash would be a
    * different proportion on every chip in the row.
    */
-  it('sizes the mark to 17 percent of the measured perimeter', () => {
-    render(<ChipProgressRing />);
-    layOut();
+  it('sizes the mark to 17 percent of the measured perimeter', async () => {
+    await render(<ChipProgressRing />);
+    await layOut();
 
     const mark = rects()[1];
     const [lit, gap] = String(mark?.props.strokeDasharray).split(' ').map(Number);
@@ -117,19 +123,19 @@ describe('ChipProgressRing', () => {
   });
 
   /** A wider chip must get a proportionally longer mark, not the same one. */
-  it('re-measures when the chip is a different size', () => {
-    render(<ChipProgressRing />);
-    layOut();
+  it('re-measures when the chip is a different size', async () => {
+    await render(<ChipProgressRing />);
+    await layOut();
     const narrow = Number(String(rects()[1]?.props.strokeDasharray).split(' ')[0]);
 
-    layOut(220, HEIGHT);
+    await layOut(220, HEIGHT);
     const wide = Number(String(rects()[1]?.props.strokeDasharray).split(' ')[0]);
 
     expect(wide).toBeGreaterThan(narrow);
   });
 
-  it('keeps the caller’s testID', () => {
-    render(<ChipProgressRing testID="custom-ring" />);
+  it('keeps the caller’s testID', async () => {
+    await render(<ChipProgressRing testID="custom-ring" />);
     expect(
       screen.getByTestId('custom-ring', { includeHiddenElements: true }),
     ).toBeTruthy();

@@ -1,52 +1,52 @@
 import React from 'react';
-import { ScrollView } from 'react-native';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { createFakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
+import { elementAt } from '@/testing/elementAt';
 import { encode } from '@/core/domain/morse';
 import { DEFAULT_PLAYBACK_UNIT_MS, toTimeline } from '@/core/domain/timeline';
 import { renderWav } from '@/core/domain/tone';
 import { LearnScreen } from './LearnScreen';
 
-const show = (locale?: 'en' | 'pt-BR' | 'es'): void => {
-  renderWithProviders(
+const show = async (locale?: 'en' | 'pt-BR' | 'es'): Promise<void> => {
+  await renderWithProviders(
     <LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
     locale === undefined ? {} : { locale },
   );
 };
 
 describe('LearnScreen', () => {
-  it('explains what Morse is', () => {
-    show();
+  it('explains what Morse is', async () => {
+    await show();
     expect(screen.getByText('What Morse code is')).toBeOnTheScreen();
   });
 
   // 26 letters, the three accents with codes of their own, and ten digits.
-  it('lists the whole reference alphabet', () => {
-    show();
+  it('lists the whole reference alphabet', async () => {
+    await show();
     expect(screen.getAllByTestId('learn-letter')).toHaveLength(39);
   });
 
-  it('includes the three accents that have codes of their own', () => {
-    show();
+  it('includes the three accents that have codes of their own', async () => {
+    await show();
     for (const char of ['Ç', 'É', 'Ñ']) {
       expect(screen.getByText(char)).toBeOnTheScreen();
     }
   });
 
-  it('says what happens to every other accent', () => {
-    show();
+  it('says what happens to every other accent', async () => {
+    await show();
     expect(screen.getByText(/is sent as its plain letter/u)).toBeOnTheScreen();
   });
 
-  it('explains why the gaps matter', () => {
-    show();
+  it('explains why the gaps matter', async () => {
+    await show();
     expect(screen.getByText('THE SILENCE COUNTS TOO')).toBeOnTheScreen();
     expect(screen.getByText(/EEETTTEEE/u)).toBeOnTheScreen();
   });
 
-  it('speaks the interface language', () => {
-    show('pt-BR');
+  it('speaks the interface language', async () => {
+    await show('pt-BR');
     expect(screen.getByText('O que é o código Morse')).toBeOnTheScreen();
     expect(screen.getByText('O ALFABETO')).toBeOnTheScreen();
   });
@@ -56,8 +56,8 @@ describe('LearnScreen — the three silences', () => {
   // Literal counts, not `PLAYBACK_UNITS.letterGap` — a test that reads the
   // constant it is checking would follow it wherever it went. These are the
   // ITU-R M.1677-1 lengths, and they are not free to change.
-  it('draws one bar per unit of silence', () => {
-    show();
+  it('draws one bar per unit of silence', async () => {
+    await show();
     const bars = (row: string): number =>
       within(screen.getByTestId(row)).getAllByTestId('learn-gap-bar').length;
 
@@ -70,15 +70,15 @@ describe('LearnScreen — the three silences', () => {
     expect(screen.getByText('7 units')).toBeOnTheScreen();
   });
 
-  it('says what each silence means', () => {
-    show();
+  it('says what each silence means', async () => {
+    await show();
     expect(screen.getByText('Same letter carries on')).toBeOnTheScreen();
     expect(screen.getByText('That letter is finished')).toBeOnTheScreen();
     expect(screen.getByText('Start a new word')).toBeOnTheScreen();
   });
 
-  it('counts the singular unit as a unit, not units', () => {
-    show('es');
+  it('counts the singular unit as a unit, not units', async () => {
+    await show('es');
     expect(screen.getByText('1 unidad')).toBeOnTheScreen();
     expect(screen.getByText('3 unidades')).toBeOnTheScreen();
   });
@@ -91,8 +91,8 @@ describe('LearnScreen — the alphabet is generated, not transcribed', () => {
 
   // A hand-typed reference drifts from the encoder the first time the table
   // changes. This one is built by encoding each character.
-  it('draws each letter with as many marks as the encoder sends', () => {
-    show();
+  it('draws each letter with as many marks as the encoder sends', async () => {
+    await show();
     const cells = screen.getAllByTestId('learn-letter');
 
     // E is one mark, O is three, and the digits are five each.
@@ -104,21 +104,21 @@ describe('LearnScreen — the alphabet is generated, not transcribed', () => {
 });
 
 describe('LearnScreen — Tips', () => {
-  it('offers the way through to Tips', () => {
-    show();
+  it('offers the way through to Tips', async () => {
+    await show();
     expect(screen.getByTestId('learn-tips')).toBeOnTheScreen();
     expect(screen.queryByTestId('tips-screen')).toBeNull();
   });
 
   // Tips has no tab of its own; Learn is the only route in and back out.
-  it('opens Tips, and comes back', () => {
-    show();
+  it('opens Tips, and comes back', async () => {
+    await show();
 
-    fireEvent.press(screen.getByTestId('learn-tips'));
+    await fireEvent.press(screen.getByTestId('learn-tips'));
     expect(screen.getByTestId('tips-screen')).toBeOnTheScreen();
     expect(screen.queryByTestId('learn-screen')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('tips-back'));
+    await fireEvent.press(screen.getByTestId('tips-back'));
     expect(screen.getByTestId('learn-screen')).toBeOnTheScreen();
     expect(screen.queryByTestId('tips-screen')).toBeNull();
   });
@@ -134,13 +134,13 @@ describe('LearnScreen — Tips', () => {
 describe('the alphabet can be heard, not just read', () => {
   const cells = (): unknown[] => screen.getAllByTestId('learn-letter');
 
-  it('invites the press in the label above the grid', () => {
-    show('en');
+  it('invites the press in the label above the grid', async () => {
+    await show('en');
     expect(screen.getByText('Tap any letter to hear it.')).toBeOnTheScreen();
   });
 
-  it('translates the invitation', () => {
-    show('pt-BR');
+  it('translates the invitation', async () => {
+    await show('pt-BR');
     expect(screen.getByText('Toque em qualquer letra para ouvi-la.')).toBeOnTheScreen();
   });
 
@@ -153,13 +153,16 @@ describe('the alphabet can be heard, not just read', () => {
    * 'C' is the third cell and is dash-dot-dash-dot, so it cannot be confused
    * with its neighbours the way 'E' and 'T' can.
    */
-  it('plays the letter that was pressed, not its neighbour', () => {
+  it('plays the letter that was pressed, not its neighbour', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
+    await renderWithProviders(
+      <LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
 
-    fireEvent.press(cells()[2] as Parameters<typeof fireEvent.press>[0]);
+    await fireEvent.press(cells()[2] as Parameters<typeof fireEvent.press>[0]);
 
     expect(ports.calls.played).toHaveLength(1);
     expect(ports.calls.played[0]).toEqual(
@@ -167,13 +170,16 @@ describe('the alphabet can be heard, not just read', () => {
     );
   });
 
-  it('plays a different letter for a different cell', () => {
+  it('plays a different letter for a different cell', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
+    await renderWithProviders(
+      <LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
 
-    fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+    await fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
     expect(ports.calls.played[0]).toEqual(
       renderWav(toTimeline(encode('A')), { unitMs: DEFAULT_PLAYBACK_UNIT_MS }),
     );
@@ -186,10 +192,13 @@ describe('the alphabet can be heard, not just read', () => {
 
     const pressALetterOnAMutedPhone = async (): Promise<void> => {
       const ports = muted();
-      renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-        ports,
-      });
-      fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+      await renderWithProviders(
+        <LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+        {
+          ports,
+        },
+      );
+      await fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
       // The volume is read through a promise, so the warning arrives a tick
       // after the press rather than during it.
       await screen.findByTestId('toast');
@@ -211,19 +220,22 @@ describe('the alphabet can be heard, not just read', () => {
     it('pins the warning outside the scrolling alphabet', async () => {
       await pressALetterOnAMutedPhone();
 
-      const scroll = screen.UNSAFE_getAllByType(ScrollView)[0];
-      expect(scroll).toBeDefined();
-      expect(
-        within(scroll as Parameters<typeof within>[0]).queryByTestId('toast'),
-      ).toBeNull();
+      // `RCTScrollView` is the host element a `ScrollView` renders to.
+      const scroll = elementAt(
+        screen.container.queryAll((node) => node.type === 'RCTScrollView'),
+      );
+      expect(within(scroll).queryByTestId('toast')).toBeNull();
     });
 
     it('stays quiet when the phone is loud enough to hear', async () => {
       const ports = createFakePorts();
-      renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-        ports,
-      });
-      fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
+      await renderWithProviders(
+        <LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+        {
+          ports,
+        },
+      );
+      await fireEvent.press(cells()[0] as Parameters<typeof fireEvent.press>[0]);
       // ⚠️ Waits for the volume to have been READ before asserting nothing was
       // said about it. Asserting straight after the press would pass on a
       // screen that never checks the volume at all.

@@ -4,8 +4,8 @@ import { render, screen } from '@testing-library/react-native';
 import { TypeHintDot } from './TypeHintDot';
 
 describe('TypeHintDot', () => {
-  it('carries the label a screen reader announces', () => {
-    render(<TypeHintDot label="Type here" />);
+  it('carries the label a screen reader announces', async () => {
+    await render(<TypeHintDot label="Type here" />);
 
     expect(screen.getByLabelText('Type here')).toBeTruthy();
   });
@@ -16,9 +16,9 @@ describe('TypeHintDot', () => {
    * report. Asserting the loop STARTS is the only part of that a test can see;
    * nothing here proves it looks right, which is what the device is for.
    */
-  it('starts a loop', () => {
+  it('starts a loop', async () => {
     const loop = jest.spyOn(Animated, 'loop');
-    render(<TypeHintDot label="Type here" />);
+    await render(<TypeHintDot label="Type here" />);
 
     expect(loop).toHaveBeenCalledTimes(1);
     loop.mockRestore();
@@ -34,9 +34,9 @@ describe('TypeHintDot', () => {
    * A test that imported BEATS and compared it to itself would pass on
    * `iterations: -1`, which is precisely the value that caused this.
    */
-  it('breathes six times and then rests', () => {
+  it('breathes six times and then rests', async () => {
     const loop = jest.spyOn(Animated, 'loop');
-    render(<TypeHintDot label="Type here" />);
+    await render(<TypeHintDot label="Type here" />);
 
     expect(loop.mock.calls[0]?.[1]).toStrictEqual({ iterations: 6 });
     loop.mockRestore();
@@ -48,8 +48,8 @@ describe('TypeHintDot', () => {
    * at 7pt it was reported from a device as not doing it. A test reading SIZE
    * back from the module would pass at 7, at 10, and at 1.
    */
-  it('is ten points across, with a halo that grows past it', () => {
-    render(<TypeHintDot label="Type here" />);
+  it('is ten points across, with a halo that grows past it', async () => {
+    await render(<TypeHintDot label="Type here" />);
     const dot = screen.getByLabelText('Type here');
 
     const slot = StyleSheet.flatten(dot.props.style) as {
@@ -70,8 +70,8 @@ describe('TypeHintDot', () => {
    * The row centres it. This asserts that nothing here fights that — an offset
    * of any size, in either direction, fails.
    */
-  it('carries no vertical offset of its own', () => {
-    render(<TypeHintDot label="Type here" />);
+  it('carries no vertical offset of its own', async () => {
+    await render(<TypeHintDot label="Type here" />);
     const dot = screen.getByLabelText('Type here');
 
     const slot = StyleSheet.flatten(dot.props.style) as {
@@ -85,16 +85,16 @@ describe('TypeHintDot', () => {
    * on a first launch is within seconds — a loop left running on a detached
    * node keeps a native animation alive for the rest of the session.
    */
-  it('stops the loop when it goes away', () => {
+  it('stops the loop when it goes away', async () => {
     const stop = jest.fn();
     const loop = jest
       .spyOn(Animated, 'loop')
       .mockReturnValue({ start: jest.fn(), stop, reset: jest.fn() });
 
-    const view = render(<TypeHintDot label="Type here" />);
+    const view = await render(<TypeHintDot label="Type here" />);
     expect(stop).not.toHaveBeenCalled();
 
-    view.unmount();
+    await view.unmount();
 
     expect(stop).toHaveBeenCalledTimes(1);
     loop.mockRestore();

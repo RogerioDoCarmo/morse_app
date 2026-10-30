@@ -9,8 +9,8 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   default: () => ({ width: mockWidth, height: 820, scale: 2, fontScale: 1 }),
 }));
 
-function show(onDone = jest.fn()) {
-  renderWithProviders(<FirstRunScreen onDone={onDone} />);
+async function show(onDone = jest.fn()) {
+  await renderWithProviders(<FirstRunScreen onDone={onDone} />);
   return onDone;
 }
 
@@ -21,22 +21,22 @@ describe('the carousel on a tablet', () => {
 
   // Everything the phone shows is still here: a wider window is not a
   // different guide.
-  it('shows the illustration, the copy, the dots and the way on', () => {
-    show();
+  it('shows the illustration, the copy, the dots and the way on', async () => {
+    await show();
     expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-chips')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-dots')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-next')).toBeOnTheScreen();
   });
 
-  it('still walks all four slides and lands on Start', () => {
-    show();
+  it('still walks all four slides and lands on Start', async () => {
+    await show();
     expect(screen.getByText('Type it, see it')).toBeOnTheScreen();
-    fireEvent.press(screen.getByTestId('first-run-next'));
+    await fireEvent.press(screen.getByTestId('first-run-next'));
     expect(screen.getByText('Choose how it goes out')).toBeOnTheScreen();
-    fireEvent.press(screen.getByTestId('first-run-next'));
+    await fireEvent.press(screen.getByTestId('first-run-next'));
     expect(screen.getByText('Hear one letter at a time')).toBeOnTheScreen();
-    fireEvent.press(screen.getByTestId('first-run-next'));
+    await fireEvent.press(screen.getByTestId('first-run-next'));
     expect(screen.getByText('Watch it on the screen')).toBeOnTheScreen();
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
@@ -47,14 +47,14 @@ describe('the carousel on a tablet', () => {
    * rather than travelling with the gesture, and there is exactly ONE set of
    * dots and one button however many pages are mounted.
    */
-  it('swipes the illustration and moves the copy with it', () => {
-    show();
+  it('swipes the illustration and moves the copy with it', async () => {
+    await show();
     const pager = screen.getByTestId('first-run-pager');
 
-    fireEvent(pager, 'layout', {
+    await fireEvent(pager, 'layout', {
       nativeEvent: { layout: { width: 520, height: 700, x: 0, y: 0 } },
     });
-    fireEvent(pager, 'momentumScrollEnd', {
+    await fireEvent(pager, 'momentumScrollEnd', {
       nativeEvent: { contentOffset: { x: 1040, y: 0 } },
     });
 
@@ -63,23 +63,23 @@ describe('the carousel on a tablet', () => {
     expect(screen.getByTestId('first-run-next')).toBeOnTheScreen();
   });
 
-  it('leaves on Skip here too', () => {
-    const onDone = show();
-    fireEvent.press(screen.getByTestId('first-run-skip'));
+  it('leaves on Skip here too', async () => {
+    const onDone = await show();
+    await fireEvent.press(screen.getByTestId('first-run-skip'));
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
   // The dots line up with the copy they are pacing rather than centring under
   // a column that is only half the screen.
-  it('lines the dots up with the copy', () => {
-    show();
+  it('lines the dots up with the copy', async () => {
+    await show();
     const dots = screen.getByTestId('first-run-dots').props.style as readonly unknown[];
     expect(JSON.stringify(dots)).toContain('flex-start');
   });
 
-  it('centres the dots again on a phone', () => {
+  it('centres the dots again on a phone', async () => {
     mockWidth = 402;
-    show();
+    await show();
     const dots = screen.getByTestId('first-run-dots').props.style as readonly unknown[];
     expect(JSON.stringify(dots)).not.toContain('flex-start');
   });
@@ -87,21 +87,21 @@ describe('the carousel on a tablet', () => {
   // Slide two's illustration is a four-cell strip, not a fluid grid. Half of
   // an iPad in portrait is about 313pt, narrower than the phone it was drawn
   // for, so that width keeps one column rather than cramping it.
-  it('keeps one column on a tablet in portrait', () => {
+  it('keeps one column on a tablet in portrait', async () => {
     mockWidth = 834;
-    show();
+    await show();
     const dots = screen.getByTestId('first-run-dots').props.style as readonly unknown[];
     expect(JSON.stringify(dots)).not.toContain('flex-start');
   });
 
-  it('still caps the measure there rather than stretching the phone layout', () => {
+  it('still caps the measure there rather than stretching the phone layout', async () => {
     mockWidth = 834;
-    show();
+    await show();
     expect(JSON.stringify(screen.getByTestId('first-run').props.style)).toContain('620');
   });
 
-  it('does not cap the two-column layout, which needs the width', () => {
-    show();
+  it('does not cap the two-column layout, which needs the width', async () => {
+    await show();
     expect(JSON.stringify(screen.getByTestId('first-run').props.style)).not.toContain(
       '620',
     );

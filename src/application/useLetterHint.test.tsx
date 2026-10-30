@@ -3,7 +3,11 @@ import { Text } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { LETTER_HINT_KEY, LETTER_HINT_VERSION } from '@/core/domain/letterHint';
 import type { Ports } from '@/core/ports';
-import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
+import {
+  createFakePorts,
+  type FakePorts,
+  unansweredPreferences,
+} from '@/testing/fakePorts';
 import { PortsProvider } from './providers/PortsProvider';
 import { useLetterHint } from './useLetterHint';
 
@@ -31,8 +35,8 @@ const withSeen = (seen: string | null): FakePorts => {
   return createFakePorts({ preferences });
 };
 
-const renderProbe = (ports: FakePorts): void => {
-  render(
+const renderProbe = async (ports: FakePorts): Promise<void> => {
+  await render(
     <PortsProvider ports={ports}>
       <Probe />
     </PortsProvider>,
@@ -49,14 +53,14 @@ describe('useLetterHint', () => {
    * beat after the first render, and a hint that started on would flicker once
    * on every message for every user who learned this months ago.
    */
-  it('points at nothing until storage has answered', () => {
-    renderProbe(withSeen(null));
+  it('points at nothing until storage has answered', async () => {
+    await renderProbe(createFakePorts({ preferences: unansweredPreferences }));
 
     expect(screen.getByTestId('state')).toHaveTextContent('quiet');
   });
 
   it('points at the chips on a device that has never tapped one', async () => {
-    renderProbe(withSeen(null));
+    await renderProbe(withSeen(null));
 
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('point');
@@ -64,7 +68,7 @@ describe('useLetterHint', () => {
   });
 
   it('stays quiet on a device that has already been shown this hint', async () => {
-    renderProbe(withSeen(String(LETTER_HINT_VERSION)));
+    await renderProbe(withSeen(String(LETTER_HINT_VERSION)));
 
     // Nothing to wait FOR — the assertion is that it never turns on — so the
     // read is allowed to land first and then checked.
@@ -75,12 +79,12 @@ describe('useLetterHint', () => {
   });
 
   it('stops pointing the moment a chip is tapped', async () => {
-    renderProbe(withSeen(null));
+    await renderProbe(withSeen(null));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('point');
     });
 
-    fireEvent.press(screen.getByTestId('spend'));
+    await fireEvent.press(screen.getByTestId('spend'));
 
     expect(screen.getByTestId('state')).toHaveTextContent('quiet');
   });
@@ -88,12 +92,12 @@ describe('useLetterHint', () => {
   // The key and the value both asserted literally: a version written under
   // the wrong key is a hint that comes back on every launch forever.
   it('remembers that it was learned, so it is not taught twice', async () => {
-    renderProbe(withSeen(null));
+    await renderProbe(withSeen(null));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('point');
     });
 
-    fireEvent.press(screen.getByTestId('spend'));
+    await fireEvent.press(screen.getByTestId('spend'));
 
     await waitFor(() => {
       expect(writes).toStrictEqual([{ key: 'hint.letterTapSeenVersion', value: '1' }]);
@@ -108,12 +112,12 @@ describe('useLetterHint', () => {
    * unaided.
    */
   it('records a tap that happened without ever being prompted', async () => {
-    renderProbe(withSeen(String(LETTER_HINT_VERSION)));
+    await renderProbe(withSeen(String(LETTER_HINT_VERSION)));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('quiet');
     });
 
-    fireEvent.press(screen.getByTestId('spend'));
+    await fireEvent.press(screen.getByTestId('spend'));
 
     await waitFor(() => {
       expect(writes).toHaveLength(1);

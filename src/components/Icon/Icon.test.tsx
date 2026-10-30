@@ -17,21 +17,21 @@ const NAMES: readonly IconName[] = [
 ];
 
 describe('Icon', () => {
-  it.each(NAMES)('renders %s', (name) => {
-    render(<Icon name={name} />);
+  it.each(NAMES)('renders %s', async (name) => {
+    await render(<Icon name={name} />);
     expect(screen.getByTestId(`icon-${name}`)).toBeOnTheScreen();
   });
 
-  it('strokes outlined glyphs and fills the solid one', () => {
-    render(<Icon name="mic" color="#123456" />);
+  it('strokes outlined glyphs and fills the solid one', async () => {
+    await render(<Icon name="mic" color="#123456" />);
     expect(screen.getByTestId('icon-mic')).toHaveProp('stroke', '#123456');
 
-    render(<Icon name="zap" color="#abcdef" />);
+    await render(<Icon name="zap" color="#abcdef" />);
     expect(screen.getByTestId('icon-zap')).toHaveProp('fill', '#abcdef');
   });
 
-  it('takes the size it is given', () => {
-    render(<Icon name="copy" size={33} />);
+  it('takes the size it is given', async () => {
+    await render(<Icon name="copy" size={33} />);
     const icon = screen.getByTestId('icon-copy');
     expect(icon).toHaveProp('width', 33);
     expect(icon).toHaveProp('height', 33);

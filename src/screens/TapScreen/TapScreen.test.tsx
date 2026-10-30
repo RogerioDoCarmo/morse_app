@@ -8,25 +8,25 @@ import { toTimeline, unitMsForWpm } from '@/core/domain/timeline';
 import { renderWav } from '@/core/domain/tone';
 import { TapScreen } from './TapScreen';
 
-const show = (locale?: 'en' | 'pt-BR' | 'es'): void => {
-  renderWithProviders(
+const show = async (locale?: 'en' | 'pt-BR' | 'es'): Promise<void> => {
+  await renderWithProviders(
     <TapScreen onSelectTab={jest.fn()} unavailableTabs={['learn']} />,
     locale === undefined ? {} : { locale },
   );
 };
 
 /** Holds the key for `ms`, which is the whole input. */
-const hold = (ms: number): void => {
-  fireEvent(screen.getByTestId('tap-key'), 'pressIn');
-  act(() => {
+const hold = async (ms: number): Promise<void> => {
+  await fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+  await act(() => {
     jest.advanceTimersByTime(ms);
   });
-  fireEvent(screen.getByTestId('tap-key'), 'pressOut');
+  await fireEvent(screen.getByTestId('tap-key'), 'pressOut');
 };
 
 /** Silence between presses — what separates marks, letters and words. */
-const wait = (ms: number): void => {
-  act(() => {
+const wait = async (ms: number): Promise<void> => {
+  await act(() => {
     jest.advanceTimersByTime(ms);
   });
 };
@@ -42,55 +42,55 @@ afterEach(() => {
 });
 
 describe('TapScreen', () => {
-  it('invites a tap before anything has been keyed', () => {
-    show();
+  it('invites a tap before anything has been keyed', async () => {
+    await show();
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
     expect(screen.queryByTestId('tap-decoded')).toBeNull();
   });
 
   // The default cut-off is 180ms: shorter is a dot, longer is a dash.
-  it('reads a short press as a dot', () => {
-    show();
-    hold(100);
+  it('reads a short press as a dot', async () => {
+    await show();
+    await hold(100);
 
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
 
-  it('reads a long press as a dash', () => {
-    show();
-    hold(300);
+  it('reads a long press as a dash', async () => {
+    await show();
+    await hold(300);
 
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('-');
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('T');
   });
 
-  it('keeps marks in the same letter while the silence is short', () => {
-    show();
-    hold(100);
-    wait(200);
-    hold(300);
+  it('keeps marks in the same letter while the silence is short', async () => {
+    await show();
+    await hold(100);
+    await wait(200);
+    await hold(300);
 
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.-');
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('A');
   });
 
   // Three units of silence closes a letter; seven closes a word.
-  it('closes the letter after a longer silence', () => {
-    show();
-    hold(100);
-    wait(700);
-    hold(100);
+  it('closes the letter after a longer silence', async () => {
+    await show();
+    await hold(100);
+    await wait(700);
+    await hold(100);
 
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('. .');
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('EE');
   });
 
-  it('closes the word after a longer silence still', () => {
-    show();
-    hold(100);
-    wait(1500);
-    hold(100);
+  it('closes the word after a longer silence still', async () => {
+    await show();
+    await hold(100);
+    await wait(1500);
+    await hold(100);
 
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('. / .');
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E E');
@@ -98,24 +98,24 @@ describe('TapScreen', () => {
 
   // A key that gives no feedback until the letter ends is unusable: you cannot
   // tell a dot you meant from a dash you fumbled.
-  it('shows the letter being keyed, mark by mark', () => {
-    show();
+  it('shows the letter being keyed, mark by mark', async () => {
+    await show();
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
 
-    hold(100);
+    await hold(100);
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
 
-    wait(200);
-    hold(300);
+    await wait(200);
+    await hold(300);
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
     expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
   });
 
-  it('starts the letter row over when a letter closes', () => {
-    show();
-    hold(100);
-    wait(700);
-    hold(300);
+  it('starts the letter row over when a letter closes', async () => {
+    await show();
+    await hold(100);
+    await wait(700);
+    await hold(300);
 
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
     expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
@@ -132,10 +132,10 @@ describe('TapScreen', () => {
    * opacities are asserted literally: reading them back off the component
    * would agree with whatever it rendered, including nothing at all.
    */
-  it('shows a dot while the press is still short', () => {
-    show();
-    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
-    act(() => {
+  it('shows a dot while the press is still short', async () => {
+    await show();
+    await fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    await act(() => {
       jest.advanceTimersByTime(60);
     });
 
@@ -143,10 +143,10 @@ describe('TapScreen', () => {
     expect(screen.getByTestId('tap-key-dash')).toHaveStyle({ opacity: 0.28 });
   });
 
-  it('switches to the dash the moment the hold earns one', () => {
-    show();
-    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
-    act(() => {
+  it('switches to the dash the moment the hold earns one', async () => {
+    await show();
+    await fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    await act(() => {
       // Past one unit — the same threshold the decoder uses.
       jest.advanceTimersByTime(DEFAULT_UNIT_MS + 20);
     });
@@ -159,20 +159,20 @@ describe('TapScreen', () => {
    * ⚠️ And the key offers BOTH again once released — neither is dimmed. A key
    * left showing the last mark would read as a mode the user had entered.
    */
-  it('offers both marks again once the key is released', () => {
-    show();
-    hold(DEFAULT_UNIT_MS + 20);
+  it('offers both marks again once the key is released', async () => {
+    await show();
+    await hold(DEFAULT_UNIT_MS + 20);
 
     expect(screen.getByTestId('tap-key-dot')).not.toHaveStyle({ opacity: 0.28 });
     expect(screen.getByTestId('tap-key-dash')).not.toHaveStyle({ opacity: 0.28 });
   });
 
-  it('lights the key while it is held', () => {
-    show();
-    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+  it('lights the key while it is held', async () => {
+    await show();
+    await fireEvent(screen.getByTestId('tap-key'), 'pressIn');
     expect(screen.getByTestId('tap-key')).toBeSelected();
 
-    fireEvent(screen.getByTestId('tap-key'), 'pressOut');
+    await fireEvent(screen.getByTestId('tap-key'), 'pressOut');
     expect(screen.getByTestId('tap-key')).not.toBeSelected();
   });
 });
@@ -206,21 +206,24 @@ describe('TapScreen — the cut-off it reads', () => {
     };
   };
 
-  it('reads a 150ms press as a dot at the shipped default', () => {
-    show();
-    hold(150);
+  it('reads a 150ms press as a dot at the shipped default', async () => {
+    await show();
+    await hold(150);
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
 
   it('reads the same press as a dash under a lower cut-off', async () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports: holdingCutoff('120'),
-    });
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports: holdingCutoff('120'),
+      },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
     });
 
-    hold(150);
+    await hold(150);
 
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('T');
   });
@@ -237,15 +240,18 @@ describe('TapScreen — the cut-off it reads', () => {
    * 120ms cut-off it has already turned into a dash.
    */
   it('turns the preview into a dash early when the cut-off is lower', async () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports: holdingCutoff('120'),
-    });
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports: holdingCutoff('120'),
+      },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
     });
 
-    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
-    act(() => {
+    await fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    await act(() => {
       jest.advanceTimersByTime(150);
     });
 
@@ -253,8 +259,8 @@ describe('TapScreen — the cut-off it reads', () => {
     expect(screen.getByTestId('tap-key-dot')).toHaveStyle({ opacity: 0.28 });
   });
 
-  it('does not offer the stepper any more — Settings owns it', () => {
-    show();
+  it('does not offer the stepper any more — Settings owns it', async () => {
+    await show();
     expect(screen.queryByTestId('cutoff-value')).toBeNull();
     expect(screen.queryByTestId('cutoff-up')).toBeNull();
     expect(screen.queryByTestId('cutoff-down')).toBeNull();
@@ -269,17 +275,17 @@ describe('TapScreen — starting over', () => {
     jest.useRealTimers();
   });
 
-  it('offers no way to clear an empty key', () => {
-    show();
+  it('offers no way to clear an empty key', async () => {
+    await show();
     expect(screen.queryByTestId('tap-clear')).toBeNull();
   });
 
-  it('clears what was keyed', () => {
-    show();
-    hold(100);
+  it('clears what was keyed', async () => {
+    await show();
+    await hold(100);
     expect(screen.getByTestId('tap-decoded')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('tap-clear'));
+    await fireEvent.press(screen.getByTestId('tap-clear'));
 
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
     expect(screen.queryByTestId('tap-clear')).toBeNull();
@@ -287,19 +293,19 @@ describe('TapScreen — starting over', () => {
 
   // The gap before the first press has no preceding letter to close, so a
   // long pause before starting again must not become a word break.
-  it('does not carry the old silence into the next message', () => {
-    show();
-    hold(100);
-    fireEvent.press(screen.getByTestId('tap-clear'));
+  it('does not carry the old silence into the next message', async () => {
+    await show();
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('tap-clear'));
 
-    wait(5000);
-    hold(100);
+    await wait(5000);
+    await hold(100);
 
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
   });
 
-  it('speaks the interface language', () => {
-    show('pt-BR');
+  it('speaks the interface language', async () => {
+    await show('pt-BR');
     expect(screen.getByText('Toque ou segure')).toBeOnTheScreen();
   });
 });
@@ -314,55 +320,55 @@ describe('TapScreen — the letter row empties when the letter is done', () => {
 
   // The decoded text has already taken the letter by then, so leaving its
   // marks in the row reads as a letter still being keyed.
-  it('clears once the silence has closed the letter', () => {
-    show();
-    hold(100);
+  it('clears once the silence has closed the letter', async () => {
+    await show();
+    await hold(100);
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
 
     // Three units at the 180ms default is 540ms.
-    wait(600);
+    await wait(600);
 
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
     // The letter itself is not lost — it is in the decoding.
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
 
-  it('holds the marks while the silence is still short enough', () => {
-    show();
-    hold(100);
+  it('holds the marks while the silence is still short enough', async () => {
+    await show();
+    await hold(100);
 
-    wait(400);
+    await wait(400);
 
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
   });
 
-  it('starts showing again the moment the next key goes down', () => {
-    show();
-    hold(100);
-    wait(600);
+  it('starts showing again the moment the next key goes down', async () => {
+    await show();
+    await hold(100);
+    await wait(600);
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
 
-    hold(300);
+    await hold(300);
 
     expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
   });
 
-  it('keeps showing a letter that is still being keyed', () => {
-    show();
-    hold(100);
-    wait(200);
-    hold(300);
-    wait(400);
+  it('keeps showing a letter that is still being keyed', async () => {
+    await show();
+    await hold(100);
+    await wait(200);
+    await hold(300);
+    await wait(400);
 
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
     expect(screen.getAllByTestId('tap-mark-dash')).toHaveLength(1);
   });
 
-  it('empties when everything is cleared', () => {
-    show();
-    hold(100);
-    fireEvent.press(screen.getByTestId('tap-clear'));
+  it('empties when everything is cleared', async () => {
+    await show();
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('tap-clear'));
 
     expect(screen.queryAllByTestId('tap-mark-dot')).toHaveLength(0);
   });
@@ -384,15 +390,18 @@ describe('the cut-off is a saved preference, not screen state', () => {
   // SettingsScreen.test.tsx covers that end.
   it('decodes by what was stored rather than the shipped default', async () => {
     const ports = holding({ 'settings.tapUnitMs': '300' });
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
     });
 
     // 250ms is a dash at the 180ms default and a dot at 300.
-    hold(250);
+    await hold(250);
 
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
@@ -411,30 +420,33 @@ describe('reading the decoded text aloud', () => {
   };
 
   /** Keys E, which is one dot — the shortest thing that decodes to a letter. */
-  const keyE = (): void => {
-    hold(100);
-    wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
+  const keyE = async (): Promise<void> => {
+    await hold(100);
+    await wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
   };
 
-  it('offers nothing to read until something has been keyed', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+  it('offers nothing to read until something has been keyed', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
     expect(screen.queryByTestId('tap-read')).toBeNull();
   });
 
-  it('offers it once there is a decoded letter', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    keyE();
+  it('offers it once there is a decoded letter', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await keyE();
     expect(screen.getByTestId('tap-read')).toBeOnTheScreen();
   });
 
-  it('speaks what was decoded, in the app language', () => {
+  it('speaks what was decoded, in the app language', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-      locale: 'pt-BR',
-    });
-    keyE();
-    fireEvent.press(screen.getByTestId('tap-read'));
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+        locale: 'pt-BR',
+      },
+    );
+    await keyE();
+    await fireEvent.press(screen.getByTestId('tap-read'));
     expect(ports.calls.spoken).toStrictEqual([{ text: 'E', locale: 'pt-BR' }]);
   });
 
@@ -443,98 +455,101 @@ describe('reading the decoded text aloud', () => {
   // Same race as the Translator's: the stored setting lands a tick after the
   // defaults have already rendered, so wait for it before keying anything.
   it('withholds it when the setting is off', async () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports: holding({ 'settings.speakDecoded': 'false' }),
-    });
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports: holding({ 'settings.speakDecoded': 'false' }),
+      },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('tap-screen')).toBeOnTheScreen();
     });
 
-    keyE();
+    await keyE();
 
     expect(screen.queryByTestId('tap-read')).toBeNull();
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
   });
 
-  it('goes away again when the message is cleared', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    keyE();
-    fireEvent.press(screen.getByTestId('tap-clear'));
+  it('goes away again when the message is cleared', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await keyE();
+    await fireEvent.press(screen.getByTestId('tap-clear'));
     expect(screen.queryByTestId('tap-read')).toBeNull();
   });
 });
 
 describe('undoing the last thing keyed', () => {
   /** Past the 540ms the letter needs to close at the 180ms default. */
-  const settle = (): void => {
-    wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
+  const settle = async (): Promise<void> => {
+    await wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
   };
 
-  it('offers nothing to undo on an empty screen', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+  it('offers nothing to undo on an empty screen', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
     expect(screen.queryByTestId('tap-back')).toBeNull();
   });
 
   // One press, not one letter: everything here is derived from the press
   // list, so the last press is exactly what the operator did last.
-  it('takes back one mark of a letter still being keyed', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    hold(100);
-    hold(100);
+  it('takes back one mark of a letter still being keyed', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await hold(100);
+    await hold(100);
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('..');
-    fireEvent.press(screen.getByTestId('tap-back'));
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
   });
 
-  it('takes back into a letter that has already been committed', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    hold(100);
-    settle();
+  it('takes back into a letter that has already been committed', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await hold(100);
+    await settle();
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('E');
-    fireEvent.press(screen.getByTestId('tap-back'));
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
   });
 
   // The row comes back, so a correction can be seen before it is continued.
-  it('shows the letter again rather than leaving the row empty', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    hold(100);
-    hold(100);
-    settle();
+  it('shows the letter again rather than leaving the row empty', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await hold(100);
+    await hold(100);
+    await settle();
     expect(screen.queryByTestId('tap-mark-dot')).toBeNull();
-    fireEvent.press(screen.getByTestId('tap-back'));
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
   });
 
   // And closes again on its own, exactly as it would have after a real press.
-  it('closes the letter again once the silence has run', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    hold(100);
-    hold(100);
-    fireEvent.press(screen.getByTestId('tap-back'));
+  it('closes the letter again once the silence has run', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await hold(100);
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getAllByTestId('tap-mark-dot')).toHaveLength(1);
-    settle();
+    await settle();
     expect(screen.queryByTestId('tap-mark-dot')).toBeNull();
   });
 
-  it('goes away once there is nothing left to undo', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    hold(100);
-    fireEvent.press(screen.getByTestId('tap-back'));
+  it('goes away once there is nothing left to undo', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.queryByTestId('tap-back')).toBeNull();
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
   });
 
-  it('can be pressed repeatedly back to nothing', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    hold(100);
-    hold(300);
-    hold(100);
+  it('can be pressed repeatedly back to nothing', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await hold(100);
+    await hold(300);
+    await hold(100);
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.-.');
-    fireEvent.press(screen.getByTestId('tap-back'));
-    fireEvent.press(screen.getByTestId('tap-back'));
+    await fireEvent.press(screen.getByTestId('tap-back'));
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getByTestId('tap-morse')).toHaveTextContent('.');
-    fireEvent.press(screen.getByTestId('tap-back'));
+    await fireEvent.press(screen.getByTestId('tap-back'));
     expect(screen.getByTestId('tap-empty')).toBeOnTheScreen();
   });
 });
@@ -550,24 +565,24 @@ describe('sending what was tapped', () => {
   });
 
   /** Keys E, which is one dot — the shortest thing that decodes to a letter. */
-  const keyE = (): void => {
-    hold(100);
-    wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
+  const keyE = async (): Promise<void> => {
+    await hold(100);
+    await wait(UNITS.letterGap * DEFAULT_UNIT_MS + 60);
   };
 
   // Shown from the start, not once there is something to send. The complaint
   // was that the feature could not be FOUND; hiding it until the user had
   // already guessed it was there would repeat the mistake.
-  it('shows all four channels before anything has been keyed', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+  it('shows all four channels before anything has been keyed', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
 
     for (const channel of ['sound', 'light', 'screen', 'buzz']) {
       expect(screen.getByTestId(`channel-${channel}`)).toBeOnTheScreen();
     }
   });
 
-  it('will not emit an empty message', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+  it('will not emit an empty message', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
 
     expect(screen.getByTestId('signal-button')).toBeDisabled();
   });
@@ -582,29 +597,32 @@ describe('sending what was tapped', () => {
    * was the only screen that rendered anything for `screenLit`. The channel
    * strip was wired to a hook that had no consumer.
    */
-  it('flashes a surface when the Screen channel carries the message', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    keyE();
+  it('flashes a surface when the Screen channel carries the message', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await keyE();
 
     expect(screen.queryByTestId('signal-surface')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('channel-screen'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
     // The square IS the message while it carries it.
     expect(screen.queryByTestId('tap-decoded')).toBeNull();
   });
 
-  it('emits what was keyed once there is something to emit', () => {
+  it('emits what was keyed once there is something to emit', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
-    keyE();
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
+    await keyE();
 
     expect(screen.getByTestId('signal-button')).not.toBeDisabled();
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.played).toHaveLength(1);
   });
@@ -615,32 +633,32 @@ describe('sending what was tapped', () => {
    * decoded text — and so the message, and so the effect keyed on it — tearing
    * the run down halfway through.
    */
-  it('takes the key off the screen while the message is going out', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    keyE();
+  it('takes the key off the screen while the message is going out', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await keyE();
     expect(screen.getByTestId('tap-key')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.queryByTestId('tap-key')).toBeNull();
   });
 
-  it('gives the key back the moment the message stops', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    keyE();
+  it('gives the key back the moment the message stops', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await keyE();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('tap-key')).toBeOnTheScreen();
   });
 
   // Emit goes nowhere without it, and it is the control that ends the run.
-  it('keeps Emit where it is, so there is still a way to stop', () => {
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
-    keyE();
+  it('keeps Emit where it is, so there is still a way to stop', async () => {
+    await renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+    await keyE();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('signal-button')).toBeOnTheScreen();
   });
@@ -651,13 +669,16 @@ describe('sending what was tapped', () => {
    * before a dot becomes a dash, the other is how fast the app reads a message
    * back. Keying slowly and listening quickly is a reasonable thing to want.
    */
-  it('plays back at the playback speed, not at the keying cut-off', () => {
+  it('plays back at the playback speed, not at the keying cut-off', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
-    keyE();
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
+    await keyE();
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     // E is one dot. At the default 10 wpm that is 120ms of tone, not the
     // 180ms the tap cut-off defaults to.
@@ -681,15 +702,15 @@ describe('sending what was tapped', () => {
  * The card shows a placeholder for the text instead.
  */
 describe('the keying rule sits with the key, not in the message', () => {
-  it('shows a placeholder for the text in the empty card', () => {
-    show('en');
+  it('shows a placeholder for the text in the empty card', async () => {
+    await show('en');
     expect(screen.getByTestId('tap-empty')).toHaveTextContent(
       'What you key appears here.',
     );
   });
 
-  it('shows the keying rule below the play button', () => {
-    show('en');
+  it('shows the keying rule below the play button', async () => {
+    await show('en');
     expect(screen.getByTestId('tap-hint')).toHaveTextContent(
       'Hold the key for a dash, tap it for a dot.',
     );
@@ -699,16 +720,16 @@ describe('the keying rule sits with the key, not in the message', () => {
    * The point of the move: the rule outlives the first press. Before this it
    * was replaced by the decoded text and could not be re-read.
    */
-  it('keeps the rule on screen once something has been keyed', () => {
-    show('en');
-    fireEvent(screen.getByTestId('tap-key'), 'pressIn');
-    fireEvent(screen.getByTestId('tap-key'), 'pressOut');
+  it('keeps the rule on screen once something has been keyed', async () => {
+    await show('en');
+    await fireEvent(screen.getByTestId('tap-key'), 'pressIn');
+    await fireEvent(screen.getByTestId('tap-key'), 'pressOut');
 
     expect(screen.getByTestId('tap-hint')).toBeOnTheScreen();
   });
 
-  it('translates the placeholder and the rule', () => {
-    show('pt-BR');
+  it('translates the placeholder and the rule', async () => {
+    await show('pt-BR');
     expect(screen.getByTestId('tap-empty')).toHaveTextContent(
       'O que você digitar aparece aqui.',
     );
@@ -721,61 +742,61 @@ describe('the keying rule sits with the key, not in the message', () => {
  * press to tell a dot from a dash; this is the first time it says so.
  */
 describe('the keying speed', () => {
-  it('shows nothing before anything has been keyed', () => {
-    show();
+  it('shows nothing before anything has been keyed', async () => {
+    await show();
     expect(screen.queryByTestId('tap-wpm')).toBeNull();
   });
 
   // 1200 / 100ms is 12 words per minute.
-  it('reports the speed of the first mark', () => {
-    show();
-    hold(100);
+  it('reports the speed of the first mark', async () => {
+    await show();
+    await hold(100);
 
     expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 WPM');
   });
 
   // A: a 100ms dot, 100ms of silence, a 300ms dash — five units in 500ms.
-  it('measures across a whole letter', () => {
-    show();
-    hold(100);
-    wait(100);
-    hold(300);
+  it('measures across a whole letter', async () => {
+    await show();
+    await hold(100);
+    await wait(100);
+    await hold(300);
 
     expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 WPM');
   });
 
   // Pausing to think between letters is not keying slowly.
-  it('does not count the pause between letters', () => {
-    show();
-    hold(100);
-    wait(700);
-    hold(100);
+  it('does not count the pause between letters', async () => {
+    await show();
+    await hold(100);
+    await wait(700);
+    await hold(100);
 
     expect(screen.getByTestId('tap-decoded')).toHaveTextContent('EE');
     expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 WPM');
   });
 
-  it('follows the hand as it slows down', () => {
-    show();
-    hold(100);
-    wait(700);
-    hold(150);
+  it('follows the hand as it slows down', async () => {
+    await show();
+    await hold(100);
+    await wait(700);
+    await hold(150);
 
     // Two dots in 250ms.
     expect(screen.getByTestId('tap-wpm')).toHaveTextContent('10 WPM');
   });
 
-  it('goes with the message when it is cleared', () => {
-    show();
-    hold(100);
-    fireEvent.press(screen.getByTestId('tap-clear'));
+  it('goes with the message when it is cleared', async () => {
+    await show();
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('tap-clear'));
 
     expect(screen.queryByTestId('tap-wpm')).toBeNull();
   });
 
-  it('is written the way each language abbreviates it', () => {
-    show('pt-BR');
-    hold(100);
+  it('is written the way each language abbreviates it', async () => {
+    await show('pt-BR');
+    await hold(100);
 
     expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 PPM');
   });

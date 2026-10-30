@@ -10,21 +10,21 @@ describe('Toast', () => {
     jest.useRealTimers();
   });
 
-  it('shows nothing when it is not wanted', () => {
-    render(<Toast visible={false} message="too quiet" onDismiss={jest.fn()} />);
+  it('shows nothing when it is not wanted', async () => {
+    await render(<Toast visible={false} message="too quiet" onDismiss={jest.fn()} />);
     expect(screen.queryByTestId('toast')).toBeNull();
   });
 
-  it('shows the message it was given', () => {
-    render(<Toast visible message="too quiet" onDismiss={jest.fn()} />);
+  it('shows the message it was given', async () => {
+    await render(<Toast visible message="too quiet" onDismiss={jest.fn()} />);
     expect(screen.getByTestId('toast')).toHaveTextContent('too quiet');
   });
 
-  it('goes away when tapped', () => {
+  it('goes away when tapped', async () => {
     const onDismiss = jest.fn();
-    render(<Toast visible message="too quiet" onDismiss={onDismiss} />);
+    await render(<Toast visible message="too quiet" onDismiss={onDismiss} />);
 
-    fireEvent.press(screen.getByTestId('toast'));
+    await fireEvent.press(screen.getByTestId('toast'));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
@@ -34,16 +34,16 @@ describe('Toast', () => {
    * tap to go away, and one that outlives the message it was about is clutter
    * over whatever they do next.
    */
-  it('takes itself away after six seconds', () => {
+  it('takes itself away after six seconds', async () => {
     const onDismiss = jest.fn();
-    render(<Toast visible message="too quiet" onDismiss={onDismiss} />);
+    await render(<Toast visible message="too quiet" onDismiss={onDismiss} />);
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(5900);
     });
     expect(onDismiss).not.toHaveBeenCalled();
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(200);
     });
     expect(onDismiss).toHaveBeenCalledTimes(1);
@@ -51,23 +51,25 @@ describe('Toast', () => {
 
   // Unmounting while the clock is running must not call back into a screen
   // that has gone.
-  it('drops its timer when it is taken off the screen', () => {
+  it('drops its timer when it is taken off the screen', async () => {
     const onDismiss = jest.fn();
-    const view = render(<Toast visible message="too quiet" onDismiss={onDismiss} />);
+    const view = await render(
+      <Toast visible message="too quiet" onDismiss={onDismiss} />,
+    );
 
-    view.unmount();
-    act(() => {
+    await view.unmount();
+    await act(() => {
       jest.advanceTimersByTime(10_000);
     });
 
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
-  it('starts no timer while it is hidden', () => {
+  it('starts no timer while it is hidden', async () => {
     const onDismiss = jest.fn();
-    render(<Toast visible={false} message="too quiet" onDismiss={onDismiss} />);
+    await render(<Toast visible={false} message="too quiet" onDismiss={onDismiss} />);
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(10_000);
     });
 
@@ -76,8 +78,8 @@ describe('Toast', () => {
 
   // The user is not looking at this part of the screen — they are waiting to
   // hear something — so it has to announce itself.
-  it('announces itself to a screen reader', () => {
-    render(<Toast visible message="too quiet" onDismiss={jest.fn()} />);
+  it('announces itself to a screen reader', async () => {
+    await render(<Toast visible message="too quiet" onDismiss={jest.fn()} />);
     expect(screen.getByRole('alert')).toBeOnTheScreen();
   });
 });
@@ -89,14 +91,14 @@ describe('Toast', () => {
  * deletes the thing the user was reaching for.
  */
 describe('the optional way out', () => {
-  it('shows nothing extra when no action is given', () => {
-    render(<Toast visible message="Quiet" onDismiss={jest.fn()} />);
+  it('shows nothing extra when no action is given', async () => {
+    await render(<Toast visible message="Quiet" onDismiss={jest.fn()} />);
 
     expect(screen.queryByTestId('toast-action')).toBeNull();
   });
 
-  it('shows the action label when one is given', () => {
-    render(
+  it('shows the action label when one is given', async () => {
+    await render(
       <Toast
         visible
         message="Light needs the camera"
@@ -108,9 +110,9 @@ describe('the optional way out', () => {
     expect(screen.getByTestId('toast-action')).toHaveTextContent('Settings');
   });
 
-  it('runs the action when it is pressed', () => {
+  it('runs the action when it is pressed', async () => {
     const onPress = jest.fn();
-    render(
+    await render(
       <Toast
         visible
         message="Light needs the camera"
@@ -119,7 +121,7 @@ describe('the optional way out', () => {
       />,
     );
 
-    fireEvent.press(screen.getByTestId('toast-action'));
+    await fireEvent.press(screen.getByTestId('toast-action'));
 
     expect(onPress).toHaveBeenCalledTimes(1);
   });
@@ -129,9 +131,9 @@ describe('the optional way out', () => {
    * out of the app; a toast that vanished on the way would leave nothing to
    * come back to.
    */
-  it('leaves dismissing to the caller', () => {
+  it('leaves dismissing to the caller', async () => {
     const onDismiss = jest.fn();
-    render(
+    await render(
       <Toast
         visible
         message="Light needs the camera"
@@ -140,7 +142,7 @@ describe('the optional way out', () => {
       />,
     );
 
-    fireEvent.press(screen.getByTestId('toast-action'));
+    await fireEvent.press(screen.getByTestId('toast-action'));
 
     expect(onDismiss).not.toHaveBeenCalled();
   });

@@ -1,13 +1,14 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import type { TestInstance } from 'test-renderer';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { elementAt } from '@/testing/elementAt';
 import { FirstRunScreen } from './FirstRunScreen';
 
-const next = (): void => {
-  fireEvent.press(screen.getByTestId('first-run-next'));
+const next = async (): Promise<void> => {
+  await fireEvent.press(screen.getByTestId('first-run-next'));
 };
 
 /** Which dot is lit — the one thing that says where the carousel is now. */
@@ -25,38 +26,38 @@ const at = (): number =>
  * anything — which is also true on a device, and why nothing moves until the
  * first layout.
  */
-const swipeTo = (page: number, width = 390): void => {
+const swipeTo = async (page: number, width = 390): Promise<void> => {
   const pager = screen.getByTestId('first-run-pager');
-  fireEvent(pager, 'layout', {
+  await fireEvent(pager, 'layout', {
     nativeEvent: { layout: { width, height: 700, x: 0, y: 0 } },
   });
-  fireEvent(pager, 'momentumScrollEnd', {
+  await fireEvent(pager, 'momentumScrollEnd', {
     nativeEvent: { contentOffset: { x: page * width, y: 0 } },
   });
 };
 
 describe('FirstRunScreen', () => {
-  it('opens on the first slide', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('opens on the first slide', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     expect(screen.getByText('Type it, see it')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
   });
 
-  it('walks through the four slides in order', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('walks through the four slides in order', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    next();
+    await next();
     expect(at()).toBe(1);
-    next();
+    await next();
     expect(at()).toBe(2);
-    next();
+    await next();
     expect(at()).toBe(3);
   });
 
-  it('marks how far through it is', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('marks how far through it is', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     expect(at()).toBe(0);
-    next();
+    await next();
     expect(at()).toBe(1);
   });
 
@@ -65,18 +66,18 @@ describe('FirstRunScreen', () => {
    * free — and it means every illustration is in the tree from the start. What
    * page you are ON is the dots, not what exists.
    */
-  it('mounts every slide, so there is something to swipe to', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('mounts every slide, so there is something to swipe to', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     expect(screen.getByTestId('first-run-art-chips')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-art-channels')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-art-letter')).toBeOnTheScreen();
     expect(screen.getByTestId('first-run-art-surface')).toBeOnTheScreen();
   });
 
-  it('follows a swipe rather than only the button', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('follows a swipe rather than only the button', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    swipeTo(3);
+    await swipeTo(3);
 
     expect(at()).toBe(3);
     expect(screen.getByText('Start')).toBeOnTheScreen();
@@ -88,14 +89,14 @@ describe('FirstRunScreen', () => {
    * off, and a paging scroll view there can finish its snap inside the drag
    * and never emit one. The swipe moved the pager, the dots did not follow.
    */
-  it('follows a swipe that never reports momentum', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('follows a swipe that never reports momentum', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     const pager = screen.getByTestId('first-run-pager');
 
-    fireEvent(pager, 'layout', {
+    await fireEvent(pager, 'layout', {
       nativeEvent: { layout: { width: 390, height: 700, x: 0, y: 0 } },
     });
-    fireEvent(pager, 'scrollEndDrag', {
+    await fireEvent(pager, 'scrollEndDrag', {
       nativeEvent: { contentOffset: { x: 780, y: 0 } },
     });
 
@@ -104,25 +105,25 @@ describe('FirstRunScreen', () => {
 
   // A drag with a snap still to come is somewhere between two pages, and
   // reading a page out of it would fight the snap.
-  it('ignores a drag that has not landed on a page yet', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('ignores a drag that has not landed on a page yet', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     const pager = screen.getByTestId('first-run-pager');
 
-    fireEvent(pager, 'layout', {
+    await fireEvent(pager, 'layout', {
       nativeEvent: { layout: { width: 390, height: 700, x: 0, y: 0 } },
     });
-    fireEvent(pager, 'scrollEndDrag', {
+    await fireEvent(pager, 'scrollEndDrag', {
       nativeEvent: { contentOffset: { x: 250, y: 0 } },
     });
 
     expect(at()).toBe(0);
   });
 
-  it('follows a swipe back as well', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('follows a swipe back as well', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    swipeTo(2);
-    swipeTo(1);
+    await swipeTo(2);
+    await swipeTo(1);
 
     expect(at()).toBe(1);
     expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
@@ -131,26 +132,26 @@ describe('FirstRunScreen', () => {
   // The pager measures itself a frame after the first paint. Pages a frame
   // wide of zero would be a blank carousel on the very first screen a new user
   // ever sees, so until the real width arrives it uses the window's.
-  it('reads as wide as the window before it has been measured', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('reads as wide as the window before it has been measured', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    fireEvent(screen.getByTestId('first-run-pager'), 'momentumScrollEnd', {
+    await fireEvent(screen.getByTestId('first-run-pager'), 'momentumScrollEnd', {
       nativeEvent: { contentOffset: { x: 2 * Dimensions.get('window').width, y: 0 } },
     });
 
     expect(at()).toBe(2);
   });
 
-  it('finishes only on the last slide', () => {
+  it('finishes only on the last slide', async () => {
     const onDone = jest.fn();
-    renderWithProviders(<FirstRunScreen onDone={onDone} />);
+    await renderWithProviders(<FirstRunScreen onDone={onDone} />);
 
-    next();
-    next();
-    next();
+    await next();
+    await next();
+    await next();
     expect(onDone).not.toHaveBeenCalled();
 
-    next();
+    await next();
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
@@ -158,32 +159,32 @@ describe('FirstRunScreen', () => {
   // be the single way out. Answering "skip this" with one more slide and one
   // more button reads as the guide refusing to let go, and Settings keeps a
   // row that brings it back.
-  it('leaves outright on Skip', () => {
+  it('leaves outright on Skip', async () => {
     const onDone = jest.fn();
-    renderWithProviders(<FirstRunScreen onDone={onDone} />);
+    await renderWithProviders(<FirstRunScreen onDone={onDone} />);
 
-    fireEvent.press(screen.getByTestId('first-run-skip'));
+    await fireEvent.press(screen.getByTestId('first-run-skip'));
 
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it('offers Skip on every slide but the last, where Start says it', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+  it('offers Skip on every slide but the last, where Start says it', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
-    next();
+    await next();
     expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
-    next();
+    await next();
     expect(screen.getByTestId('first-run-skip')).toBeOnTheScreen();
-    next();
+    await next();
     expect(screen.queryByTestId('first-run-skip')).toBeNull();
   });
 
   // The whole reason it exists: Light starts off, so the strip has to be
   // explained or the torch is a feature nobody finds.
-  it('shows the real output strip, with light off, on the middle slide', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
-    next();
+  it('shows the real output strip, with light off, on the middle slide', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await next();
 
     expect(screen.getByTestId('channel-sound')).toBeSelected();
     expect(screen.getByTestId('channel-light')).not.toBeSelected();
@@ -191,17 +192,17 @@ describe('FirstRunScreen', () => {
     expect(screen.getByTestId('channel-buzz')).not.toBeSelected();
   });
 
-  it('leaves the strip inert — it is a picture of the control, not the control', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
-    next();
+  it('leaves the strip inert — it is a picture of the control, not the control', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await next();
 
-    fireEvent.press(screen.getByTestId('channel-light'));
+    await fireEvent.press(screen.getByTestId('channel-light'));
 
     expect(screen.getByTestId('channel-light')).not.toBeSelected();
   });
 
-  it('speaks the interface language', () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale: 'pt-BR' });
+  it('speaks the interface language', async () => {
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale: 'pt-BR' });
     expect(screen.getByText('Escreva e veja')).toBeOnTheScreen();
     expect(screen.getByText('Pular')).toBeOnTheScreen();
   });
@@ -218,8 +219,8 @@ describe('FirstRunScreen', () => {
    */
   it.each(['en', 'pt-BR', 'es'] as const)(
     'illustrates with the same sample the Translator will seed, in %s',
-    (locale) => {
-      renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale });
+    async (locale) => {
+      await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { locale });
       expect(screen.getByText('SOS')).toBeOnTheScreen();
     },
   );
@@ -245,13 +246,13 @@ describe('the letter slide demonstrates rather than describes', () => {
   const halos = (): unknown[] =>
     screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
 
-  const letterChips = (): unknown[] =>
+  const letterChips = (): TestInstance[] =>
     within(screen.getByTestId('first-run-art-letter')).getAllByTestId('morse-letter');
 
   // The MIDDLE chip: in the sample the outer two letters are identical, so a
   // ring on the first reads as decoration on a row that begins with it.
   it('points at the middle chip, not the first', async () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     await waitFor(() => {
       expect(rings()).toHaveLength(1);
@@ -269,7 +270,7 @@ describe('the letter slide demonstrates rather than describes', () => {
   // The app proper keeps the breathing halo; putting the guide's summons on
   // every message typed would be a nag rather than a hint.
   it('does not wear the app’s breathing halo', async () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     await waitFor(() => {
       expect(rings()).toHaveLength(1);
@@ -278,7 +279,7 @@ describe('the letter slide demonstrates rather than describes', () => {
   });
 
   it('points at a chip before anything has been pressed', async () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
     await waitFor(() => {
       expect(rings()).toHaveLength(1);
@@ -286,9 +287,9 @@ describe('the letter slide demonstrates rather than describes', () => {
   });
 
   it('plays that one letter when its chip is pressed', async () => {
-    const { ports } = renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    const { ports } = await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    fireEvent.press(elementAt(letterChips()));
+    await fireEvent.press(elementAt(letterChips()));
 
     await waitFor(() => {
       expect(ports.calls.played).toHaveLength(1);
@@ -300,12 +301,12 @@ describe('the letter slide demonstrates rather than describes', () => {
    * breathing on the chip would be asking for something already given.
    */
   it('stops pointing once the invitation has been taken up', async () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
     await waitFor(() => {
       expect(rings()).toHaveLength(1);
     });
 
-    fireEvent.press(elementAt(letterChips()));
+    await fireEvent.press(elementAt(letterChips()));
 
     expect(rings()).toHaveLength(0);
   });
@@ -316,9 +317,9 @@ describe('the letter slide demonstrates rather than describes', () => {
    * screen would be the app explaining back what they just did.
    */
   it('settles the Translator hint, which teaches the same thing', async () => {
-    const { ports } = renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    const { ports } = await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    fireEvent.press(elementAt(letterChips()));
+    await fireEvent.press(elementAt(letterChips()));
 
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
@@ -345,13 +346,13 @@ describe('the letter slide on a muted phone', () => {
     return ports;
   };
 
-  const letterChips = (): unknown[] =>
+  const letterChips = (): TestInstance[] =>
     within(screen.getByTestId('first-run-art-letter')).getAllByTestId('morse-letter');
 
   it('says so when a chip is pressed with the volume down', async () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
 
-    fireEvent.press(elementAt(letterChips()));
+    await fireEvent.press(elementAt(letterChips()));
 
     await waitFor(() => {
       expect(screen.getByText('Turn the volume up')).toBeOnTheScreen();
@@ -359,9 +360,9 @@ describe('the letter slide on a muted phone', () => {
   });
 
   it('says nothing while the volume is up', async () => {
-    const { ports } = renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
+    const { ports } = await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />);
 
-    fireEvent.press(elementAt(letterChips()));
+    await fireEvent.press(elementAt(letterChips()));
 
     await waitFor(() => {
       expect(ports.calls.played).toHaveLength(1);
@@ -414,12 +415,12 @@ describe('the low-volume toast sits above the Next button', () => {
   };
 
   it('renders the toast before the button, not after it', async () => {
-    renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
+    await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
 
     const chips = within(screen.getByTestId('first-run-art-letter')).getAllByTestId(
       'morse-letter',
     );
-    fireEvent.press(chips[1] as Parameters<typeof fireEvent.press>[0]);
+    await fireEvent.press(chips[1] as Parameters<typeof fireEvent.press>[0]);
 
     await waitFor(() => {
       expect(screen.getByTestId('toast')).toBeOnTheScreen();
@@ -439,12 +440,14 @@ describe('the low-volume toast sits above the Next button', () => {
   it('takes itself away without a tap', async () => {
     jest.useFakeTimers();
     try {
-      renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, { ports: muted() });
+      await renderWithProviders(<FirstRunScreen onDone={jest.fn()} />, {
+        ports: muted(),
+      });
 
       const chips = within(screen.getByTestId('first-run-art-letter')).getAllByTestId(
         'morse-letter',
       );
-      fireEvent.press(chips[1] as Parameters<typeof fireEvent.press>[0]);
+      await fireEvent.press(chips[1] as Parameters<typeof fireEvent.press>[0]);
 
       await waitFor(() => {
         expect(screen.getByTestId('toast')).toBeOnTheScreen();

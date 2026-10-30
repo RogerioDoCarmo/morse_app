@@ -38,7 +38,7 @@ describe('SurfaceDemo', () => {
    * renders a static circle would be a fourth paragraph with extra steps.
    */
   it('lights and darkens as the message plays', async () => {
-    render(<SurfaceDemo message={A} unitMs={UNIT} />);
+    await render(<SurfaceDemo message={A} unitMs={UNIT} />);
     await act(async () => {
       await Promise.resolve();
     });
@@ -62,7 +62,7 @@ describe('SurfaceDemo', () => {
    */
   it('stays dark when the device asks for reduced motion', async () => {
     jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
-    render(<SurfaceDemo message={A} unitMs={UNIT} />);
+    await render(<SurfaceDemo message={A} unitMs={UNIT} />);
     await act(async () => {
       await Promise.resolve();
     });
@@ -76,14 +76,21 @@ describe('SurfaceDemo', () => {
   // A loop left running on a detached node keeps a timer alive for the rest of
   // the session, and this one is mounted on a screen people leave quickly.
   it('stops its timer when it goes away', async () => {
-    const view = render(<SurfaceDemo message={A} unitMs={UNIT} />);
+    const started = jest.spyOn(global, 'setInterval');
+    const cleared = jest.spyOn(global, 'clearInterval');
+    const view = await render(<SurfaceDemo message={A} unitMs={UNIT} />);
     await act(async () => {
       await Promise.resolve();
     });
-    const before = jest.getTimerCount();
+    // ⚠️ The interval it started, not the fake-timer total: an awaited
+    // unmount leaves React's own scheduler timers behind, so the count can
+    // rise across an unmount that did clear this one.
+    expect(started).toHaveBeenCalledTimes(1);
+    const timer = started.mock.results[0]?.value as unknown;
+    expect(cleared).not.toHaveBeenCalledWith(timer);
 
-    view.unmount();
+    await view.unmount();
 
-    expect(jest.getTimerCount()).toBeLessThan(before);
+    expect(cleared).toHaveBeenCalledWith(timer);
   });
 });
