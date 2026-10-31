@@ -20,22 +20,22 @@ import { TranslatorScreen } from './TranslatorScreen';
  * assuming it has already happened.
  */
 const enableLight = async (): Promise<void> => {
-  fireEvent.press(screen.getByTestId('channel-light'));
+  await fireEvent.press(screen.getByTestId('channel-light'));
   await waitFor(() => {
     expect(screen.getByTestId('channel-light')).toBeSelected();
   });
 };
 
 const disableLight = async (): Promise<void> => {
-  fireEvent.press(screen.getByTestId('channel-light'));
+  await fireEvent.press(screen.getByTestId('channel-light'));
   await waitFor(() => {
     expect(screen.getByTestId('channel-light')).not.toBeSelected();
   });
 };
 
 /** Presses it where the permission gate is expected to stop the toggle. */
-const pressLight = (): void => {
-  fireEvent.press(screen.getByTestId('channel-light'));
+const pressLight = async (): Promise<void> => {
+  await fireEvent.press(screen.getByTestId('channel-light'));
 };
 
 describe('TranslatorScreen', () => {
@@ -52,8 +52,8 @@ describe('TranslatorScreen', () => {
    * the cards scroll, and the chips do not scroll inside them.
    */
   describe('the cards scroll rather than crushing each other', () => {
-    it('puts the pair of cards in a scrolling region', () => {
-      renderWithProviders(<TranslatorScreen />);
+    it('puts the pair of cards in a scrolling region', async () => {
+      await renderWithProviders(<TranslatorScreen />);
 
       expect(screen.getByTestId('cards-scroll')).toBeOnTheScreen();
     });
@@ -61,8 +61,8 @@ describe('TranslatorScreen', () => {
     // A scroll view inside a scroll view is a trap for the finger, and this
     // one would have no definite height to flex against: `flex: 1` would
     // resolve to zero and take the chips with it — the original bug, moved.
-    it('does not nest a second scroll view around the chips', () => {
-      renderWithProviders(<TranslatorScreen />);
+    it('does not nest a second scroll view around the chips', async () => {
+      await renderWithProviders(<TranslatorScreen />);
 
       expect(screen.queryByTestId('morse-scroll')).toBeNull();
       expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
@@ -79,43 +79,43 @@ describe('TranslatorScreen', () => {
    * Nothing is lost by taking the newline: `encode` treats it as a word break,
    * which is what the space they would type instead already does.
    */
-  it('lets the return key close the keyboard', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('lets the return key close the keyboard', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     const input = screen.getByTestId('translator-input');
 
     expect(input.props.submitBehavior).toBe('blurAndSubmit');
     expect(input.props.returnKeyType).toBe('done');
   });
 
-  it('encodes what is typed', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+  it('encodes what is typed', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
     expect(screen.getByTestId('morse-string')).toHaveTextContent('... --- ...');
   });
 
-  it('re-encodes as the text changes', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('re-encodes as the text changes', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     const input = screen.getByTestId('translator-input');
-    fireEvent.changeText(input, 'E');
+    await fireEvent.changeText(input, 'E');
     expect(screen.getByTestId('morse-string')).toHaveTextContent('.');
-    fireEvent.changeText(input, 'T');
+    await fireEvent.changeText(input, 'T');
     expect(screen.getByTestId('morse-string')).toHaveTextContent('-');
   });
 
-  it('encodes accented input by the rule the domain settled on', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'AÇÃO');
+  it('encodes accented input by the rule the domain settled on', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'AÇÃO');
     expect(screen.getByTestId('morse-string')).toHaveTextContent('.- -.-.. .- ---');
   });
 
-  it('starts with sound on and light off', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('starts with sound on and light off', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     expect(screen.getByTestId('channel-sound')).toBeSelected();
     expect(screen.getByTestId('channel-light')).not.toBeSelected();
   });
 
-  it('offers every channel in the strip', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('offers every channel in the strip', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     for (const channel of ['sound', 'light', 'screen', 'buzz']) {
       expect(screen.getByTestId(`channel-${channel}`)).not.toBeDisabled();
     }
@@ -144,12 +144,12 @@ describe('TranslatorScreen', () => {
     const denyTheCamera = async (
       ports: ReturnType<typeof createFakePorts>,
     ): Promise<void> => {
-      renderWithProviders(<TranslatorScreen />, { ports });
-      fireEvent.press(screen.getByTestId('channel-light'));
+      await renderWithProviders(<TranslatorScreen />, { ports });
+      await fireEvent.press(screen.getByTestId('channel-light'));
       await waitFor(() => {
         expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
       });
-      fireEvent.press(screen.getByTestId('permission-primary'));
+      await fireEvent.press(screen.getByTestId('permission-primary'));
       await waitFor(() => {
         expect(ports.calls.requested).toContain('camera');
       });
@@ -181,14 +181,14 @@ describe('TranslatorScreen', () => {
       await waitFor(() => {
         expect(screen.getByTestId('toast-action')).toBeOnTheScreen();
       });
-      fireEvent.press(screen.getByTestId('toast-action'));
+      await fireEvent.press(screen.getByTestId('toast-action'));
 
       expect(ports.calls.settingsOpened).toBe(1);
     });
 
     it('says nothing when the camera is granted', async () => {
-      renderWithProviders(<TranslatorScreen />);
-      fireEvent.press(screen.getByTestId('channel-light'));
+      await renderWithProviders(<TranslatorScreen />);
+      await fireEvent.press(screen.getByTestId('channel-light'));
 
       await waitFor(() => {
         expect(screen.getByTestId('channel-light')).toBeSelected();
@@ -199,30 +199,30 @@ describe('TranslatorScreen', () => {
 
   // The torch is no longer a switch you leave on — it carries the message.
   it('leaves the torch alone until a message runs', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('channel-light'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('channel-light'));
     await waitFor(() => {
       expect(screen.getByTestId('channel-light')).toBeSelected();
     });
     expect(ports.calls.torchEnabled).toEqual([]);
   });
 
-  it('renders in the selected locale', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+  it('renders in the selected locale', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'es' });
     expect(screen.getByText('Reproducir')).toBeOnTheScreen();
     expect(screen.getByText('Sonido')).toBeOnTheScreen();
   });
 });
 
 describe('TranslatorScreen — direction', () => {
-  it('starts in text → Morse', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('starts in text → Morse', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     expect(screen.getByTestId('segment-toMorse')).toBeSelected();
   });
 
-  it('swaps the panes when the direction changes', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('segment-toText'));
+  it('swaps the panes when the direction changes', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('segment-toText'));
 
     expect(screen.getByTestId('segment-toText')).toBeSelected();
     // The decoded text and its read-aloud affordance only exist that way round.
@@ -230,11 +230,11 @@ describe('TranslatorScreen — direction', () => {
     expect(screen.getByTestId('read-aloud')).toBeOnTheScreen();
   });
 
-  it('offers speech in one direction and the tap key in the other', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('offers speech in one direction and the tap key in the other', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     expect(screen.getByTestId('speak-input')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('segment-toText'));
+    await fireEvent.press(screen.getByTestId('segment-toText'));
     expect(screen.getByTestId('tap-input')).toBeOnTheScreen();
     expect(screen.queryByTestId('speak-input')).toBeNull();
   });
@@ -245,45 +245,45 @@ describe('TranslatorScreen — direction', () => {
    * microphone was broken — so this asserts the press LANDS somewhere, which
    * is the whole of the defect.
    */
-  it('sends Speak to the tab that owns the microphone', () => {
+  it('sends Speak to the tab that owns the microphone', async () => {
     const onSelectTab = jest.fn();
-    renderWithProviders(<TranslatorScreen onSelectTab={onSelectTab} />);
+    await renderWithProviders(<TranslatorScreen onSelectTab={onSelectTab} />);
 
-    fireEvent.press(screen.getByTestId('speak-input'));
+    await fireEvent.press(screen.getByTestId('speak-input'));
 
     expect(onSelectTab).toHaveBeenCalledWith('speak');
   });
 
-  it('sends its twin to the tab that owns the key', () => {
+  it('sends its twin to the tab that owns the key', async () => {
     const onSelectTab = jest.fn();
-    renderWithProviders(<TranslatorScreen onSelectTab={onSelectTab} />);
-    fireEvent.press(screen.getByTestId('segment-toText'));
+    await renderWithProviders(<TranslatorScreen onSelectTab={onSelectTab} />);
+    await fireEvent.press(screen.getByTestId('segment-toText'));
 
-    fireEvent.press(screen.getByTestId('tap-input'));
+    await fireEvent.press(screen.getByTestId('tap-input'));
 
     expect(onSelectTab).toHaveBeenCalledWith('tap');
   });
 
-  it('survives being pressed on a screen with nowhere to send it', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('survives being pressed on a screen with nowhere to send it', async () => {
+    await renderWithProviders(<TranslatorScreen />);
 
-    expect(() => {
-      fireEvent.press(screen.getByTestId('speak-input'));
-    }).not.toThrow();
+    await expect(
+      fireEvent.press(screen.getByTestId('speak-input')),
+    ).resolves.toBeUndefined();
   });
 
-  it('decodes typed Morse back to text', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('segment-toText'));
-    fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
+  it('decodes typed Morse back to text', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('segment-toText'));
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
     expect(screen.getByTestId('decoded-text')).toHaveTextContent('SOS');
   });
 
   it('reads the decoded text aloud in the active locale', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    fireEvent.press(screen.getByTestId('segment-toText'));
-    fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
-    fireEvent.press(screen.getByTestId('read-aloud'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    await fireEvent.press(screen.getByTestId('segment-toText'));
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
+    await fireEvent.press(screen.getByTestId('read-aloud'));
 
     await waitFor(() => {
       expect(ports.calls.spoken).toContainEqual({ text: 'SOS', locale: 'es' });
@@ -292,33 +292,29 @@ describe('TranslatorScreen — direction', () => {
 });
 
 describe('TranslatorScreen — letter selection', () => {
-  it('selects nothing to begin with', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('selects nothing to begin with', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     for (const cell of screen.getAllByTestId('morse-letter')) {
       expect(cell).not.toBeSelected();
     }
   });
 
-  it('selects the letter that was tapped, and only that one', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('selects the letter that was tapped, and only that one', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     const cells = screen.getAllByTestId('morse-letter');
-    const target = cells[2];
-    expect(target).toBeDefined();
-    fireEvent.press(target);
+    await fireEvent.press(elementAt(cells, 2));
 
     const after = screen.getAllByTestId('morse-letter');
     expect(after[2]).toBeSelected();
     expect(after[0]).not.toBeSelected();
   });
 
-  it('counts the index across word boundaries, not per word', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'AB CD');
+  it('counts the index across word boundaries, not per word', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'AB CD');
     const cells = screen.getAllByTestId('morse-letter');
     // Fourth cell overall is D — the second letter of the second word.
-    const fourth = cells[3];
-    expect(fourth).toBeDefined();
-    fireEvent.press(fourth);
+    await fireEvent.press(elementAt(cells, 3));
     expect(screen.getAllByTestId('morse-letter')[3]).toBeSelected();
     expect(screen.getAllByTestId('morse-letter')[2]).not.toBeSelected();
   });
@@ -338,8 +334,8 @@ describe('TranslatorScreen — seed content', () => {
    * scrolling, and it is the thing a person opening a Morse app already knows
    * how to read.
    */
-  it.each(LOCALES)('seeds SOS in %s', (locale) => {
-    renderWithProviders(<TranslatorScreen />, { locale });
+  it.each(LOCALES)('seeds SOS in %s', async (locale) => {
+    await renderWithProviders(<TranslatorScreen />, { locale });
     expect(screen.getByTestId('translator-input')).toHaveProp('value', 'SOS');
   });
 
@@ -350,14 +346,14 @@ describe('TranslatorScreen — seed content', () => {
    * first impression. Asserted through the notice rather than the string, so
    * it holds for whatever any locale seeds next.
    */
-  it.each(LOCALES)('seeds nothing the encoder would drop in %s', (locale) => {
-    renderWithProviders(<TranslatorScreen />, { locale });
+  it.each(LOCALES)('seeds nothing the encoder would drop in %s', async (locale) => {
+    await renderWithProviders(<TranslatorScreen />, { locale });
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 
-  it('derives the Morse seed from the same sample, so the directions agree', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    fireEvent.press(screen.getByTestId('segment-toText'));
+  it('derives the Morse seed from the same sample, so the directions agree', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    await fireEvent.press(screen.getByTestId('segment-toText'));
     // Round-trips back to the very sample the other direction started from.
     expect(screen.getByTestId('decoded-text')).toHaveTextContent('SOS');
   });
@@ -365,9 +361,9 @@ describe('TranslatorScreen — seed content', () => {
   // Typed rather than seeded: SOS is one word, and the slash only appears
   // between two. `morse.test.ts` owns whether the ENCODER emits it; this owns
   // whether the footer renders what the encoder produced.
-  it('separates words with the ITU slash, which survives a copy', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
+  it('separates words with the ITU slash, which survives a copy', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
     expect(screen.getByTestId('morse-string')).toHaveTextContent(
       '.... . .-.. .-.. --- / .-- --- .-. .-.. -..',
     );
@@ -429,11 +425,11 @@ describe('TranslatorScreen — audio playback', () => {
     });
   };
 
-  it('hands the port a real WAV of the message on screen', () => {
+  it('hands the port a real WAV of the message on screen', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.played).toHaveLength(1);
     // "RIFF" — the port takes bytes, and these are the bytes of a WAV file.
@@ -442,9 +438,9 @@ describe('TranslatorScreen — audio playback', () => {
 
   it('shows the message playing, with a clock that runs', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
     expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
@@ -469,9 +465,9 @@ describe('TranslatorScreen — audio playback', () => {
    */
   it('keeps the progress bar out of the scrolling region', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     const cards = screen.getByTestId('cards-scroll');
 
     expect(screen.getByTestId('playback-progress')).toBeOnTheScreen();
@@ -484,22 +480,22 @@ describe('TranslatorScreen — audio playback', () => {
     await advance(0);
   });
 
-  it('replaces the hint with the playing state, and puts it back after', () => {
+  it('replaces the hint with the playing state, and puts it back after', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
     expect(screen.queryByTestId('playing-badge')).toBeNull();
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.queryByTestId('playing-badge')).toBeNull();
   });
 
   it('lights the letter the playhead is on, and moves it along', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     const output = (): ReturnType<typeof within> =>
       within(screen.getByTestId('morse-output'));
@@ -523,12 +519,12 @@ describe('TranslatorScreen — audio playback', () => {
     expect(output().getAllByRole('button', { selected: true })).toHaveLength(1);
   });
 
-  it('stops through the port when the button is pressed again', () => {
+  it('stops through the port when the button is pressed again', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.stops).toBeGreaterThan(0);
     expect(screen.queryByTestId('playback-progress')).toBeNull();
@@ -538,9 +534,9 @@ describe('TranslatorScreen — audio playback', () => {
   // no audio to end it, and the clock is already what the bar and chips follow.
   it('ends the run when the clock reaches the end, not when the audio does', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     // Resolving the audio early changes nothing: SOS is 27 units, 3.24s.
     await act(async () => {
@@ -567,8 +563,8 @@ describe('TranslatorScreen — audio playback', () => {
    * vanished.
    */
   it('lets the sound run out when the message ends on its own', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('signal-button'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     // Past the end of SOS — 27 units at the default speed.
     await advance(9000);
@@ -581,10 +577,10 @@ describe('TranslatorScreen — audio playback', () => {
    * ⚠️ And STOPPING still stops it, immediately. That is what the button
    * means, and it is the half that a fix for the above could quietly break.
    */
-  it('cuts the sound the moment the user stops it', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+  it('cuts the sound the moment the user stops it', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.audioStopped).toBeGreaterThan(0);
   });
@@ -595,39 +591,39 @@ describe('TranslatorScreen — audio playback', () => {
    * clock's end truncates the closing buzz exactly as it truncated the tone.
    */
   it('lets the buzz run out too, and cuts it only on a stop', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('channel-buzz'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     await advance(9000);
     expect(ports.calls.vibrationStops).toBe(0);
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(ports.calls.vibrationStops).toBeGreaterThan(0);
   });
 
   // The audio was rendered from the old text and cannot be edited in flight.
-  it('stops when the message is edited mid-playback', () => {
+  it('stops when the message is edited mid-playback', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     // Anything but the seed — SOS is what the input already holds, and
     // `changeText` with the value already there changes no message and would
     // prove nothing.
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
 
     expect(screen.queryByTestId('playback-progress')).toBeNull();
     expect(audio.stops).toBeGreaterThan(0);
   });
 
-  it('plays nothing at all when there is nothing to play', () => {
+  it('plays nothing at all when there is nothing to play', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.changeText(screen.getByTestId('translator-input'), '');
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '');
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.played).toHaveLength(0);
     expect(screen.queryByTestId('playback-progress')).toBeNull();
@@ -635,71 +631,71 @@ describe('TranslatorScreen — audio playback', () => {
 });
 
 describe('TranslatorScreen — characters Morse cannot carry', () => {
-  it('says nothing when everything typed can be encoded', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+  it('says nothing when everything typed can be encoded', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 
   // The defect this exists for: these characters are dropped, and were dropped
   // without a word to the sender.
-  it('names the characters it had to drop', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
+  it('names the characters it had to drop', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
     expect(screen.getByTestId('unsupported-notice')).toHaveTextContent('No code for: #');
     // And the rest of the message still encodes.
     expect(screen.getByTestId('morse-string')).toHaveTextContent('.... ..');
   });
 
-  it('lists each one once, however often it was typed', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), '#a~b#c~');
+  it('lists each one once, however often it was typed', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '#a~b#c~');
     expect(screen.getByTestId('unsupported-notice')).toHaveTextContent(
       'No code for: # ~',
     );
   });
 
-  it('says nothing about accents it folds onto a letter', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'AÇÃO');
+  it('says nothing about accents it folds onto a letter', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'AÇÃO');
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 
-  it('replaces the hint, and gives it back once the text is encodable', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('replaces the hint, and gives it back once the text is encodable', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     const input = screen.getByTestId('translator-input');
 
-    fireEvent.changeText(input, '#');
+    await fireEvent.changeText(input, '#');
     expect(screen.getByTestId('unsupported-notice')).toBeOnTheScreen();
 
-    fireEvent.changeText(input, 'OK');
+    await fireEvent.changeText(input, 'OK');
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 
-  it('warns in the interface language', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    fireEvent.changeText(screen.getByTestId('translator-input'), '#');
+  it('warns in the interface language', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '#');
     expect(screen.getByTestId('unsupported-notice')).toHaveTextContent('Sin código: #');
   });
 
   // What is happening now outranks a warning about what was typed.
-  it('yields the slot to playback while a message is playing', () => {
+  it('yields the slot to playback while a message is playing', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HI #');
     expect(screen.getByTestId('unsupported-notice')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
   });
 
   // Morse in, text out: an untranslatable token already shows as the
   // undecodable glyph, which is a different signal on a different pane.
-  it('stays out of the way in the other direction', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('segment-toText'));
+  it('stays out of the way in the other direction', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('segment-toText'));
     expect(screen.queryByTestId('unsupported-notice')).toBeNull();
   });
 });
@@ -709,36 +705,36 @@ describe('TranslatorScreen — hearing one letter', () => {
   const wavFor = (text: string): Uint8Array =>
     renderWav(toTimeline(encode(text)), { unitMs: DEFAULT_PLAYBACK_UNIT_MS });
 
-  it('plays only the letter that was tapped', () => {
+  it('plays only the letter that was tapped', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     expect(audio.played).toHaveLength(1);
     // Exactly O on its own — not the message, and not O's position in it.
     expect(Array.from(audio.played[0] ?? [])).toEqual(Array.from(wavFor('O')));
   });
 
-  it('plays a different letter when a different one is tapped', () => {
+  it('plays a different letter when a different one is tapped', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'AT');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'AT');
 
-    fireEvent.press(screen.getByLabelText('morse-letter-A'));
-    fireEvent.press(screen.getByLabelText('morse-letter-T'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-A'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-T'));
 
     expect(Array.from(audio.played[0] ?? [])).toEqual(Array.from(wavFor('A')));
     expect(Array.from(audio.played[1] ?? [])).toEqual(Array.from(wavFor('T')));
   });
 
-  it('still selects the letter it plays', () => {
+  it('still selects the letter it plays', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     expect(
       within(screen.getByTestId('morse-output')).getAllByRole('button', {
@@ -747,28 +743,28 @@ describe('TranslatorScreen — hearing one letter', () => {
     ).toHaveLength(1);
   });
 
-  it('replays on every tap, including the same letter twice', () => {
+  it('replays on every tap, including the same letter twice', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
 
-    fireEvent.press(screen.getByLabelText('morse-letter-E'));
-    fireEvent.press(screen.getByLabelText('morse-letter-E'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-E'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-E'));
 
     expect(audio.played).toHaveLength(2);
   });
 
   // While a message is running the letters are a progress display, not a
   // keyboard. A tap must not replace the audio mid-transmission.
-  it('ignores a tap while a message is playing', () => {
+  it('ignores a tap while a message is playing', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(audio.played).toHaveLength(1);
 
-    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     // Nothing new played, and the message is still running.
     expect(audio.played).toHaveLength(1);
@@ -776,13 +772,13 @@ describe('TranslatorScreen — hearing one letter', () => {
     expect(screen.getByTestId('playing-badge')).toBeOnTheScreen();
   });
 
-  it('leaves the highlight to the playhead, rather than to the tap', () => {
+  it('leaves the highlight to the playhead, rather than to the tap', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
-    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     // Still the first letter, where the playhead is — not the one tapped.
     expect(
@@ -793,15 +789,15 @@ describe('TranslatorScreen — hearing one letter', () => {
     ).toBeOnTheScreen();
   });
 
-  it('takes taps again once the message is stopped', () => {
+  it('takes taps again once the message is stopped', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
-    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     expect(Array.from(audio.played[1] ?? [])).toEqual(Array.from(wavFor('O')));
   });
@@ -822,15 +818,15 @@ describe('TranslatorScreen — output channels', () => {
     });
   };
 
-  const typeE = (): void => {
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+  const typeE = async (): Promise<void> => {
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
   };
 
   it('leaves the torch alone when light is off', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    typeE();
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await typeE();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(60);
 
     expect(ports.calls.torchEnabled).toEqual([]);
@@ -838,11 +834,11 @@ describe('TranslatorScreen — output channels', () => {
 
   // E is one dot: on at the start, off one unit (120ms) later.
   it('carries the message on the torch when light is on', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    typeE();
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await typeE();
     await enableLight();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(30);
     expect(ports.calls.torchEnabled).toEqual([true]);
 
@@ -851,15 +847,15 @@ describe('TranslatorScreen — output channels', () => {
   });
 
   it('never leaves the torch on when the run is stopped part-way', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
     await enableLight();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(30);
     expect(ports.calls.torchEnabled).toEqual([true]);
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(ports.calls.torchEnabled).toEqual([true, false]);
   });
 
@@ -872,11 +868,11 @@ describe('TranslatorScreen — output channels', () => {
    * `torchActive` must move twice a message and no more.
    */
   it('holds the camera for the whole run rather than for each mark', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
     await enableLight();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(600);
 
     expect(ports.calls.torchActive).toEqual([true]);
@@ -884,13 +880,13 @@ describe('TranslatorScreen — output channels', () => {
   });
 
   it('lets the camera go once the run is stopped', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
     await enableLight();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(60);
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(30);
 
     expect(ports.calls.torchActive).toEqual([true, false]);
@@ -900,7 +896,7 @@ describe('TranslatorScreen — output channels', () => {
   // yet, and holding one would light the phone's camera indicator over a
   // screen that is doing nothing.
   it('opens no camera for a channel switched on outside a run', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
     await enableLight();
     await advance(60);
 
@@ -910,10 +906,10 @@ describe('TranslatorScreen — output channels', () => {
   // The promise of one run, several channels: the light joins what is already
   // going out rather than starting a second run beside it.
   it('lets the light join a message already in progress', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(200);
     expect(ports.calls.torchEnabled).toEqual([]);
 
@@ -924,13 +920,13 @@ describe('TranslatorScreen — output channels', () => {
 
   it('stops the sound when its channel is switched off mid-message', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(audio.played).toHaveLength(1);
 
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
     expect(audio.stops).toBeGreaterThan(0);
 
     // The run itself carries on — the message is still being transmitted, just
@@ -941,13 +937,13 @@ describe('TranslatorScreen — output channels', () => {
 
   it('plays only what is left when sound is switched back on mid-message', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
     await advance(1000);
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
 
     expect(audio.played).toHaveLength(2);
     // The tail is shorter than the whole message, because it starts part-way.
@@ -956,12 +952,12 @@ describe('TranslatorScreen — output channels', () => {
 
   it('runs on the torch alone, with no sound at all', async () => {
     const audio = pendingAudio();
-    renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
-    typeE();
+    await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
+    await typeE();
 
     await enableLight();
-    fireEvent.press(screen.getByTestId('channel-sound'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(audio.played).toHaveLength(0);
     await advance(30);
@@ -972,27 +968,27 @@ describe('TranslatorScreen — output channels', () => {
     expect(screen.queryByTestId('playback-progress')).toBeNull();
   });
 
-  it('has nothing to signal with when every channel is off', () => {
-    renderWithProviders(<TranslatorScreen />);
-    typeE();
+  it('has nothing to signal with when every channel is off', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await typeE();
 
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
 
     expect(screen.getByTestId('signal-button')).toBeDisabled();
   });
 
-  it('has nothing to signal when there is no message', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), '');
+  it('has nothing to signal when there is no message', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '');
 
     expect(screen.getByTestId('signal-button')).toBeDisabled();
   });
 
   it('offers the button again as soon as a channel comes back', async () => {
-    renderWithProviders(<TranslatorScreen />);
-    typeE();
+    await renderWithProviders(<TranslatorScreen />);
+    await typeE();
 
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
     expect(screen.getByTestId('signal-button')).toBeDisabled();
 
     await enableLight();
@@ -1015,9 +1011,9 @@ describe('TranslatorScreen — the screen channel', () => {
     });
   };
 
-  it('shows the Morse chips, not a surface, while the channel is off', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('signal-button'));
+  it('shows the Morse chips, not a surface, while the channel is off', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
     expect(screen.queryByTestId('signal-surface')).toBeNull();
@@ -1025,20 +1021,20 @@ describe('TranslatorScreen — the screen channel', () => {
 
   // The chips are a reading aid; while the screen carries the message the
   // square IS the message, and the chips would only compete with it.
-  it('gives the chips over to the surface while it is carrying the message', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('channel-screen'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+  it('gives the chips over to the surface while it is carrying the message', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
     expect(screen.queryByTestId('morse-output')).toBeNull();
   });
 
   it('gives the chips back when the message ends', async () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
-    fireEvent.press(screen.getByTestId('channel-screen'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
 
     await advance(300);
@@ -1048,11 +1044,11 @@ describe('TranslatorScreen — the screen channel', () => {
   });
 
   it('lights the surface on the signal and darkens it between marks', async () => {
-    renderWithProviders(<TranslatorScreen />);
+    await renderWithProviders(<TranslatorScreen />);
     // E is one dot: lit for one unit, 120ms.
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
-    fireEvent.press(screen.getByTestId('channel-screen'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     await advance(30);
     expect(screen.getByTestId('signal-surface')).toBeSelected();
@@ -1063,14 +1059,14 @@ describe('TranslatorScreen — the screen channel', () => {
 
   it('runs on the screen alone, with neither sound nor light', async () => {
     const audio = pendingAudio();
-    const { ports } = renderWithProviders(<TranslatorScreen />, {
+    const { ports } = await renderWithProviders(<TranslatorScreen />, {
       ports: withAudio(audio.port),
     });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
 
-    fireEvent.press(screen.getByTestId('channel-screen'));
-    fireEvent.press(screen.getByTestId('channel-sound'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     await advance(30);
     expect(screen.getByTestId('signal-surface')).toBeSelected();
@@ -1090,16 +1086,16 @@ describe('TranslatorScreen — the screen channel', () => {
    * answer.
    */
   it('waits for the camera before buzzing when the torch is also on', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
     // ⚠️ `enableLight`, not a bare press: Light is gated on the camera
     // permission and the channel does not change until that promise resolves.
     // A bare press leaves the torch OFF, and this test would then pass by
     // taking the no-camera path it exists to distinguish from.
     await enableLight();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     // Nothing yet — the camera is still opening.
     expect(ports.calls.vibrated).toEqual([]);
@@ -1114,13 +1110,13 @@ describe('TranslatorScreen — the screen channel', () => {
    * nothing else would catch it.
    */
   it('drops a waiting buzz when the run is stopped first', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
     await enableLight();
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(500);
 
     expect(ports.calls.vibrated).toEqual([]);
@@ -1131,35 +1127,35 @@ describe('TranslatorScreen — the screen channel', () => {
    * wait for, and delaying it would move the first buzz away from the first
    * beat of the audio for nothing.
    */
-  it('buzzes immediately when the torch is off', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+  it('buzzes immediately when the torch is off', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.vibrated.length).toBe(1);
   });
 
-  it('counts as something to signal with on its own', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+  it('counts as something to signal with on its own', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
 
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
     expect(screen.getByTestId('signal-button')).toBeDisabled();
 
-    fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('channel-screen'));
     expect(screen.getByTestId('signal-button')).not.toBeDisabled();
   });
 
   it('lets the screen join a message already in progress', async () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     expect(screen.queryByTestId('signal-surface')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('channel-screen'));
     await advance(30);
 
     expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
@@ -1176,17 +1172,17 @@ describe('TranslatorScreen — keeping the screen awake', () => {
 
   // A message is minutes long at slow speeds, and the idle timer sees no
   // touches for the whole of it.
-  it('holds the screen awake for the length of a message', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('signal-button'));
+  it('holds the screen awake for the length of a message', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.awake).toEqual([true]);
   });
 
   it('lets it sleep again when the message ends', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
-    fireEvent.press(screen.getByTestId('signal-button'));
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     await act(async () => {
       jest.advanceTimersByTime(300);
@@ -1196,21 +1192,21 @@ describe('TranslatorScreen — keeping the screen awake', () => {
     expect(ports.calls.awake).toEqual([true, false]);
   });
 
-  it('lets it sleep when the message is stopped part-way', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+  it('lets it sleep when the message is stopped part-way', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.awake).toEqual([true, false]);
   });
 
-  it('never holds it for a letter preview', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+  it('never holds it for a letter preview', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByLabelText('morse-letter-O'));
+    await fireEvent.press(screen.getByLabelText('morse-letter-O'));
 
     expect(ports.calls.awake).toEqual([]);
   });
@@ -1231,20 +1227,20 @@ describe('TranslatorScreen — the vibration channel', () => {
     });
   };
 
-  it('does not vibrate while the channel is off', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByTestId('signal-button'));
+  it('does not vibrate while the channel is off', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.vibrated).toEqual([]);
   });
 
   // A is dot(1) gap(1) dash(3): two marks, the second three times the first.
-  it('hands the port every mark, with the dashes marked as long', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'A');
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+  it('hands the port every mark, with the dashes marked as long', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'A');
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.vibrated).toEqual([
       [
@@ -1254,13 +1250,13 @@ describe('TranslatorScreen — the vibration channel', () => {
     ]);
   });
 
-  it('stops the motor when the message is stopped', () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+  it('stops the motor when the message is stopped', async () => {
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
 
-    fireEvent.press(screen.getByTestId('signal-button'));
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     expect(ports.calls.vibrationStops).toBeGreaterThan(0);
   });
@@ -1268,12 +1264,12 @@ describe('TranslatorScreen — the vibration channel', () => {
   // Handed a whole sequence rather than driven tick by tick, so joining a run
   // means handing it a new sequence that starts where the run already is.
   it('hands over only the marks still to come when it joins mid-message', async () => {
-    const { ports } = renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
+    const { ports } = await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await advance(1000);
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
 
     const joined = ports.calls.vibrated[0] ?? [];
     expect(joined.length).toBeGreaterThan(0);
@@ -1281,14 +1277,14 @@ describe('TranslatorScreen — the vibration channel', () => {
     expect(joined.length).toBeLessThan(9);
   });
 
-  it('counts as something to signal with on its own', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+  it('counts as something to signal with on its own', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
 
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
     expect(screen.getByTestId('signal-button')).toBeDisabled();
 
-    fireEvent.press(screen.getByTestId('channel-buzz'));
+    await fireEvent.press(screen.getByTestId('channel-buzz'));
     expect(screen.getByTestId('signal-button')).not.toBeDisabled();
   });
 });
@@ -1305,14 +1301,14 @@ describe('what Settings changes here', () => {
     };
   };
 
-  const decodeSomething = (): void => {
-    fireEvent.press(screen.getByTestId('segment-toText'));
-    fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
+  const decodeSomething = async (): Promise<void> => {
+    await fireEvent.press(screen.getByTestId('segment-toText'));
+    await fireEvent.changeText(screen.getByTestId('translator-input'), '... --- ...');
   };
 
   it('offers read-aloud while the setting is on', async () => {
-    renderWithProviders(<TranslatorScreen />);
-    decodeSomething();
+    await renderWithProviders(<TranslatorScreen />);
+    await decodeSomething();
     await waitFor(() => {
       expect(screen.getByTestId('read-aloud')).toBeOnTheScreen();
     });
@@ -1325,14 +1321,14 @@ describe('what Settings changes here', () => {
   // preferences read and the first render — it passed on every developer
   // machine and failed on a loaded CI runner.
   it('withholds read-aloud once the setting is off', async () => {
-    renderWithProviders(<TranslatorScreen />, {
+    await renderWithProviders(<TranslatorScreen />, {
       ports: holding({ 'settings.speakDecoded': 'false' }),
     });
     await waitFor(() => {
       expect(screen.getByTestId('translator-screen')).toBeOnTheScreen();
     });
 
-    decodeSomething();
+    await decodeSomething();
 
     expect(screen.queryByTestId('read-aloud')).toBeNull();
   });
@@ -1341,7 +1337,7 @@ describe('what Settings changes here', () => {
   // twice as long — the check that the stored speed actually reaches playback.
   it('plays at the stored speed rather than the default', async () => {
     const ports = holding({ 'settings.playbackWpm': '5' });
-    renderWithProviders(<TranslatorScreen />, { ports });
+    await renderWithProviders(<TranslatorScreen />, { ports });
     // ⚠️ WAIT FOR THE STORED SETTING TO ARRIVE, the way the test above does.
     // Storage resolves asynchronously; typing before it lands plays at the
     // DEFAULT speed and the assertion fails on a WAV half the expected length,
@@ -1351,11 +1347,11 @@ describe('what Settings changes here', () => {
     await waitFor(() => {
       expect(screen.getByTestId('translator-screen')).toBeOnTheScreen();
     });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'E');
     await waitFor(() => {
       expect(screen.getByTestId('signal-button')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await waitFor(() => {
       expect(ports.calls.played.length).toBe(1);
     });
@@ -1370,8 +1366,8 @@ describe('the camera permission stands in front of the light channel', () => {
 
   it('asks why before the OS does, and leaves the channel off meanwhile', async () => {
     const ports = createFakePorts({}, DENIED);
-    renderWithProviders(<TranslatorScreen />, { ports });
-    pressLight();
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await pressLight();
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
@@ -1385,12 +1381,12 @@ describe('the camera permission stands in front of the light channel', () => {
 
   it('turns the channel on once the permission is granted', async () => {
     const ports = createFakePorts({}, DENIED);
-    renderWithProviders(<TranslatorScreen />, { ports });
-    pressLight();
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await pressLight();
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('channel-light')).toBeSelected();
     });
@@ -1404,15 +1400,15 @@ describe('the camera permission stands in front of the light channel', () => {
       ports.calls.requested.push(kind);
       return { granted: false, canAskAgain: true };
     };
-    renderWithProviders(<TranslatorScreen />, { ports });
-    pressLight();
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await pressLight();
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
     // The rationale has one action and it leads to the prompt — guideline
     // 5.1.1(iv). DENIED ports mean that prompt says no.
     expect(screen.queryByTestId('permission-dismiss')).toBeNull();
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     // ⚠️ Wait on the REQUEST being made, not on the gate unmounting. A positive
     // signal settles the moment it happens; a disappearance has to outlast the
     // whole unmount, and under the full parallel run that outran the default
@@ -1430,7 +1426,7 @@ describe('the camera permission stands in front of the light channel', () => {
   // Turning it back off is not a permission question — the app already has it.
   it('asks nothing when switching the channel off again', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<TranslatorScreen />, { ports });
+    await renderWithProviders(<TranslatorScreen />, { ports });
     await enableLight();
     await disableLight();
     expect(screen.queryByTestId('permission-camera')).toBeNull();
@@ -1452,7 +1448,7 @@ describe('a phone too quiet to hear the message', () => {
   };
 
   const emit = async (): Promise<void> => {
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
     await act(async () => {
       await Promise.resolve();
     });
@@ -1465,7 +1461,7 @@ describe('a phone too quiet to hear the message', () => {
    * broken rather than silenced.
    */
   it('says so when Sound is on and the device is turned right down', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
 
     await emit();
 
@@ -1473,7 +1469,7 @@ describe('a phone too quiet to hear the message', () => {
   });
 
   it('says nothing on a device that can be heard', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.8) });
+    await renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.8) });
 
     await emit();
 
@@ -1482,7 +1478,7 @@ describe('a phone too quiet to hear the message', () => {
 
   // Exactly the threshold, from the other side — 30% or lower warns.
   it('warns at the threshold itself', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.3) });
+    await renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.3) });
 
     await emit();
 
@@ -1492,7 +1488,7 @@ describe('a phone too quiet to hear the message', () => {
   // A build without the native module reports nothing. Warning on a guess
   // would fire on every one of them.
   it('says nothing when the level cannot be read', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(null) });
+    await renderWithProviders(<TranslatorScreen />, { ports: turnedTo(null) });
 
     await emit();
 
@@ -1506,9 +1502,9 @@ describe('a phone too quiet to hear the message', () => {
    */
   it('does not warn about the volume when Sound is switched off', async () => {
     const ports = turnedTo(0);
-    renderWithProviders(<TranslatorScreen />, { ports });
-    fireEvent.press(screen.getByTestId('channel-screen'));
-    fireEvent.press(screen.getByTestId('channel-sound'));
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await fireEvent.press(screen.getByTestId('channel-screen'));
+    await fireEvent.press(screen.getByTestId('channel-sound'));
 
     await emit();
 
@@ -1517,16 +1513,16 @@ describe('a phone too quiet to hear the message', () => {
   });
 
   it('can be put away', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
     await emit();
 
-    fireEvent.press(screen.getByTestId('toast'));
+    await fireEvent.press(screen.getByTestId('toast'));
 
     expect(screen.queryByTestId('toast')).toBeNull();
   });
 
   it('takes itself away if it is left alone', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
+    await renderWithProviders(<TranslatorScreen />, { ports: turnedTo(0.1) });
     await emit();
 
     await act(async () => {
@@ -1547,13 +1543,13 @@ describe('where the caret starts', () => {
    * tap it saved. The dot beside the language label points at the field
    * instead, and costs no screen space.
    */
-  it('does not take the caret', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('does not take the caret', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     expect(screen.getByTestId('translator-input')).not.toHaveProp('autoFocus', true);
   });
 
-  it('points at the input with a dot until the field is touched', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('points at the input with a dot until the field is touched', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     expect(screen.getByTestId('type-hint-dot')).toBeTruthy();
   });
 
@@ -1562,15 +1558,15 @@ describe('where the caret starts', () => {
    * SOS, so an emptiness test would never show the dot at all — and clearing
    * the field later is not a reason to start pointing at it again.
    */
-  it('drops the dot once the field is typed in', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
+  it('drops the dot once the field is typed in', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO');
     expect(screen.queryByTestId('type-hint-dot')).toBeNull();
   });
 
-  it('drops the dot on focus alone, before anything is typed', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent(screen.getByTestId('translator-input'), 'focus');
+  it('drops the dot on focus alone, before anything is typed', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent(screen.getByTestId('translator-input'), 'focus');
     expect(screen.queryByTestId('type-hint-dot')).toBeNull();
   });
 
@@ -1597,8 +1593,8 @@ describe('where the caret starts', () => {
    * it from SIZE x HALO here would be a second implementation of the same sum
    * that could agree with itself while disagreeing with the component.
    */
-  it('leaves the pulsing halo room beside the label', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('leaves the pulsing halo room beside the label', async () => {
+    await renderWithProviders(<TranslatorScreen />);
 
     const row = screen.getByTestId('focus-input');
     const style = StyleSheet.flatten(row.props.style) as { gap?: number };
@@ -1606,17 +1602,13 @@ describe('where the caret starts', () => {
     expect(style.gap).toBe(14);
   });
 
-  it('puts the dot before the label, not after it', () => {
-    renderWithProviders(<TranslatorScreen />);
-
-    // The instance type has no name to import — `react-test-renderer` ships no
-    // declarations — so it is taken from the query that produces it.
-    type Node = ReturnType<typeof screen.getByTestId>;
+  it('puts the dot before the label, not after it', async () => {
+    await renderWithProviders(<TranslatorScreen />);
 
     const row = screen.getByTestId('focus-input');
-    const nodes: Node[] = row.findAll(() => true);
-    const dotAt = nodes.findIndex((n: Node) => n.props.testID === 'type-hint-dot');
-    const labelAt = nodes.findIndex((n: Node) => n.type === 'Text');
+    const nodes = row.queryAll(() => true);
+    const dotAt = nodes.findIndex((n) => n.props.testID === 'type-hint-dot');
+    const labelAt = nodes.findIndex((n) => n.type === 'Text');
 
     expect(dotAt).toBeGreaterThanOrEqual(0);
     expect(labelAt).toBeGreaterThanOrEqual(0);
@@ -1639,17 +1631,17 @@ describe('copying the Morse', () => {
       written.push(text);
       return true;
     };
-    renderWithProviders(<TranslatorScreen />, { ports });
+    await renderWithProviders(<TranslatorScreen />, { ports });
 
-    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await fireEvent.press(screen.getByLabelText('copy-morse'));
     await waitFor(() => expect(written).toHaveLength(1));
     // SOS is what the field is seeded with.
     expect(written[0]).toBe('... --- ...');
   });
 
   it('shows a tick on the button, then a toast saying so', async () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('copy-morse'));
 
     expect(
       await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
@@ -1668,8 +1660,8 @@ describe('copying the Morse', () => {
    */
   it('keeps the toast up after the tick has reverted', async () => {
     jest.useFakeTimers();
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('copy-morse'));
     expect(
       await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
     ).toBeTruthy();
@@ -1696,8 +1688,8 @@ describe('copying the Morse', () => {
    */
   it('turns back into a copy icon', async () => {
     jest.useFakeTimers();
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('copy-morse'));
     expect(
       await within(screen.getByLabelText('copy-morse')).findByTestId('icon-check'),
     ).toBeTruthy();
@@ -1721,9 +1713,9 @@ describe('copying the Morse', () => {
   it('says nothing when the platform refuses', async () => {
     const ports = createFakePorts();
     ports.clipboard.write = async () => false;
-    renderWithProviders(<TranslatorScreen />, { ports });
+    await renderWithProviders(<TranslatorScreen />, { ports });
 
-    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await fireEvent.press(screen.getByLabelText('copy-morse'));
     expect(
       await within(screen.getByLabelText('copy-morse')).findByTestId('icon-copy'),
     ).toBeTruthy();
@@ -1737,11 +1729,11 @@ describe('copying the Morse', () => {
  * handler is missing, which is how three of them reached a tester.
  */
 describe('the language button', () => {
-  it('opens a list rather than changing anything', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+  it('opens a list rather than changing anything', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'en' });
     expect(screen.queryByTestId('locale-menu')).toBeNull();
 
-    fireEvent.press(screen.getByLabelText('locale-picker'));
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
 
     expect(screen.getByTestId('locale-menu')).toBeTruthy();
     // ⚠️ Still English. The press opens the menu and picks NOTHING — the badge
@@ -1760,9 +1752,9 @@ describe('the language button', () => {
     ['English', 'en'],
     ['Português (Brasil)', 'pt-BR'],
     ['Español', 'es'],
-  ])('offers %s', (name, tag) => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
-    fireEvent.press(screen.getByLabelText('locale-picker'));
+  ])('offers %s', async (name, tag) => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
 
     // Scoped to the option, not the screen: `Modal` renders its children into
     // the tree twice under the test renderer, so a bare `getByText` finds two
@@ -1771,11 +1763,11 @@ describe('the language button', () => {
     expect(within(option).getByText(name)).toBeOnTheScreen();
   });
 
-  it('switches to the language that was chosen', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
-    fireEvent.press(screen.getByLabelText('locale-picker'));
+  it('switches to the language that was chosen', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
 
-    fireEvent.press(screen.getByLabelText('locale-option-es'));
+    await fireEvent.press(screen.getByLabelText('locale-option-es'));
 
     expect(screen.getByText('ES')).toBeOnTheScreen();
   });
@@ -1786,12 +1778,12 @@ describe('the language button', () => {
    * on iOS, where an accessible button folds its children's text into its own
    * label and the inner "ES" stops existing as an element to find.
    */
-  it('names the current locale in the badge id, for the flows to read', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+  it('names the current locale in the badge id, for the flows to read', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'en' });
     expect(screen.getByTestId('locale-badge-en')).toBeTruthy();
 
-    fireEvent.press(screen.getByLabelText('locale-picker'));
-    fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
+    await fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
 
     expect(screen.getByTestId('locale-badge-pt-BR')).toBeTruthy();
     expect(screen.queryByTestId('locale-badge-en')).toBeNull();
@@ -1802,28 +1794,28 @@ describe('the language button', () => {
    * from English used to cost two presses, and there was no way to go back a
    * step at all.
    */
-  it('reaches any language in a single press', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'es' });
-    fireEvent.press(screen.getByLabelText('locale-picker'));
-    fireEvent.press(screen.getByLabelText('locale-option-en'));
+  it('reaches any language in a single press', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'es' });
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
+    await fireEvent.press(screen.getByLabelText('locale-option-en'));
 
     expect(screen.getByText('EN')).toBeOnTheScreen();
   });
 
-  it('closes without choosing when the backdrop is pressed', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
-    fireEvent.press(screen.getByLabelText('locale-picker'));
+  it('closes without choosing when the backdrop is pressed', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
 
-    fireEvent.press(screen.getByLabelText('locale-menu-backdrop'));
+    await fireEvent.press(screen.getByLabelText('locale-menu-backdrop'));
 
     expect(screen.queryByTestId('locale-menu')).toBeNull();
     expect(screen.getByText('EN')).toBeOnTheScreen();
   });
 
-  it('shuts the menu once a language is chosen', () => {
-    renderWithProviders(<TranslatorScreen />, { locale: 'en' });
-    fireEvent.press(screen.getByLabelText('locale-picker'));
-    fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
+  it('shuts the menu once a language is chosen', async () => {
+    await renderWithProviders(<TranslatorScreen />, { locale: 'en' });
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
+    await fireEvent.press(screen.getByLabelText('locale-option-pt-BR'));
 
     expect(screen.queryByTestId('locale-menu')).toBeNull();
   });
@@ -1832,10 +1824,10 @@ describe('the language button', () => {
    * ⚠️ The INTERFACE only. Recognition is a separate setting now, and changing
    * what the buttons say must not change what the microphone listens for.
    */
-  it('does not touch the recogniser', () => {
+  it('does not touch the recogniser', async () => {
     const ports = createFakePorts();
-    renderWithProviders(<TranslatorScreen />, { ports, locale: 'en' });
-    fireEvent.press(screen.getByLabelText('locale-picker'));
+    await renderWithProviders(<TranslatorScreen />, { ports, locale: 'en' });
+    await fireEvent.press(screen.getByLabelText('locale-picker'));
 
     expect(
       ports.calls.stored.filter((entry) => entry.key === 'settings.speechLocale'),
@@ -1858,8 +1850,8 @@ describe('the type hint', () => {
    * ran, which is what the two below do. A test that mocked its way to a green
    * assertion about focus would be asserting the mock.
    */
-  it('is wired to something', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('is wired to something', async () => {
+    await renderWithProviders(<TranslatorScreen />);
 
     expect(screen.getByLabelText('focus-input')).toBeTruthy();
   });
@@ -1869,11 +1861,11 @@ describe('the type hint', () => {
    * A hint that survives the gesture it was asking for is a hint nobody can
    * get rid of.
    */
-  it('stops pointing once it has been used', () => {
-    renderWithProviders(<TranslatorScreen />);
+  it('stops pointing once it has been used', async () => {
+    await renderWithProviders(<TranslatorScreen />);
     expect(screen.getByTestId('type-hint-dot')).toBeTruthy();
 
-    fireEvent.press(screen.getByLabelText('focus-input'));
+    await fireEvent.press(screen.getByLabelText('focus-input'));
 
     expect(screen.queryByTestId('type-hint-dot')).toBeNull();
   });
@@ -1883,19 +1875,19 @@ describe('the type hint', () => {
    * 44pt minimum, and nobody aims at one — pressing the words beside it is the
    * gesture a person actually makes.
    */
-  it('is still pressable after the dot has gone', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByLabelText('focus-input'));
+  it('is still pressable after the dot has gone', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('focus-input'));
 
     expect(screen.getByLabelText('focus-input')).toBeTruthy();
   });
 });
 
 describe('clearing and pasting', () => {
-  it('empties the field in one press', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
-    fireEvent.press(screen.getByLabelText('clear-input'));
+  it('empties the field in one press', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HELLO WORLD');
+    await fireEvent.press(screen.getByLabelText('clear-input'));
     expect(screen.getByTestId('translator-input')).toHaveProp('value', '');
   });
 
@@ -1903,18 +1895,18 @@ describe('clearing and pasting', () => {
    * ⚠️ The dot means "you have not started yet". Clearing a message is not
    * starting again, so it must not come back and point at the field.
    */
-  it('does not bring the hint dot back', () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByLabelText('clear-input'));
+  it('does not bring the hint dot back', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('clear-input'));
     expect(screen.queryByTestId('type-hint-dot')).toBeNull();
   });
 
   it('pastes the clipboard into the field', async () => {
     const ports = createFakePorts();
     ports.clipboard.read = async () => 'SOS FROM THE CLIPBOARD';
-    renderWithProviders(<TranslatorScreen />, { ports });
+    await renderWithProviders(<TranslatorScreen />, { ports });
 
-    fireEvent.press(screen.getByLabelText('paste-input'));
+    await fireEvent.press(screen.getByLabelText('paste-input'));
     await waitFor(() =>
       expect(screen.getByTestId('translator-input')).toHaveProp(
         'value',
@@ -1935,10 +1927,10 @@ describe('clearing and pasting', () => {
       reads += 1;
       return null;
     };
-    renderWithProviders(<TranslatorScreen />, { ports });
-    fireEvent.changeText(screen.getByTestId('translator-input'), 'TYPED BY HAND');
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'TYPED BY HAND');
 
-    fireEvent.press(screen.getByLabelText('paste-input'));
+    await fireEvent.press(screen.getByLabelText('paste-input'));
     // It really did look, and really did leave the field alone.
     await waitFor(() => expect(reads).toBe(1));
     expect(screen.getByTestId('translator-input')).toHaveProp('value', 'TYPED BY HAND');
@@ -1952,8 +1944,8 @@ describe('the toast icons', () => {
    * clipboard.
    */
   it('shows a tick beside the copied message, not a speaker', async () => {
-    renderWithProviders(<TranslatorScreen />);
-    fireEvent.press(screen.getByLabelText('copy-morse'));
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('copy-morse'));
 
     const toast = await screen.findByTestId('toast');
     expect(within(toast).queryByTestId('icon-volume')).toBeNull();
@@ -1992,7 +1984,7 @@ describe('finding out that the chips are pressable', () => {
   };
 
   it('rings exactly one chip on a device that has never tapped one', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await renderWithProviders(<TranslatorScreen />, { ports: untaught() });
 
     await waitFor(() => {
       expect(halos()).toHaveLength(1);
@@ -2000,7 +1992,7 @@ describe('finding out that the chips are pressable', () => {
   });
 
   it('rings nothing once the device has been taught', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: taught() });
+    await renderWithProviders(<TranslatorScreen />, { ports: taught() });
 
     // Waited on the same beat the other test waits on, so this is "it did not
     // appear", not "it had not appeared yet".
@@ -2011,12 +2003,12 @@ describe('finding out that the chips are pressable', () => {
   });
 
   it('stops pointing the moment a chip is pressed', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await renderWithProviders(<TranslatorScreen />, { ports: untaught() });
     await waitFor(() => {
       expect(halos()).toHaveLength(1);
     });
 
-    fireEvent.press(elementAt(screen.getAllByTestId('morse-letter')));
+    await fireEvent.press(elementAt(screen.getAllByTestId('morse-letter')));
 
     expect(halos()).toHaveLength(0);
   });
@@ -2027,12 +2019,12 @@ describe('finding out that the chips are pressable', () => {
    * inviting one would be inviting a press the screen is about to ignore.
    */
   it('says nothing while a message is going out', async () => {
-    renderWithProviders(<TranslatorScreen />, { ports: untaught() });
+    await renderWithProviders(<TranslatorScreen />, { ports: untaught() });
     await waitFor(() => {
       expect(halos()).toHaveLength(1);
     });
 
-    fireEvent.press(screen.getByTestId('signal-button'));
+    await fireEvent.press(screen.getByTestId('signal-button'));
 
     await waitFor(() => {
       expect(halos()).toHaveLength(0);
@@ -2053,36 +2045,38 @@ describe('TranslatorScreen — after the first run', () => {
   const inputProps = (): Record<string, unknown> =>
     screen.getByTestId('translator-input').props as Record<string, unknown>;
 
-  it('opens with an empty field', () => {
-    renderWithProviders(<TranslatorScreen seedSample={false} />);
+  it('opens with an empty field', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample={false} />);
     expect(inputProps().value).toBe('');
   });
 
-  it('offers the placeholder in place of the sample', () => {
-    renderWithProviders(<TranslatorScreen seedSample={false} />);
+  it('offers the placeholder in place of the sample', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample={false} />);
     expect(inputProps().placeholder).toBe('Type your text here');
   });
 
-  it('says it in the interface language', () => {
-    renderWithProviders(<TranslatorScreen seedSample={false} />, { locale: 'pt-BR' });
+  it('says it in the interface language', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample={false} />, {
+      locale: 'pt-BR',
+    });
     expect(inputProps().placeholder).toBe('Digite seu texto aqui');
   });
 
   // Nothing to encode, so nothing to show — and no chips to press.
-  it('shows no Morse until something is typed', () => {
-    renderWithProviders(<TranslatorScreen seedSample={false} />);
+  it('shows no Morse until something is typed', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample={false} />);
     expect(screen.queryAllByTestId('morse-letter')).toHaveLength(0);
   });
 
   // ⚠️ Still shown. The dot asks "type something", which is MORE useful on an
   // empty field than on a seeded one, not less.
-  it('still points at the field', () => {
-    renderWithProviders(<TranslatorScreen seedSample={false} />);
+  it('still points at the field', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample={false} />);
     expect(screen.getByTestId('type-hint-dot')).toBeOnTheScreen();
   });
 
-  it('seeds when told to, which is what the first run does', () => {
-    renderWithProviders(<TranslatorScreen seedSample />);
+  it('seeds when told to, which is what the first run does', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample />);
     expect(inputProps().value).toBe('SOS');
   });
 });

@@ -49,9 +49,12 @@ function recogniser(available = true): Readonly<{
   };
 }
 
-const render = (port: Ports['speech'], locale?: 'en' | 'pt-BR' | 'es'): FakePorts => {
+const render = async (
+  port: Ports['speech'],
+  locale?: 'en' | 'pt-BR' | 'es',
+): Promise<FakePorts> => {
   const ports = createFakePorts({ speech: port });
-  renderWithProviders(
+  await renderWithProviders(
     <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={['tap', 'learn']} />,
     locale === undefined ? { ports } : { ports, locale },
   );
@@ -63,21 +66,21 @@ const render = (port: Ports['speech'], locale?: 'en' | 'pt-BR' | 'es'): FakePort
  * is already wrapped in act; this only waits for what it kicked off.
  */
 const tapMic = async (): Promise<void> => {
-  fireEvent.press(screen.getByTestId('mic-button'));
+  await fireEvent.press(screen.getByTestId('mic-button'));
   await act(async () => {
     await Promise.resolve();
   });
 };
 
 describe('SpeechScreen', () => {
-  it('starts idle, inviting a tap', () => {
-    render(recogniser().port);
+  it('starts idle, inviting a tap', async () => {
+    await render(recogniser().port);
     expect(screen.getByTestId('speech-title')).toHaveTextContent('Tap to speak');
     expect(screen.queryByTestId('speech-transcript')).toBeNull();
   });
 
   it('listens when the mic is tapped', async () => {
-    render(recogniser().port);
+    await render(recogniser().port);
     await tapMic();
 
     expect(screen.getByTestId('speech-title')).toHaveTextContent('Listening…');
@@ -88,10 +91,10 @@ describe('SpeechScreen', () => {
   // the speaker is still talking rather than arriving in one lump.
   it('encodes partial results as they arrive', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
 
-    act(() => {
+    await act(() => {
       mic.emit({ transcript: 'SOS', isFinal: false });
     });
 
@@ -107,8 +110,8 @@ describe('SpeechScreen', () => {
    * transcript was a dead end. What was heard is a message like any other.
    */
   describe('sending what was heard', () => {
-    it('offers nothing to send until there is something to send', () => {
-      render(recogniser().port);
+    it('offers nothing to send until there is something to send', async () => {
+      await render(recogniser().port);
 
       expect(screen.queryByTestId('output-channels')).toBeNull();
       expect(screen.queryByTestId('signal-button')).toBeNull();
@@ -116,10 +119,10 @@ describe('SpeechScreen', () => {
 
     it('offers all four channels once a transcript arrives', async () => {
       const mic = recogniser();
-      render(mic.port);
+      await render(mic.port);
       await tapMic();
 
-      act(() => {
+      await act(() => {
         mic.emit({ transcript: 'SOS', isFinal: true });
       });
 
@@ -134,16 +137,16 @@ describe('SpeechScreen', () => {
     // test, because every test here asserted that a control was PRESENT.
     it('flashes a surface when the Screen channel carries the message', async () => {
       const mic = recogniser();
-      render(mic.port);
+      await render(mic.port);
       await tapMic();
-      act(() => {
+      await act(() => {
         mic.emit({ transcript: 'SOS', isFinal: true });
       });
 
       expect(screen.queryByTestId('signal-surface')).toBeNull();
 
-      fireEvent.press(screen.getByTestId('channel-screen'));
-      fireEvent.press(screen.getByTestId('signal-button'));
+      await fireEvent.press(screen.getByTestId('channel-screen'));
+      await fireEvent.press(screen.getByTestId('signal-button'));
 
       expect(screen.getByTestId('signal-surface')).toBeOnTheScreen();
       expect(screen.queryByTestId('speech-morse-string')).toBeNull();
@@ -154,16 +157,16 @@ describe('SpeechScreen', () => {
     it('plays the transcript through the port when Emit is pressed', async () => {
       const mic = recogniser();
       const ports = createFakePorts({ speech: mic.port });
-      renderWithProviders(
+      await renderWithProviders(
         <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={['tap', 'learn']} />,
         { ports },
       );
       await tapMic();
 
-      act(() => {
+      await act(() => {
         mic.emit({ transcript: 'SOS', isFinal: true });
       });
-      fireEvent.press(screen.getByTestId('signal-button'));
+      await fireEvent.press(screen.getByTestId('signal-button'));
 
       await waitFor(() => {
         expect(ports.calls.played).toHaveLength(1);
@@ -173,10 +176,10 @@ describe('SpeechScreen', () => {
 
   it('settles once the recogniser commits', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
 
-    act(() => {
+    await act(() => {
       mic.emit({ transcript: 'hello', isFinal: true });
     });
 
@@ -187,7 +190,7 @@ describe('SpeechScreen', () => {
   // stop, not release: the final transcript is the point of tapping again.
   it('asks the recogniser to finish when tapped a second time', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
     await tapMic();
 
@@ -196,7 +199,7 @@ describe('SpeechScreen', () => {
   });
 
   it('says so when the device cannot recognise the language', async () => {
-    render(recogniser(false).port);
+    await render(recogniser(false).port);
     await tapMic();
 
     expect(screen.getByTestId('speech-hint')).toHaveTextContent(
@@ -208,10 +211,10 @@ describe('SpeechScreen', () => {
   // Refusing the microphone is a normal answer, not a crash.
   it('says so when the microphone is refused', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
 
-    act(() => {
+    await act(() => {
       mic.fail('permission');
     });
 
@@ -224,10 +227,10 @@ describe('SpeechScreen', () => {
 
   it('offers another go when the recogniser fails for another reason', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
 
-    act(() => {
+    await act(() => {
       mic.fail('no-speech');
     });
 
@@ -238,9 +241,9 @@ describe('SpeechScreen', () => {
 
   it('clears the last transcript when a new attempt starts', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
-    act(() => {
+    await act(() => {
       mic.emit({ transcript: 'first', isFinal: true });
     });
 
@@ -249,18 +252,18 @@ describe('SpeechScreen', () => {
     expect(screen.queryByTestId('speech-transcript')).toBeNull();
   });
 
-  it('speaks the interface language', () => {
-    render(recogniser().port, 'es');
+  it('speaks the interface language', async () => {
+    await render(recogniser().port, 'es');
     expect(screen.getByTestId('speech-title')).toHaveTextContent('Toca para hablar');
   });
 
   // Leaving the screen must not leave the microphone open.
   it('lets the recogniser go when it unmounts', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
     await tapMic();
 
-    screen.unmount();
+    await screen.unmount();
 
     await waitFor(() => {
       expect(mic.released()).toBe(1);
@@ -294,12 +297,15 @@ describe('which language it listens for', () => {
     const ports = createFakePorts();
     ports.speech.isAvailable = isAvailable;
     ports.locale.getDeviceLocale = () => 'en';
-    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-      // The INTERFACE is Portuguese; the recogniser must not follow it.
-      locale: 'pt-BR',
-    });
-    fireEvent.press(screen.getByTestId('mic-button'));
+    await renderWithProviders(
+      <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+        // The INTERFACE is Portuguese; the recogniser must not follow it.
+        locale: 'pt-BR',
+      },
+    );
+    await fireEvent.press(screen.getByTestId('mic-button'));
     await waitFor(() => {
       expect(isAvailable).toHaveBeenCalledWith('en');
     });
@@ -312,14 +318,17 @@ describe('which language it listens for', () => {
     const isAvailable = jest.fn(async () => true);
     const ports = holding({ 'settings.speechLocale': 'en' });
     ports.speech.isAvailable = isAvailable;
-    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-      locale: 'pt-BR',
-    });
+    await renderWithProviders(
+      <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+        locale: 'pt-BR',
+      },
+    );
     await waitFor(() => {
       expect(screen.getByTestId('speech-screen')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('mic-button'));
+    await fireEvent.press(screen.getByTestId('mic-button'));
     await waitFor(() => {
       expect(isAvailable).toHaveBeenCalledWith('en');
     });
@@ -331,10 +340,13 @@ describe('the microphone permission stands in front of the recogniser', () => {
 
   it('asks why before the recogniser can ask on its own', async () => {
     const ports = createFakePorts({}, DENIED);
-    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
-    fireEvent.press(screen.getByTestId('mic-button'));
+    await renderWithProviders(
+      <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
+    await fireEvent.press(screen.getByTestId('mic-button'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
     });
@@ -350,17 +362,20 @@ describe('the microphone permission stands in front of the recogniser', () => {
       ports.calls.requested.push(kind);
       return { granted: false, canAskAgain: true };
     };
-    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
-    fireEvent.press(screen.getByTestId('mic-button'));
+    await renderWithProviders(
+      <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
+    await fireEvent.press(screen.getByTestId('mic-button'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
     });
     // The rationale has one action and it leads to the OS prompt — see
     // guideline 5.1.1(iv).
     expect(screen.queryByTestId('permission-dismiss')).toBeNull();
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     // ⚠️ Wait on the REQUEST being made, not on the gate unmounting. A positive
     // signal settles the moment it happens; a disappearance has to outlast the
     // whole unmount, and under a loaded parallel run that outran the default
@@ -379,14 +394,17 @@ describe('the microphone permission stands in front of the recogniser', () => {
     const isAvailable = jest.fn(async () => true);
     const ports = createFakePorts({}, DENIED);
     ports.speech.isAvailable = isAvailable;
-    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-      ports,
-    });
-    fireEvent.press(screen.getByTestId('mic-button'));
+    await renderWithProviders(
+      <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      {
+        ports,
+      },
+    );
+    await fireEvent.press(screen.getByTestId('mic-button'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(isAvailable).toHaveBeenCalled();
     });
@@ -413,14 +431,17 @@ describe('the microphone permission stands in front of the recogniser', () => {
     };
 
     const denyThroughTheGate = async (ports: FakePorts): Promise<void> => {
-      renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />, {
-        ports,
-      });
-      fireEvent.press(screen.getByTestId('mic-button'));
+      await renderWithProviders(
+        <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+        {
+          ports,
+        },
+      );
+      await fireEvent.press(screen.getByTestId('mic-button'));
       await waitFor(() => {
         expect(screen.getByTestId('permission-microphone')).toBeOnTheScreen();
       });
-      fireEvent.press(screen.getByTestId('permission-primary'));
+      await fireEvent.press(screen.getByTestId('permission-primary'));
       await waitFor(() => {
         expect(ports.calls.requested).toContain('microphone');
       });
@@ -444,7 +465,7 @@ describe('the microphone permission stands in front of the recogniser', () => {
       await waitFor(() => {
         expect(screen.getByTestId('speech-open-settings')).toBeOnTheScreen();
       });
-      fireEvent.press(screen.getByTestId('speech-open-settings'));
+      await fireEvent.press(screen.getByTestId('speech-open-settings'));
 
       expect(ports.calls.settingsOpened).toBe(1);
     });
@@ -454,7 +475,7 @@ describe('the microphone permission stands in front of the recogniser', () => {
      * app cannot help with — offering it there sends the user somewhere useless.
      */
     it('does not offer settings when the language is simply unavailable', async () => {
-      render(recogniser(false).port);
+      await render(recogniser(false).port);
       await tapMic();
 
       expect(screen.queryByTestId('speech-open-settings')).toBeNull();
@@ -479,8 +500,10 @@ describe('the stage does not collapse under a transcript', () => {
       unknown
     >;
 
-  it('keeps its own content height when a transcript appears', () => {
-    renderWithProviders(<SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+  it('keeps its own content height when a transcript appears', async () => {
+    await renderWithProviders(
+      <SpeechScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+    );
     const style = flatten(screen.getByTestId('speech-stage').props.style);
     // The three that matter, asserted by value rather than by "not flex: 1":
     // basis from content, never shrink below it, still grow into free space.
@@ -503,16 +526,16 @@ describe('the microphone says it is listening', () => {
   const pulse = (): unknown =>
     screen.queryByTestId('mic-pulse', { includeHiddenElements: true });
 
-  it('does not pulse while idle', () => {
+  it('does not pulse while idle', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
 
     expect(pulse()).toBeNull();
   });
 
   it('pulses once listening starts', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
 
     await tapMic();
 
@@ -521,7 +544,7 @@ describe('the microphone says it is listening', () => {
 
   it('stops pulsing when listening ends', async () => {
     const mic = recogniser();
-    render(mic.port);
+    await render(mic.port);
 
     await tapMic();
     expect(pulse()).not.toBeNull();

@@ -3,7 +3,11 @@ import { Text } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { SAMPLE_SEED_KEY, SAMPLE_SEED_VERSION } from '@/core/domain/sampleSeed';
 import type { Ports } from '@/core/ports';
-import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
+import {
+  createFakePorts,
+  type FakePorts,
+  unansweredPreferences,
+} from '@/testing/fakePorts';
 import { PortsProvider } from './providers/PortsProvider';
 import { useSampleSeed } from './useSampleSeed';
 
@@ -31,8 +35,8 @@ const withSeen = (seen: string | null): FakePorts => {
   return createFakePorts({ preferences });
 };
 
-const mount = (seen: string | null): void => {
-  render(
+const mount = async (seen: string | null): Promise<void> => {
+  await render(
     <PortsProvider ports={withSeen(seen)}>
       <Probe />
     </PortsProvider>,
@@ -50,32 +54,36 @@ describe('useSampleSeed', () => {
    * filled a beat later would drop the sample INTO a message someone had
    * already begun typing.
    */
-  it('answers nothing until storage has been read', () => {
-    mount(null);
+  it('answers nothing until storage has been read', async () => {
+    await render(
+      <PortsProvider ports={createFakePorts({ preferences: unansweredPreferences })}>
+        <Probe />
+      </PortsProvider>,
+    );
     expect(screen.getByTestId('state')).toHaveTextContent('unknown');
   });
 
   it('seeds on a device that has never been seeded', async () => {
-    mount(null);
+    await mount(null);
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('seed');
     });
   });
 
   it('does not seed a device that has already seen this version', async () => {
-    mount(String(SAMPLE_SEED_VERSION));
+    await mount(String(SAMPLE_SEED_VERSION));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('empty');
     });
   });
 
   it('writes the version it has now shown', async () => {
-    mount(null);
+    await mount(null);
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('seed');
     });
 
-    fireEvent.press(screen.getByTestId('spend'));
+    await fireEvent.press(screen.getByTestId('spend'));
 
     await waitFor(() => {
       expect(writes).toEqual([{ key: SAMPLE_SEED_KEY, value: '1' }]);
@@ -89,12 +97,12 @@ describe('useSampleSeed', () => {
    * for the next launch; within this one the answer must not move.
    */
   it('still says seed after spending, so the sample survives a tab change', async () => {
-    mount(null);
+    await mount(null);
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('seed');
     });
 
-    fireEvent.press(screen.getByTestId('spend'));
+    await fireEvent.press(screen.getByTestId('spend'));
 
     expect(screen.getByTestId('state')).toHaveTextContent('seed');
   });

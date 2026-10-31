@@ -13,9 +13,9 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 const PHONE = 402;
 const TABLET = 1180;
 
-function show(width: number, onSelect = jest.fn(), onOpenSettings?: () => void) {
+async function show(width: number, onSelect = jest.fn(), onOpenSettings?: () => void) {
   mockWidth = width;
-  renderWithProviders(
+  await renderWithProviders(
     <AppFrame
       active="translate"
       onSelect={onSelect}
@@ -33,8 +33,8 @@ afterEach(() => {
 });
 
 describe('AppFrame', () => {
-  it('gives a phone the bottom bar and no rail', () => {
-    show(PHONE);
+  it('gives a phone the bottom bar and no rail', async () => {
+    await show(PHONE);
     expect(screen.getByTestId('tab-bar')).toBeOnTheScreen();
     expect(screen.queryByTestId('nav-rail')).toBeNull();
   });
@@ -51,16 +51,16 @@ describe('AppFrame', () => {
    * `useSafeAreaInsets` would agree with whatever the component did, including
    * doing nothing.
    */
-  it('keeps a tablet clear of the system bar at the bottom', () => {
-    show(TABLET);
+  it('keeps a tablet clear of the system bar at the bottom', async () => {
+    await show(TABLET);
 
     expect(screen.getByTestId('tablet-content')).toHaveStyle({
       paddingBottom: 34,
     });
   });
 
-  it('gives a tablet the rail and no bottom bar', () => {
-    show(TABLET);
+  it('gives a tablet the rail and no bottom bar', async () => {
+    await show(TABLET);
     expect(screen.getByTestId('nav-rail')).toBeOnTheScreen();
     expect(screen.queryByTestId('tab-bar')).toBeNull();
   });
@@ -68,8 +68,8 @@ describe('AppFrame', () => {
   it.each([
     ['phone', PHONE],
     ['tablet', TABLET],
-  ])('shows the screen it wraps on a %s', (_label, width) => {
-    show(width);
+  ])('shows the screen it wraps on a %s', async (_label, width) => {
+    await show(width);
     expect(screen.getByTestId('content')).toBeOnTheScreen();
   });
 
@@ -78,8 +78,8 @@ describe('AppFrame', () => {
   it.each([
     ['phone', PHONE],
     ['tablet', TABLET],
-  ])('reaches the same four destinations on a %s', (_label, width) => {
-    show(width);
+  ])('reaches the same four destinations on a %s', async (_label, width) => {
+    await show(width);
     for (const tab of ['translate', 'speak', 'tap', 'learn']) {
       expect(screen.getByTestId(`tab-${tab}`)).toBeOnTheScreen();
     }
@@ -88,23 +88,23 @@ describe('AppFrame', () => {
   it.each([
     ['phone', PHONE],
     ['tablet', TABLET],
-  ])('navigates from a %s', (_label, width) => {
-    const onSelect = show(width);
-    fireEvent.press(screen.getByTestId('tab-learn'));
+  ])('navigates from a %s', async (_label, width) => {
+    const onSelect = await show(width);
+    await fireEvent.press(screen.getByTestId('tab-learn'));
     expect(onSelect).toHaveBeenCalledWith('learn');
   });
 
   // The phone keeps its gear in the Translator header, where that screen has a
   // header to put it in. The rail has a foot.
-  it('offers settings on the rail when given somewhere to go', () => {
+  it('offers settings on the rail when given somewhere to go', async () => {
     const onOpenSettings = jest.fn();
-    show(TABLET, jest.fn(), onOpenSettings);
-    fireEvent.press(screen.getByTestId('open-settings'));
+    await show(TABLET, jest.fn(), onOpenSettings);
+    await fireEvent.press(screen.getByTestId('open-settings'));
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves the rail without a gear when there is nowhere to go', () => {
-    show(TABLET);
+  it('leaves the rail without a gear when there is nowhere to go', async () => {
+    await show(TABLET);
     expect(screen.queryByTestId('open-settings')).toBeNull();
   });
 
@@ -113,8 +113,8 @@ describe('AppFrame', () => {
   it.each([
     ['just below the breakpoint', 767, 'tab-bar'],
     ['exactly at it', 768, 'nav-rail'],
-  ])('switches shell %s', (_label, width, expected) => {
-    show(width);
+  ])('switches shell %s', async (_label, width, expected) => {
+    await show(width);
     expect(screen.getByTestId(expected)).toBeOnTheScreen();
   });
 });

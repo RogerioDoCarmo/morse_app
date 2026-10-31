@@ -33,8 +33,8 @@ function Probe(): React.JSX.Element {
   );
 }
 
-function mount(ports: FakePorts) {
-  render(
+async function mount(ports: FakePorts) {
+  await render(
     <SafeAreaProvider initialMetrics={METRICS}>
       <PortsProvider ports={ports}>
         <LocaleProvider initialLocale="en">
@@ -81,8 +81,8 @@ describe('when the permission is already held', () => {
   // case that will be the common one after first use.
   it('answers yes without showing anything', async () => {
     const ports = portsAnswering({ granted: true, canAskAgain: false });
-    mount(ports);
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(ports);
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('answer')).toHaveTextContent('true');
     });
@@ -94,8 +94,8 @@ describe('when the permission is already held', () => {
 describe('when the permission has not been asked for', () => {
   it('shows the rationale before prompting the OS', async () => {
     const ports = portsAnswering(UNASKED);
-    mount(ports);
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(ports);
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
@@ -105,8 +105,8 @@ describe('when the permission has not been asked for', () => {
 
   // A user asked for the torch mid-message should still have the message.
   it('covers the app without unmounting it', async () => {
-    mount(portsAnswering(UNASKED));
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(portsAnswering(UNASKED));
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
@@ -117,12 +117,12 @@ describe('when the permission has not been asked for', () => {
   // still in the accessibility tree: a screen reader would read the Translator
   // through the rationale, and a tap would land on whatever sat underneath.
   it('takes the app behind it out of reach while it is up', async () => {
-    mount(portsAnswering(UNASKED));
+    await mount(portsAnswering(UNASKED));
     expect(screen.getByTestId('gate-underlay').props.accessibilityElementsHidden).toBe(
       false,
     );
 
-    fireEvent.press(screen.getByTestId('ask'));
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
@@ -134,14 +134,14 @@ describe('when the permission has not been asked for', () => {
   });
 
   it('gives the app back once the gate closes', async () => {
-    mount(portsAnswering(UNASKED));
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(portsAnswering(UNASKED));
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
     // The only way past the rationale is the OS prompt — guideline 5.1.1(iv).
     // A denial closes the gate just as a grant does.
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     // ⚠️ Wait on the ANSWER, not on the gate unmounting. A positive signal
     // settles the moment it happens; a disappearance has to outlast the whole
     // unmount, and under a loaded parallel run that outran the default timeout.
@@ -156,12 +156,12 @@ describe('when the permission has not been asked for', () => {
 
   it('prompts on allow, and answers yes once granted', async () => {
     const ports = portsAnswering(UNASKED);
-    mount(ports);
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(ports);
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('answer')).toHaveTextContent('true');
     });
@@ -175,13 +175,13 @@ describe('when the permission has not been asked for', () => {
   // the permission request after the message." A no is now the OS's no.
   it('cannot answer no without the OS being asked', async () => {
     const ports = portsAnswering(UNASKED, UNASKED);
-    mount(ports);
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(ports);
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
     expect(screen.queryByTestId('permission-dismiss')).toBeNull();
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('answer')).toHaveTextContent('false');
     });
@@ -191,12 +191,12 @@ describe('when the permission has not been asked for', () => {
   // Denying with asks left is an ordinary no: the screen closes and the app
   // carries on, and the next attempt may ask again.
   it('answers no when the OS prompt is denied but may be shown again', async () => {
-    mount(portsAnswering(UNASKED, UNASKED));
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(portsAnswering(UNASKED, UNASKED));
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('answer')).toHaveTextContent('false');
     });
@@ -205,14 +205,14 @@ describe('when the permission has not been asked for', () => {
   // The one case worth the extra state: the way forward has changed, so the
   // screen changes rather than closing and leaving the user to guess.
   it('turns into the blocked screen when that denial was the last ask', async () => {
-    mount(portsAnswering(UNASKED, BLOCKED));
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(portsAnswering(UNASKED, BLOCKED));
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-headline')).toHaveTextContent(
         'OmniMorse needs the torch',
       );
     });
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-headline')).toHaveTextContent(
         'Camera access is off',
@@ -225,8 +225,8 @@ describe('when the permission has not been asked for', () => {
 describe('when the permission is blocked', () => {
   it('opens the blocked screen straight away, with no prompt offered', async () => {
     const ports = portsAnswering(BLOCKED);
-    mount(ports);
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(ports);
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-primary')).toHaveTextContent('Open Settings');
     });
@@ -235,12 +235,12 @@ describe('when the permission is blocked', () => {
 
   it('opens the system settings and answers no, since the answer is elsewhere', async () => {
     const ports = portsAnswering(BLOCKED);
-    mount(ports);
-    fireEvent.press(screen.getByTestId('ask'));
+    await mount(ports);
+    await fireEvent.press(screen.getByTestId('ask'));
     await waitFor(() => {
       expect(screen.getByTestId('permission-camera')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByTestId('permission-primary'));
+    await fireEvent.press(screen.getByTestId('permission-primary'));
     await waitFor(() => {
       expect(screen.getByTestId('answer')).toHaveTextContent('false');
     });
@@ -249,9 +249,11 @@ describe('when the permission is blocked', () => {
 });
 
 describe('the gate itself', () => {
-  it('refuses to be used outside the provider', () => {
+  it('refuses to be used outside the provider', async () => {
     const quiet = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    expect(() => render(<Probe />)).toThrow('usePermissionGate must be used inside');
+    await expect(render(<Probe />)).rejects.toThrow(
+      'usePermissionGate must be used inside',
+    );
     quiet.mockRestore();
   });
 });

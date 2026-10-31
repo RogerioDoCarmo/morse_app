@@ -10,8 +10,8 @@ function Probe() {
 }
 
 describe('PortsProvider', () => {
-  it('injects the ports', () => {
-    render(
+  it('injects the ports', async () => {
+    await render(
       <PortsProvider ports={createFakePorts()}>
         <Probe />
       </PortsProvider>,
@@ -19,9 +19,9 @@ describe('PortsProvider', () => {
     expect(screen.getByTestId('locale')).toHaveTextContent('en');
   });
 
-  it('throws rather than handing back a half-built app', () => {
+  it('throws rather than handing back a half-built app', async () => {
     const quiet = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    expect(() => render(<Probe />)).toThrow(/PortsProvider/u);
+    await expect(render(<Probe />)).rejects.toThrow(/PortsProvider/u);
     quiet.mockRestore();
   });
 });

@@ -171,6 +171,11 @@ module.exports = tseslint.config(
     rules: {
       ...jest.configs['flat/recommended'].rules,
       ...testingLibrary.configs['flat/react'].rules,
+      // ⚠️ RNTL v14 made `fireEvent` async; the preset still assumes React
+      // DOM's sync one, so it would flag every correct `await`. The rule is
+      // inverted rather than dropped: a forgotten `await` is the v14 bug.
+      'testing-library/no-await-sync-events': 'off',
+      'testing-library/await-async-events': ['error', { eventModule: 'fireEvent' }],
       'jsdoc/require-jsdoc': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       // Fakes and stubs satisfy async interfaces without awaiting anything.
