@@ -684,7 +684,7 @@ describe('sending what was tapped', () => {
     // 180ms the tap cut-off defaults to.
     // Inline rather than in a variable: `renderWav` starts with "render", and
     // testing-library's naming rule cannot tell it from a component render.
-    expect((ports.calls.played[0] as Uint8Array).length).toBe(
+    expect(ports.calls.played[0]).toHaveLength(
       renderWav(toTimeline(encode('E')), { unitMs: unitMsForWpm(10) }).length,
     );
   });

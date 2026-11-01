@@ -84,7 +84,7 @@ describe('renderWav audio', () => {
   it('renders a valid silent file for an empty message', () => {
     const bytes = wav('');
 
-    expect(bytes.length).toBe(HEADER_BYTES);
+    expect(bytes).toHaveLength(HEADER_BYTES);
     expect(ascii(bytes, 0, 4)).toBe('RIFF');
     expect(view(bytes).getUint32(40, true)).toBe(0);
   });
