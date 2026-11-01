@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@react-native/jest-preset": "^0.86.2",
-    "@storybook/react-native-web-vite": "^10.6.1",
+    "@storybook/react-native-web-vite": "^10.6.2",
     "@stryker-mutator/core": "^10.1.1",
     "@stryker-mutator/jest-runner": "^10.1.1",
     "@testing-library/react-native": "^14.1.0",
