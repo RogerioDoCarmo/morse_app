@@ -25,7 +25,6 @@ export type FakePorts = Ports &
     };
   }>;
 
-/** Builds fake ports. Override any piece per test. */
 /**
  * Storage that has not answered yet, and never will.
  *
@@ -38,6 +37,7 @@ export const unansweredPreferences: Ports['preferences'] = {
   write: async () => undefined,
 };
 
+/** Builds fake ports. Override any piece per test. */
 export function createFakePorts(
   overrides: Partial<Ports> = {},
   initialPermission: PermissionState = { granted: true, canAskAgain: false },

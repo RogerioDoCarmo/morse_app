@@ -1101,7 +1101,7 @@ describe('TranslatorScreen — the screen channel', () => {
     expect(ports.calls.vibrated).toEqual([]);
 
     await advance(500);
-    expect(ports.calls.vibrated.length).toBe(1);
+    expect(ports.calls.vibrated).toHaveLength(1);
   });
 
   /**
@@ -1134,7 +1134,7 @@ describe('TranslatorScreen — the screen channel', () => {
 
     await fireEvent.press(screen.getByTestId('signal-button'));
 
-    expect(ports.calls.vibrated.length).toBe(1);
+    expect(ports.calls.vibrated).toHaveLength(1);
   });
 
   it('counts as something to signal with on its own', async () => {
@@ -1353,7 +1353,7 @@ describe('what Settings changes here', () => {
     });
     await fireEvent.press(screen.getByTestId('signal-button'));
     await waitFor(() => {
-      expect(ports.calls.played.length).toBe(1);
+      expect(ports.calls.played).toHaveLength(1);
     });
     expect(ports.calls.played[0]).toStrictEqual(
       renderWav(toTimeline(encode('E')), { unitMs: 240 }),

@@ -5,7 +5,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { DEFAULT_LOCALE, type AppLocale } from '@/core/domain/locale';
+import type { AppLocale } from '@/core/domain/locale';
 import { TRANSLATIONS, type TranslationKey } from '@/i18n';
 import { usePorts } from './PortsProvider';
 
@@ -67,5 +67,3 @@ export function useLocale(): LocaleContextValue {
   }
   return value;
 }
-
-export { DEFAULT_LOCALE };
