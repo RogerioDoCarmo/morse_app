@@ -2,6 +2,14 @@
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  // ⚠️ 5 s, Jest's default, is too short for this suite on a developer
+  // machine. Since React Native Testing Library 14 every render is awaited, and
+  // under a full parallel run the Translator screen's file takes over a minute:
+  // ONE test somewhere in it ran past 5 s on most full runs, a different one
+  // each time, and every one passed alone. The pre-push hook runs this suite,
+  // so the flake blocked pushes at random — even a push that only deleted a
+  // branch. A test that genuinely hangs still fails, at 15 s instead of 5.
+  testTimeout: 15_000,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
