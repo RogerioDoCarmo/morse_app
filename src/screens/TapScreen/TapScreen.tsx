@@ -4,9 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocale } from '@/application/providers/LocaleProvider';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { useSettings } from '@/application/providers/SettingsProvider';
+import { useCopyConfirmation } from '@/application/useCopyConfirmation';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
+import { IconButton } from '@/components/IconButton';
 import { AppFrame } from '@/components/AppFrame';
 import { OutputChannels } from '@/components/OutputChannels';
 import { SignalSurface } from '@/components/SignalSurface';
@@ -26,14 +28,17 @@ import { encode, type MorseSymbol } from '@/core/domain/morse';
 import { unitMsForWpm } from '@/core/domain/timeline';
 import { theme } from '@/theme';
 
-/** How much one press of the stepper moves the cut-off. */
-
 /** The key's diameter, from the artboard. */
 const KEY_SIZE = 186;
 
 type Props = Readonly<{
   onSelectTab: (tab: TabName) => void;
   unavailableTabs: readonly TabName[];
+  /**
+   * Opens the Translator holding this text. Optional so the screen can still
+   * be rendered on its own in a test; without it the button is not offered.
+   */
+  onSendToTranslator?: ((text: string) => void) | undefined;
 }>;
 
 /**
@@ -44,7 +49,11 @@ type Props = Readonly<{
  * marks. Nothing here decides what a dot is; `classifyPress` does, against a
  * cut-off the operator sets, because "long" is relative to their own speed.
  */
-export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.Element {
+export function TapScreen({
+  onSelectTab,
+  unavailableTabs,
+  onSendToTranslator,
+}: Props): React.JSX.Element {
   const { t, locale } = useLocale();
   const { tts } = usePorts();
   const insets = useSafeAreaInsets();
@@ -213,6 +222,19 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
     }, UNITS.letterGap * unitMs);
   }, [presses.length, stopClosing, unitMs]);
 
+  // The decoded TEXT, not the Morse: this screen's output is what the marks
+  // spell, and until this existed the only way to get it off the screen was to
+  // have it read aloud.
+  const copied = useCopyConfirmation();
+  const { copy } = copied;
+  const copyText = useCallback((): void => copy(text), [copy, text]);
+
+  // What was keyed, handed to the Translator as typed text. From there it can
+  // be played, flashed or copied as Morse — without retyping it.
+  const sendToTranslator = useCallback((): void => {
+    onSendToTranslator?.(text);
+  }, [onSendToTranslator, text]);
+
   const clear = useCallback((): void => {
     stopClosing();
     setClosed(false);
@@ -328,6 +350,12 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 behind a permission, and a refusal used to leave the chip dark
                 with nothing said. */}
             <Toast
+              visible={copied.toast}
+              icon="check"
+              message={t('translator.copied')}
+              onDismiss={copied.dismissToast}
+            />
+            <Toast
               visible={lightDenied}
               icon="zap"
               message={t('channels.lightDenied')}
@@ -347,6 +375,24 @@ export function TapScreen({ onSelectTab, unavailableTabs }: Props): React.JSX.El
                 onPress={playback.playing ? playback.stop : playback.play}
                 label={playback.playing ? t('translator.stop') : t('translator.play')}
               />
+              {/* The Translator's arrangement: secondary actions beside Emit,
+                  where the card head had no room left for them on a 320dp
+                  phone. Offered only once there is text, like Read and Back —
+                  a button with nothing to act on looks like a broken one. */}
+              {text === '' ? null : (
+                <IconButton
+                  name={copied.ticked ? 'check' : 'copy'}
+                  label="tap-copy"
+                  onPress={copyText}
+                />
+              )}
+              {text === '' || onSendToTranslator === undefined ? null : (
+                <IconButton
+                  name="translate"
+                  label="tap-to-translator"
+                  onPress={sendToTranslator}
+                />
+              )}
             </View>
             {/* ⚠️ BELOW the button, not standing in for the decoded text. It
                 used to fill the card while the message was empty, which put a
@@ -530,7 +576,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, gap: theme.spacing.md },
   // Away from the channel strip above it, so the button reads as the thing
   // that acts rather than the last cell in the row.
-  actions: { flexDirection: 'row', paddingTop: theme.spacing.md },
+  actions: { flexDirection: 'row', gap: 10, paddingTop: theme.spacing.md },
   keyingHint: {
     ...theme.type.hint,
     color: theme.color.muted,

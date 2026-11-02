@@ -90,11 +90,28 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
   // returns to the rows that led there.
   const [languageOpen, setLanguageOpen] = useState(false);
 
+  /**
+   * Text on its way from the Tap screen to the Translator.
+   *
+   * ⚠️ Cleared by every OTHER way of moving. The Translator remounts whenever
+   * it comes back into view — from another tab, or from Settings — and reads
+   * this as its opening text each time; left standing, it would bring back a
+   * message the user had since cleared or replaced.
+   */
+  const [handoff, setHandoff] = useState<string | undefined>(undefined);
+
   const goToTab = useCallback((next: TabName): void => {
+    setHandoff(undefined);
     setTab(next);
   }, []);
 
+  const sendToTranslator = useCallback((text: string): void => {
+    setHandoff(text);
+    setTab('translate');
+  }, []);
+
   const openSettings = useCallback((): void => {
+    setHandoff(undefined);
     setSettingsOpen(true);
   }, []);
   // Nothing at all until the stored answers are in: showing the Translator for
@@ -174,7 +191,11 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
       {tab === 'speak' ? (
         <SpeechScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
       ) : tab === 'tap' ? (
-        <TapScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
+        <TapScreen
+          onSelectTab={goToTab}
+          unavailableTabs={UNBUILT}
+          onSendToTranslator={sendToTranslator}
+        />
       ) : tab === 'learn' ? (
         <LearnScreen onSelectTab={goToTab} unavailableTabs={UNBUILT} />
       ) : (
@@ -187,6 +208,7 @@ function Shell({ torch }: Readonly<{ torch: TorchAdapter }>): React.JSX.Element 
           // it itself would re-seed on the way back from Speak — the answer is
           // "has this device been shown it", not "is this mount the first".
           seedSample={sampleSeed.seed}
+          initialText={handoff}
         />
       )}
     </View>

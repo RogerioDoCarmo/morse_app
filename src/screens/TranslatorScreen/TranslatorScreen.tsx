@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
@@ -28,6 +28,7 @@ import { useSettings } from '@/application/providers/SettingsProvider';
 import { useLetterHint } from '@/application/useLetterHint';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { usePorts } from '@/application/providers/PortsProvider';
+import { useCopyConfirmation } from '@/application/useCopyConfirmation';
 import { unitMsForWpm } from '@/core/domain/timeline';
 import { localeBadge } from '@/i18n/localeNames';
 import { theme } from '@/theme';
@@ -62,6 +63,12 @@ type Props = Readonly<{
    * something in it, which is what almost every test here wants.
    */
   seedSample?: boolean | undefined;
+  /**
+   * Text the field opens holding, handed over from another screen — the Tap
+   * screen's "send to Translator". Wins over the sample: someone who brought
+   * a message here did not come for SOS.
+   */
+  initialText?: string | undefined;
 }>;
 
 type PaneProps = Readonly<{
@@ -128,20 +135,6 @@ function MorseOutput({
 }
 
 /**
- * How long the copy button shows a tick before turning back into a copy icon.
- *
- * Long enough to be seen if you glanced away, short enough that the button is
- * itself again before you would reach for it a second time.
- *
- * ⚠️ 1.8s was the first value and it was too tight to OBSERVE. A single
- * Maestro assertion on a software-rendered emulator can take longer than that,
- * so the tick had reverted before the flow could look at it — a state that
- * exists but cannot be checked is one nobody can defend against a regression.
- * 2.5s reads the same to a person and leaves the test somewhere to stand.
- */
-const COPIED_ICON_MS = 2500;
-
-/**
  * How much room to leave above the letter being chased.
  *
  * Scrolling it to the very top would put every letter that comes next off
@@ -163,6 +156,7 @@ export function TranslatorScreen({
   unavailableTabs,
   onOpenSettings,
   seedSample = true,
+  initialText,
 }: Props = {}): React.JSX.Element {
   const { t, locale, setLocale } = useLocale();
   const features = useBuildFeatures();
@@ -176,19 +170,6 @@ export function TranslatorScreen({
   const [localeMenu, setLocaleMenu] = useState(false);
   const inputRef = useRef<TextInput>(null);
   /**
-   * ⚠️ TWO states, not one, and they have different lifetimes on purpose.
-   *
-   * The tick is a fast acknowledgement at the fingertip and reverts itself
-   * after COPIED_ICON_MS. The toast is the explicit message and lives the
-   * Toast component's own LINGER_MS, or until the user taps it away.
-   *
-   * They shared one `copied` flag at first. The icon's 1.8s timer then cleared
-   * the toast as well, so the toast was gone in under two seconds instead of
-   * six — and the E2E flow failed asserting it, on a slow emulator, in the gap
-   * between checking the icon and checking the toast. The comment above the
-   * handler already described two lifetimes; the code had one.
-   */
-  /**
    * The scroll view that actually scrolls, which differs by layout.
    *
    * ⚠️ On a phone the chips are NOT in their own scroll view — the cards
@@ -199,8 +180,7 @@ export function TranslatorScreen({
   const cardsScroll = useRef<ScrollView | null>(null);
   const chipsScroll = useRef<ScrollView | null>(null);
 
-  const [copiedIcon, setCopiedIcon] = useState(false);
-  const [copiedToast, setCopiedToast] = useState(false);
+  const copied = useCopyConfirmation();
   const { tts } = usePorts();
   const insets = useSafeAreaInsets();
 
@@ -225,7 +205,7 @@ export function TranslatorScreen({
    */
   const sample = t('translator.sample');
   const [direction, setDirection] = useState<Direction>('toMorse');
-  const [text, setText] = useState(seedSample ? sample : '');
+  const [text, setText] = useState(initialText ?? (seedSample ? sample : ''));
   const [morseInput, setMorseInput] = useState(() =>
     seedSample ? encodeToString(sample) : '',
   );
@@ -247,15 +227,6 @@ export function TranslatorScreen({
    */
   const showTypeHint = !touchedInput;
 
-  /**
-   * Copy the Morse, confirm it twice.
-   *
-   * ⚠️ Two confirmations on purpose, and they are not redundant. The icon
-   * changing to a tick answers "did that button do anything?" at the point the
-   * finger is; the toast answers "what did it do?" for anyone who was looking
-   * at the text rather than the button. The icon is the fast one and reverts
-   * itself; the toast is the explicit one and the user dismisses it.
-   */
   /**
    * Empties the field the user is actually typing in.
    *
@@ -286,42 +257,10 @@ export function TranslatorScreen({
     })();
   }, [clipboard, toMorse]);
 
-  const onCopy = useCallback(() => {
-    void (async (): Promise<void> => {
-      // Nothing to copy is not a failure to report — there is simply no
-      // message yet, and a toast saying so would be noise on an empty screen.
-      if (morse.length === 0) return;
-      const ok = await clipboard.write(morse);
-      if (!ok) return;
-      setCopiedIcon(true);
-      setCopiedToast(true);
-    })();
-  }, [clipboard, morse]);
+  // Copy the Morse, confirmed at the fingertip and in words.
+  const { copy } = copied;
+  const onCopy = useCallback(() => copy(morse), [copy, morse]);
 
-  /**
-   * ⚠️ STABLE, via useCallback, and it has to be.
-   *
-   * `Toast` starts its linger timer in an effect keyed on `[visible,
-   * onDismiss]`. An inline arrow is a new function every render, so every
-   * re-render of this screen restarted that timer and the toast never
-   * dismissed itself at all — it just waited for a tap. The volume toast
-   * above is fine only because its handler already comes from a hook.
-   */
-  const dismissCopiedToast = useCallback(() => setCopiedToast(false), []);
-
-  /**
-   * Put the icon back.
-   *
-   * ⚠️ The timer is cleared on unmount AND on re-copy. Without the cleanup a
-   * second copy inside the window leaves the first timer running, and the tick
-   * reverts early — the visible symptom being a button that flickers back to
-   * `copy` while the toast still says it worked.
-   */
-  useEffect(() => {
-    if (!copiedIcon) return undefined;
-    const timer = setTimeout(() => setCopiedIcon(false), COPIED_ICON_MS);
-    return () => clearTimeout(timer);
-  }, [copiedIcon]);
   // What the encoder will throw away. Dropping it is right — there is no code
   // to send — but dropping it without saying so leaves the sender believing a
   // message went out whole.
@@ -788,10 +727,10 @@ export function TranslatorScreen({
             onDismiss={playback.dismissLowVolume}
           />
           <Toast
-            visible={copiedToast}
+            visible={copied.toast}
             icon="check"
             message={t('translator.copied')}
-            onDismiss={dismissCopiedToast}
+            onDismiss={copied.dismissToast}
           />
           {/* ⚠️ Beside the strip that raised it. Light is the only channel
               behind a permission, and a refusal used to leave the chip dark
@@ -822,7 +761,7 @@ export function TranslatorScreen({
                 a control drawn on the artboard and never wired, which looks
                 identical to a broken one. */}
             <IconButton
-              name={copiedIcon ? 'check' : 'copy'}
+              name={copied.ticked ? 'check' : 'copy'}
               label="copy-morse"
               onPress={onCopy}
             />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { encode } from '@/core/domain/morse';
@@ -799,5 +799,87 @@ describe('the keying speed', () => {
     await hold(100);
 
     expect(screen.getByTestId('tap-wpm')).toHaveTextContent('12 PPM');
+  });
+});
+
+describe('copying what was keyed', () => {
+  it('is not offered before there is anything to copy', async () => {
+    await show();
+    expect(screen.queryByLabelText('tap-copy')).toBeNull();
+  });
+
+  it('puts the decoded TEXT on the clipboard, not the Morse', async () => {
+    const ports = createFakePorts();
+    const written: string[] = [];
+    ports.clipboard.write = async (text: string) => {
+      written.push(text);
+      return true;
+    };
+    await renderWithProviders(
+      <TapScreen onSelectTab={jest.fn()} unavailableTabs={[]} />,
+      { ports },
+    );
+    await hold(100);
+    await wait(200);
+    await hold(300);
+
+    await fireEvent.press(screen.getByLabelText('tap-copy'));
+    await waitFor(() => expect(written).toEqual(['A']));
+  });
+
+  it('shows a tick and the Copied toast', async () => {
+    await show();
+    await hold(100);
+    await fireEvent.press(screen.getByLabelText('tap-copy'));
+
+    expect(
+      await within(screen.getByLabelText('tap-copy')).findByTestId('icon-check'),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId('toast')).toHaveTextContent('Copied');
+  });
+
+  it('goes with the message when it is cleared', async () => {
+    await show();
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('tap-clear'));
+
+    expect(screen.queryByLabelText('tap-copy')).toBeNull();
+  });
+});
+
+describe('sending what was keyed to the Translator', () => {
+  it('hands over the decoded text', async () => {
+    const send = jest.fn();
+    await renderWithProviders(
+      <TapScreen
+        onSelectTab={jest.fn()}
+        unavailableTabs={[]}
+        onSendToTranslator={send}
+      />,
+    );
+    await hold(300);
+    await wait(700);
+    await hold(100);
+
+    await fireEvent.press(screen.getByLabelText('tap-to-translator'));
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith('TE');
+  });
+
+  it('is not offered before there is anything to send', async () => {
+    await renderWithProviders(
+      <TapScreen
+        onSelectTab={jest.fn()}
+        unavailableTabs={[]}
+        onSendToTranslator={jest.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText('tap-to-translator')).toBeNull();
+  });
+
+  it('is not offered when there is no Translator to send to', async () => {
+    await show();
+    await hold(100);
+    expect(screen.queryByLabelText('tap-to-translator')).toBeNull();
   });
 });

@@ -2080,3 +2080,24 @@ describe('TranslatorScreen — after the first run', () => {
     expect(inputProps().value).toBe('SOS');
   });
 });
+
+/**
+ * Text handed over from the Tap screen. It replaces the sample on the first
+ * run as well as the empty field afterwards: someone who brought a message
+ * here did not come for SOS.
+ */
+describe('TranslatorScreen — opening with text from another screen', () => {
+  const inputProps = (): Record<string, unknown> =>
+    screen.getByTestId('translator-input').props as Record<string, unknown>;
+
+  it('opens holding the text, in place of the sample', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample initialText="HI" />);
+    expect(inputProps().value).toBe('HI');
+    expect(screen.queryAllByTestId('morse-letter')).toHaveLength(2);
+  });
+
+  it('opens holding the text after the first run too', async () => {
+    await renderWithProviders(<TranslatorScreen seedSample={false} initialText="E" />);
+    expect(inputProps().value).toBe('E');
+  });
+});
