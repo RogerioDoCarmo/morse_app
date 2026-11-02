@@ -11,6 +11,44 @@ import { elementAt } from '@/testing/elementAt';
 import { TranslatorScreen } from './TranslatorScreen';
 
 /**
+ * Stops the wall clock and nothing else.
+ *
+ * ⚠️ The playback hook ends a run by `Date.now()`, not by the audio, so a test
+ * that asserts on the PLAYING state with real timers is racing the message
+ * itself. "HI" is about a second and a half at the default speed and SOS about
+ * three; under a full parallel run one of these tests found the message
+ * already over, a different one each time, and the pre-push hook refused the
+ * push. Timers still run, so effects and `waitFor` behave as before — only
+ * the clock the run is measured by stands still.
+ */
+const holdTheClock = (): void => {
+  jest.useFakeTimers({
+    doNotFake: [
+      'setTimeout',
+      'clearTimeout',
+      'setInterval',
+      'clearInterval',
+      'setImmediate',
+      'clearImmediate',
+      'nextTick',
+      'queueMicrotask',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+      'requestIdleCallback',
+      'cancelIdleCallback',
+      'hrtime',
+      'performance',
+    ],
+  });
+};
+
+// A test that held the clock and then failed must not hand the frozen clock
+// to the next one.
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+/**
  * Light is gated on the camera permission now, so the toggle resolves a
  * promise before the channel changes. Flush it before asserting.
  */
@@ -680,6 +718,7 @@ describe('TranslatorScreen — characters Morse cannot carry', () => {
 
   // What is happening now outranks a warning about what was typed.
   it('yields the slot to playback while a message is playing', async () => {
+    holdTheClock();
     const audio = pendingAudio();
     await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
 
@@ -757,6 +796,7 @@ describe('TranslatorScreen — hearing one letter', () => {
   // While a message is running the letters are a progress display, not a
   // keyboard. A tap must not replace the audio mid-transmission.
   it('ignores a tap while a message is playing', async () => {
+    holdTheClock();
     const audio = pendingAudio();
     await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
@@ -773,6 +813,7 @@ describe('TranslatorScreen — hearing one letter', () => {
   });
 
   it('leaves the highlight to the playhead, rather than to the tap', async () => {
+    holdTheClock();
     const audio = pendingAudio();
     await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
@@ -790,6 +831,9 @@ describe('TranslatorScreen — hearing one letter', () => {
   });
 
   it('takes taps again once the message is stopped', async () => {
+    // Held too: the second press has to land while the run is still going,
+    // or it starts a new one instead of stopping this one.
+    holdTheClock();
     const audio = pendingAudio();
     await renderWithProviders(<TranslatorScreen />, { ports: withAudio(audio.port) });
     await fireEvent.changeText(screen.getByTestId('translator-input'), 'SOS');
@@ -2019,6 +2063,7 @@ describe('finding out that the chips are pressable', () => {
    * inviting one would be inviting a press the screen is about to ignore.
    */
   it('says nothing while a message is going out', async () => {
+    holdTheClock();
     await renderWithProviders(<TranslatorScreen />, { ports: untaught() });
     await waitFor(() => {
       expect(halos()).toHaveLength(1);
