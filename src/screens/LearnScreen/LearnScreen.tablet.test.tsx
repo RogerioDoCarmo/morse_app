@@ -9,8 +9,8 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   default: () => ({ width: mockWidth, height: 820, scale: 2, fontScale: 1 }),
 }));
 
-const show = (): void => {
-  renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
+const show = async (): Promise<void> => {
+  await renderWithProviders(<LearnScreen onSelectTab={jest.fn()} unavailableTabs={[]} />);
 };
 
 describe('Learn on a tablet', () => {
@@ -18,21 +18,21 @@ describe('Learn on a tablet', () => {
     mockWidth = 1180;
   });
 
-  it('stands the alphabet beside the prose', () => {
-    show();
+  it('stands the alphabet beside the prose', async () => {
+    await show();
     expect(screen.getByTestId('learn-columns')).toBeOnTheScreen();
   });
 
-  it('navigates from the rail rather than a bottom bar', () => {
-    show();
+  it('navigates from the rail rather than a bottom bar', async () => {
+    await show();
     expect(screen.getByTestId('nav-rail')).toBeOnTheScreen();
     expect(screen.queryByTestId('tab-bar')).toBeNull();
   });
 
   // Two columns are a different ORDER, not different content: everything the
   // phone shows is still here, and still only once.
-  it('shows every section exactly once', () => {
-    show();
+  it('shows every section exactly once', async () => {
+    await show();
     expect(screen.getByTestId('learn-what')).toBeOnTheScreen();
     expect(screen.getByTestId('learn-alphabet')).toBeOnTheScreen();
     expect(screen.getByTestId('learn-gaps')).toBeOnTheScreen();
@@ -40,9 +40,9 @@ describe('Learn on a tablet', () => {
     expect(screen.getAllByTestId('learn-letter')).toHaveLength(39);
   });
 
-  it('goes back to one column below the breakpoint', () => {
+  it('goes back to one column below the breakpoint', async () => {
     mockWidth = 767;
-    show();
+    await show();
     expect(screen.queryByTestId('learn-columns')).toBeNull();
     expect(screen.getByTestId('learn-alphabet')).toBeOnTheScreen();
   });

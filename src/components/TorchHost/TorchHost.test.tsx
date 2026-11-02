@@ -19,14 +19,14 @@ const adapter = (): ReturnType<typeof createExpoTorchAdapter> =>
   createExpoTorchAdapter(createNoopCrashReportingAdapter());
 
 describe('TorchHost', () => {
-  it('mounts no camera while nothing is holding one', () => {
-    render(<TorchHost adapter={adapter()} />);
+  it('mounts no camera while nothing is holding one', async () => {
+    await render(<TorchHost adapter={adapter()} />);
     expect(screen.queryByTestId('torch-host')).toBeNull();
   });
 
   it('mounts a camera when a run holds one, before anything is lit', async () => {
     const torch = adapter();
-    render(<TorchHost adapter={torch} />);
+    await render(<TorchHost adapter={torch} />);
 
     // The adapter drives React from outside, so the update needs flushing.
     await act(async () => {
@@ -47,7 +47,7 @@ describe('TorchHost', () => {
    */
   it('keeps the same camera across every mark of a run', async () => {
     const torch = adapter();
-    render(<TorchHost adapter={torch} />);
+    await render(<TorchHost adapter={torch} />);
 
     await act(async () => {
       await torch.setActive(true);
@@ -64,7 +64,7 @@ describe('TorchHost', () => {
 
   it('switches the torch prop rather than the camera', async () => {
     const torch = adapter();
-    render(<TorchHost adapter={torch} />);
+    await render(<TorchHost adapter={torch} />);
 
     await act(async () => {
       await torch.setActive(true);
@@ -81,7 +81,7 @@ describe('TorchHost', () => {
 
   it('unmounts the camera once the run lets it go, releasing it', async () => {
     const torch = adapter();
-    render(<TorchHost adapter={torch} />);
+    await render(<TorchHost adapter={torch} />);
 
     await act(async () => {
       await torch.setActive(true);
@@ -97,7 +97,7 @@ describe('TorchHost', () => {
 
   it('still mounts for a torch switched on without a run behind it', async () => {
     const torch = adapter();
-    render(<TorchHost adapter={torch} />);
+    await render(<TorchHost adapter={torch} />);
 
     await act(async () => {
       await torch.setEnabled(true);

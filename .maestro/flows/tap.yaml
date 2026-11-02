@@ -182,8 +182,37 @@ appId: com.rogeriodocarmo.morse
 - assertNotVisible:
     id: 'tap-read'
 
-# And back, which is the half of navigation that usually breaks.
+# Copy and "send to Translator" sit beside Emit, so they are reached by the
+# same swipe that reached it. Nothing keyed, nothing offered: they went with
+# the message above, and coming back with a fresh one brings them back.
 - tapOn:
-    id: 'tab-translate'
+    id: 'tap-key'
+- assertVisible:
+    id: 'tap-decoded'
+- swipe:
+    from:
+      id: 'tap-decoded'
+    direction: UP
+- tapOn:
+    id: 'tap-copy'
+# ⚠️ Tap the toast away before reaching for the neighbour. It opens ABOVE the
+# channel strip and pushes this row down, then takes itself away after six
+# seconds — and on iOS that landed inside the next tap: Maestro aimed at the
+# pushed-down button, the row slid back up 35pt, and the tap hit the hint
+# below it. Dismissed, the row is where it will stay.
+- assertVisible:
+    id: 'toast'
+- tapOn:
+    id: 'toast'
+- assertNotVisible:
+    id: 'toast'
+
+# And on to the Translator holding what was keyed, which is also the way back
+# to it — the half of navigation that usually breaks.
+- tapOn:
+    id: 'tap-to-translator'
 - assertVisible:
     id: 'translator-screen'
+- assertVisible:
+    id: 'translator-input'
+    text: 'E'

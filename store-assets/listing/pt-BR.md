@@ -100,11 +100,13 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.9. Replace for each release; keep the shape.
+For 0.3.10. Replace for each release; keep the shape.
 
-0.3.9 is the first store build since 0.3.7 (0.3.8 had none), so these notes
-carry 0.3.8's privacy-policy line too. ⚠️ The words-per-minute idea came from
-a bot reply on Reddit, not a tester: never present it as tester feedback.
+0.3.10 is the second closed-track update after Google's 28 October request for
+more testing. ⚠️ None of its three changes came from a tester either:
+calibration finishes a label the Settings design always had, and copy and
+"send to Translator" close gaps found reading the Tap screen. Do not present
+any of them as tester feedback unless a tester asks for one.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -122,6 +124,6 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• A tela Tocar agora mostra a velocidade com que você digitou, em palavras por minuto. Ela conta os pontos, os traços e os silêncios dentro de cada letra, então pausar entre letras ou palavras não a reduz.
-• A política de privacidade ganha uma seção para a versão sem acesso à internet.
+• Os Ajustes agora medem o seu limite de ponto / traço: toque em "Calibrar tocando", tecle três pontos e três traços, e ele se ajusta à sua velocidade.
+• A tela Tocar pode copiar o que você teclou, ou enviar para a tela Traduzir e reproduzir como som, luz ou vibração.
 ```

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { SettingsScreen } from './SettingsScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
@@ -18,12 +18,12 @@ function portsHolding(stored: Readonly<Record<string, string>>): FakePorts {
   };
 }
 
-function show(ports: FakePorts = createFakePorts()) {
+async function show(ports: FakePorts = createFakePorts()) {
   const onBack = jest.fn();
   const onOpenLearn = jest.fn();
   const onOpenLanguage = jest.fn();
   const onShowGuide = jest.fn();
-  const view = renderWithProviders(
+  const view = await renderWithProviders(
     <SettingsScreen
       onBack={onBack}
       onOpenLearn={onOpenLearn}
@@ -36,8 +36,8 @@ function show(ports: FakePorts = createFakePorts()) {
 }
 
 describe('SettingsScreen', () => {
-  it('shows every section the design calls for', () => {
-    show();
+  it('shows every section the design calls for', async () => {
+    await show();
     expect(screen.getByText('TAP INPUT')).toBeOnTheScreen();
     expect(screen.getByText('LANGUAGE')).toBeOnTheScreen();
     expect(screen.getByText('OUTPUT')).toBeOnTheScreen();
@@ -45,8 +45,8 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('ABOUT')).toBeOnTheScreen();
   });
 
-  it('shows the cut-off in milliseconds, with the ends of the range', () => {
-    show();
+  it('shows the cut-off in milliseconds, with the ends of the range', async () => {
+    await show();
     expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('180 ms');
     expect(screen.getByText('80')).toBeOnTheScreen();
     expect(screen.getByText('400')).toBeOnTheScreen();
@@ -54,12 +54,12 @@ describe('SettingsScreen', () => {
 
   it('moves the cut-off and writes it', async () => {
     const ports = createFakePorts();
-    show(ports);
+    await show(ports);
     const slider = screen.getByTestId('settings-cutoff');
-    fireEvent(slider, 'layout', {
+    await fireEvent(slider, 'layout', {
       nativeEvent: { layout: { width: 320, height: 34, x: 0, y: 0 } },
     });
-    fireEvent(slider, 'responderGrant', {
+    await fireEvent(slider, 'responderGrant', {
       nativeEvent: { locationX: 320 },
       touchHistory: { touchBank: [] },
     });
@@ -74,10 +74,10 @@ describe('SettingsScreen', () => {
 
   it('offers the three speeds and stores the one picked', async () => {
     const ports = createFakePorts();
-    show(ports);
+    await show(ports);
     expect(screen.getByText('5 WPM')).toBeOnTheScreen();
     expect(screen.getByText('15 WPM')).toBeOnTheScreen();
-    fireEvent.press(screen.getByTestId('segment-15'));
+    await fireEvent.press(screen.getByTestId('segment-15'));
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
         key: 'settings.playbackWpm',
@@ -88,14 +88,14 @@ describe('SettingsScreen', () => {
 
   // Settings shows what each locale currently is and hands the choosing to
   // the Language screen — one owner per value.
-  it('shows the current languages without offering to change them here', () => {
-    show();
+  it('shows the current languages without offering to change them here', async () => {
+    await show();
     expect(screen.getByTestId('settings-language')).toHaveTextContent(/English/u);
     expect(screen.getByTestId('settings-speech-locale')).toHaveTextContent(/English/u);
   });
 
-  it('shows the recogniser language when it no longer follows the interface', () => {
-    show(portsHolding({ 'settings.speechLocale': 'es' }));
+  it('shows the recogniser language when it no longer follows the interface', async () => {
+    await show(portsHolding({ 'settings.speechLocale': 'es' }));
     return waitFor(() => {
       expect(screen.getByTestId('settings-speech-locale')).toHaveTextContent(/Español/u);
     });
@@ -103,9 +103,9 @@ describe('SettingsScreen', () => {
 
   it.each(['settings-language', 'settings-speech-locale'])(
     '%s opens the Language screen',
-    (testID) => {
-      const { onOpenLanguage } = show();
-      fireEvent.press(screen.getByTestId(testID));
+    async (testID) => {
+      const { onOpenLanguage } = await show();
+      await fireEvent.press(screen.getByTestId(testID));
       expect(onOpenLanguage).toHaveBeenCalledTimes(1);
     },
   );
@@ -115,8 +115,8 @@ describe('SettingsScreen', () => {
     ['settings-crash-reports', 'settings.crashReports'],
   ])('turns %s off and writes it', async (testID, key) => {
     const ports = createFakePorts();
-    show(ports);
-    fireEvent(screen.getByTestId(testID), 'valueChange', false);
+    await show(ports);
+    await fireEvent(screen.getByTestId(testID), 'valueChange', false);
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({ key, value: 'false' });
     });
@@ -124,29 +124,29 @@ describe('SettingsScreen', () => {
 
   it('opts out of crash reporting with the reporter itself, not just storage', async () => {
     const ports = createFakePorts();
-    show(ports);
-    fireEvent(screen.getByTestId('settings-crash-reports'), 'valueChange', false);
+    await show(ports);
+    await fireEvent(screen.getByTestId('settings-crash-reports'), 'valueChange', false);
     await waitFor(() => {
       expect(ports.calls.crashCollection).toStrictEqual([false]);
     });
   });
 
-  it('goes back', () => {
-    const { onBack } = show();
-    fireEvent.press(screen.getByTestId('settings-back'));
+  it('goes back', async () => {
+    const { onBack } = await show();
+    await fireEvent.press(screen.getByTestId('settings-back'));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('sends the About row to Learn, which already answers it', () => {
-    const { onOpenLearn } = show();
-    fireEvent.press(screen.getByTestId('settings-about-morse'));
+  it('sends the About row to Learn, which already answers it', async () => {
+    const { onOpenLearn } = await show();
+    await fireEvent.press(screen.getByTestId('settings-about-morse'));
     expect(onOpenLearn).toHaveBeenCalledTimes(1);
   });
 
   // Settings is reached from the gear and left by the arrow, so it sits above
   // the tabs rather than beside them.
-  it('shows no tab bar', () => {
-    show();
+  it('shows no tab bar', async () => {
+    await show();
     expect(screen.queryByTestId('tab-translate')).toBeNull();
   });
 });
@@ -155,23 +155,23 @@ describe('getting the welcome guide back', () => {
   // The version gate answers "has this device seen this guide", which is right
   // for showing it unasked and wrong for someone who tapped Skip: they have
   // seen it and still want it. Without this row there is no way back at all.
-  it('offers it, and says what it is', () => {
-    show();
+  it('offers it, and says what it is', async () => {
+    await show();
     expect(screen.getByTestId('settings-show-guide')).toHaveTextContent(
       /Show the welcome guide/u,
     );
     expect(screen.getByTestId('settings-show-guide')).toHaveTextContent(/three slides/u);
   });
 
-  it('asks for it', () => {
-    const { onShowGuide } = show();
-    fireEvent.press(screen.getByTestId('settings-show-guide'));
+  it('asks for it', async () => {
+    const { onShowGuide } = await show();
+    await fireEvent.press(screen.getByTestId('settings-show-guide'));
     expect(onShowGuide).toHaveBeenCalledTimes(1);
   });
 
   // It sits with the other things that explain the app, not with the switches.
-  it('sits in ABOUT, beside the Morse explainer', () => {
-    show();
+  it('sits in ABOUT, beside the Morse explainer', async () => {
+    await show();
     expect(screen.getByText('ABOUT')).toBeOnTheScreen();
     expect(screen.getByTestId('settings-about-morse')).toBeOnTheScreen();
   });
@@ -199,16 +199,16 @@ describe('which build this is', () => {
    * `appVersionSource: "remote"`, so it is read from the binary. `jest-expo`
    * stands in the literal string `mock` for it, which is the `(mock)` below.
    */
-  it('shows the version and the build the app claims', () => {
-    show();
+  it('shows the version and the build the app claims', async () => {
+    await show();
 
     expect(screen.getByTestId('settings-version')).toHaveTextContent(
       `Version ${appJson.expo.version} (mock)`,
     );
   });
 
-  it('says it in the interface language', () => {
-    renderWithProviders(
+  it('says it in the interface language', async () => {
+    await renderWithProviders(
       <SettingsScreen
         onBack={jest.fn()}
         onOpenLearn={jest.fn()}
@@ -239,9 +239,9 @@ describe('which build this is', () => {
  */
 describe('confirming what a switch did', () => {
   it('names the setting and the state it moved to', async () => {
-    show();
+    await show();
 
-    fireEvent(screen.getByTestId('settings-read-aloud'), 'valueChange', false);
+    await fireEvent(screen.getByTestId('settings-read-aloud'), 'valueChange', false);
 
     const toast = await screen.findByTestId('toast');
     // The setting by NAME, not "Saved" — three switches would otherwise all
@@ -251,9 +251,9 @@ describe('confirming what a switch did', () => {
   });
 
   it('says on when it goes the other way', async () => {
-    show();
+    await show();
 
-    fireEvent(screen.getByTestId('settings-crash-reports'), 'valueChange', true);
+    await fireEvent(screen.getByTestId('settings-crash-reports'), 'valueChange', true);
 
     const toast = await screen.findByTestId('toast');
     expect(within(toast).getByText(/Send crash reports/u)).toBeTruthy();
@@ -266,12 +266,121 @@ describe('confirming what a switch did', () => {
    * this asserts the glyph is asked for rather than inherited.
    */
   it('shows a tick, not the speaker the volume warning uses', async () => {
-    show();
+    await show();
 
-    fireEvent(screen.getByTestId('settings-read-aloud'), 'valueChange', false);
+    await fireEvent(screen.getByTestId('settings-read-aloud'), 'valueChange', false);
 
     const toast = await screen.findByTestId('toast');
     expect(within(toast).getByTestId('icon-check')).toBeTruthy();
     expect(within(toast).queryByTestId('icon-volume')).toBeNull();
+  });
+});
+
+/**
+ * Calibrating the cut-off by hand: three dots, then three dashes, and the
+ * cut-off lands between them. The arithmetic is `calibration.test.ts`'s job;
+ * these pin the panel around it.
+ */
+describe('SettingsScreen — calibrating the cut-off by tapping', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const hold = async (ms: number): Promise<void> => {
+    const key = screen.getByTestId('settings-calibrate-key');
+    await fireEvent(key, 'pressIn');
+    await act(() => {
+      jest.advanceTimersByTime(ms);
+    });
+    await fireEvent(key, 'pressOut');
+  };
+
+  const open = async (ports: FakePorts = createFakePorts()): Promise<FakePorts> => {
+    await show(ports);
+    await fireEvent.press(screen.getByTestId('settings-calibrate'));
+    return ports;
+  };
+
+  it('offers calibration under the slider, closed until asked for', async () => {
+    await show();
+    expect(screen.getByText('Calibrate by tapping')).toBeOnTheScreen();
+    expect(screen.queryByTestId('settings-calibration')).toBeNull();
+  });
+
+  it('asks for three dots and then three dashes', async () => {
+    await open();
+    expect(screen.getByTestId('settings-calibrate-hint')).toHaveTextContent(
+      'Tap three short dots, then hold three long dashes.',
+    );
+    expect(screen.getAllByTestId('settings-calibrate-mark')).toHaveLength(6);
+    expect(screen.queryByTestId('settings-calibrate')).toBeNull();
+  });
+
+  it('lights one mark per press', async () => {
+    await open();
+    await hold(100);
+    await hold(100);
+
+    expect(screen.getAllByTestId('settings-calibrate-mark-done')).toHaveLength(2);
+    expect(screen.getAllByTestId('settings-calibrate-mark')).toHaveLength(4);
+  });
+
+  it('sets, stores and announces the measured cut-off', async () => {
+    const ports = await open();
+    for (const ms of [100, 100, 100, 400, 400, 400]) await hold(ms);
+
+    // sqrt(100 * 400) = 200.
+    expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('200 ms');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Cut-off set to 200 ms');
+    expect(screen.queryByTestId('settings-calibration')).toBeNull();
+    await waitFor(() => {
+      expect(ports.calls.stored).toContainEqual({
+        key: 'settings.tapUnitMs',
+        value: '200',
+      });
+    });
+  });
+
+  it('asks again, from the start, when the marks cannot be told apart', async () => {
+    const ports = await open();
+    for (let press = 0; press < 6; press += 1) await hold(200);
+
+    expect(screen.getByTestId('settings-calibrate-hint')).toHaveTextContent(
+      'Those dots and dashes were too close to tell apart. Try again, with the dashes longer.',
+    );
+    expect(screen.getAllByTestId('settings-calibrate-mark')).toHaveLength(6);
+    expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('180 ms');
+    expect(ports.calls.stored).not.toContainEqual(
+      expect.objectContaining({ key: 'settings.tapUnitMs' }),
+    );
+  });
+
+  it('can be left without changing anything', async () => {
+    await open();
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('settings-calibrate-cancel'));
+
+    expect(screen.queryByTestId('settings-calibration')).toBeNull();
+    expect(screen.getByTestId('settings-calibrate')).toBeOnTheScreen();
+    expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('180 ms');
+  });
+
+  it('is offered in each language', async () => {
+    await renderWithProviders(
+      <SettingsScreen
+        onBack={jest.fn()}
+        onOpenLearn={jest.fn()}
+        onOpenLanguage={jest.fn()}
+        onShowGuide={jest.fn()}
+      />,
+      { locale: 'pt-BR' },
+    );
+    await fireEvent.press(screen.getByTestId('settings-calibrate'));
+    expect(screen.getByTestId('settings-calibrate-hint')).toHaveTextContent(
+      'Toque três pontos curtos, depois segure três traços longos.',
+    );
   });
 });

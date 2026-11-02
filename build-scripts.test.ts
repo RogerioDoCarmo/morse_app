@@ -140,6 +140,18 @@ describe('the uuid override, which closes the last alert', () => {
 });
 
 /**
+ * The per-test time limit, as a literal. Jest's 5 s default made the full
+ * local run fail one random screen test on most runs, which blocked the
+ * pre-push hook; see the comment in jest.config.js.
+ */
+describe('jest.config.js', () => {
+  it('gives each test 15 seconds, not the 5-second default', () => {
+    const config = jest.requireActual<{ testTimeout?: number }>('./jest.config.js');
+    expect(config.testTimeout).toBe(15000);
+  });
+});
+
+/**
  * ⚠️ `tools/patch-android-release.js` exists because this machine cannot run
  * `eas build --local` at all — EAS refuses Windows outright — and EAS cloud
  * credits do not reset until 1 October. Gradle runs natively, so the AAB is

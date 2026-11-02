@@ -64,8 +64,7 @@ export function toAndroidPattern(marks: readonly VibrationMark[]): number[] {
   let cursor = 0;
 
   marks.forEach((mark) => {
-    pattern.push(Math.max(0, mark.atMs - cursor));
-    pattern.push(mark.durationMs);
+    pattern.push(Math.max(0, mark.atMs - cursor), mark.durationMs);
     cursor = mark.atMs + mark.durationMs;
   });
 

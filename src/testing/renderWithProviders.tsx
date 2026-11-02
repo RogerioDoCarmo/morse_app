@@ -26,14 +26,14 @@ const METRICS: Metrics = {
  * does not mention build variants tests the app the stores ship. Pass
  * `featuresFor('fdroid')` to render the F-Droid build instead.
  */
-export function renderWithProviders(
+export async function renderWithProviders(
   ui: ReactElement,
   options: Readonly<{
     ports?: FakePorts;
     locale?: AppLocale;
     features?: BuildFeatures;
   }> = {},
-): RenderResult & Readonly<{ ports: FakePorts }> {
+): Promise<RenderResult & Readonly<{ ports: FakePorts }>> {
   const ports: FakePorts = options.ports ?? createFakePorts();
   const features = options.features ?? ALL_BUILD_FEATURES;
 
@@ -51,5 +51,5 @@ export function renderWithProviders(
     </SafeAreaProvider>
   );
 
-  return { ...render(ui, { wrapper: Wrapper }), ports };
+  return { ...(await render(ui, { wrapper: Wrapper })), ports };
 }

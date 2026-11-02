@@ -1,0 +1,2 @@
+• Ajustes ahora puede medir tu umbral de punto / raya: toca "Calibrar pulsando", teclea tres puntos y tres rayas, y se adapta a tu velocidad.
+• La pantalla Pulsar puede copiar lo que tecleaste, o enviarlo a la pantalla Traducir para reproducirlo como sonido, luz o vibración.

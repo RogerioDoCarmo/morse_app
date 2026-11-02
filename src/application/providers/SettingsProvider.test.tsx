@@ -3,7 +3,11 @@ import { Text, Pressable } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { PortsProvider } from './PortsProvider';
 import { SettingsProvider, useSettings } from './SettingsProvider';
-import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
+import {
+  createFakePorts,
+  type FakePorts,
+  unansweredPreferences,
+} from '@/testing/fakePorts';
 
 /** Shows every setting, and offers a way to change each one. */
 function Probe(): React.JSX.Element {
@@ -70,8 +74,8 @@ function Probe(): React.JSX.Element {
   );
 }
 
-function mount(ports: FakePorts) {
-  render(
+async function mount(ports: FakePorts) {
+  await render(
     <PortsProvider ports={ports}>
       <SettingsProvider>
         <Probe />
@@ -100,7 +104,7 @@ async function settle(): Promise<void> {
 
 describe('SettingsProvider', () => {
   it('shows the defaults on a device that has stored nothing', async () => {
-    mount(createFakePorts());
+    await mount(createFakePorts());
     await settle();
     expect(screen.getByTestId('cutoff')).toHaveTextContent('180');
     expect(screen.getByTestId('wpm')).toHaveTextContent('10');
@@ -110,7 +114,7 @@ describe('SettingsProvider', () => {
   });
 
   it('restores what was stored', async () => {
-    mount(
+    await mount(
       portsHolding({
         'settings.tapUnitMs': '300',
         'settings.playbackWpm': '5',
@@ -127,8 +131,8 @@ describe('SettingsProvider', () => {
 
   // The defaults render before storage answers, so a screen that reads the
   // value must be able to tell "not asked yet" from "the user chose 180".
-  it('is not ready until storage has answered', () => {
-    mount(createFakePorts());
+  it('is not ready until storage has answered', async () => {
+    await mount(createFakePorts({ preferences: unansweredPreferences }));
     expect(screen.getByTestId('ready')).toHaveTextContent('false');
   });
 
@@ -141,9 +145,9 @@ describe('SettingsProvider', () => {
     ['set-speech-follows', 'speech-locale', 'null', 'settings.speechLocale', 'follow'],
   ])('%s changes the value and writes it', async (button, label, shown, key, written) => {
     const ports = createFakePorts();
-    mount(ports);
+    await mount(ports);
     await settle();
-    fireEvent.press(screen.getByTestId(button));
+    await fireEvent.press(screen.getByTestId(button));
     expect(screen.getByTestId(label)).toHaveTextContent(shown);
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({ key, value: written });
@@ -152,9 +156,9 @@ describe('SettingsProvider', () => {
 
   it('holds a cut-off from a caller that computed one out of range', async () => {
     const ports = createFakePorts();
-    mount(ports);
+    await mount(ports);
     await settle();
-    fireEvent.press(screen.getByTestId('set-cutoff-out-of-range'));
+    await fireEvent.press(screen.getByTestId('set-cutoff-out-of-range'));
     expect(screen.getByTestId('cutoff')).toHaveTextContent('400');
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({
@@ -168,17 +172,17 @@ describe('SettingsProvider', () => {
   // user who opts out and force-quits actually opted out.
   it('tells the crash reporter as well as storage', async () => {
     const ports = createFakePorts();
-    mount(ports);
+    await mount(ports);
     await settle();
-    fireEvent.press(screen.getByTestId('set-crash'));
+    await fireEvent.press(screen.getByTestId('set-crash'));
     await waitFor(() => {
       expect(ports.calls.crashCollection).toStrictEqual([false]);
     });
   });
 
-  it('refuses to be used outside the provider', () => {
+  it('refuses to be used outside the provider', async () => {
     const quiet = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    expect(() => render(<Probe />)).toThrow('useSettings must be used inside');
+    await expect(render(<Probe />)).rejects.toThrow('useSettings must be used inside');
     quiet.mockRestore();
   });
 });

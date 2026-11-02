@@ -5,28 +5,28 @@ import { elementAt } from '@/testing/elementAt';
 import { MorseText } from './MorseText';
 
 describe('MorseText', () => {
-  it('renders one labelled cell per letter', () => {
-    render(<MorseText message={encode('SOS')} />);
+  it('renders one labelled cell per letter', async () => {
+    await render(<MorseText message={encode('SOS')} />);
     expect(screen.getAllByText(/^[SO]$/u)).toHaveLength(3);
   });
 
-  it('is findable by a stable, locale-independent label', () => {
-    render(<MorseText message={encode('E')} />);
+  it('is findable by a stable, locale-independent label', async () => {
+    await render(<MorseText message={encode('E')} />);
     expect(screen.getByTestId('morse-output')).toBeOnTheScreen();
   });
 
-  it('accepts a caller-supplied test id', () => {
-    render(<MorseText message={encode('E')} testID="decoded-preview" />);
+  it('accepts a caller-supplied test id', async () => {
+    await render(<MorseText message={encode('E')} testID="decoded-preview" />);
     expect(screen.getByTestId('decoded-preview')).toBeOnTheScreen();
   });
 
-  it('renders nothing but the container for an empty message', () => {
-    render(<MorseText message={encode('   ')} />);
+  it('renders nothing but the container for an empty message', async () => {
+    await render(<MorseText message={encode('   ')} />);
     expect(screen.getByTestId('morse-output')).toBeEmptyElement();
   });
 
-  it('keeps every letter cell at the 44pt touch-target floor', () => {
-    render(<MorseText message={encode('SOS')} />);
+  it('keeps every letter cell at the 44pt touch-target floor', async () => {
+    await render(<MorseText message={encode('SOS')} />);
     for (const cell of screen.getAllByTestId('morse-letter')) {
       expect(cell).toHaveStyle({ minHeight: 44, minWidth: 44 });
     }
@@ -34,13 +34,13 @@ describe('MorseText', () => {
 });
 
 describe('MorseText — playback', () => {
-  it('shows no playback state when nothing is playing', () => {
-    render(<MorseText message={encode('SOS')} />);
+  it('shows no playback state when nothing is playing', async () => {
+    await render(<MorseText message={encode('SOS')} />);
     expect(screen.queryAllByRole('button', { selected: true })).toHaveLength(0);
   });
 
-  it('lights the letter the playhead is on, and only that one', () => {
-    render(<MorseText message={encode('SOS')} soundingIndex={1} />);
+  it('lights the letter the playhead is on, and only that one', async () => {
+    await render(<MorseText message={encode('SOS')} soundingIndex={1} />);
 
     expect(screen.getAllByRole('button', { selected: true })).toHaveLength(1);
     expect(
@@ -50,8 +50,8 @@ describe('MorseText — playback', () => {
 
   // Turning the output itself into the progress indicator: what is behind the
   // playhead reads differently from what is still to come.
-  it('tints the letters already played and leaves the rest plain', () => {
-    render(<MorseText message={encode('SOS')} soundingIndex={1} />);
+  it('tints the letters already played and leaves the rest plain', async () => {
+    await render(<MorseText message={encode('SOS')} soundingIndex={1} />);
     const [first, current, last] = screen.getAllByTestId('morse-letter');
 
     expect(first).toHaveStyle({ backgroundColor: '#e7f6f3' });
@@ -61,8 +61,10 @@ describe('MorseText — playback', () => {
 
   // A tap selection left over from before playback would otherwise sit lit in
   // the middle of a running message.
-  it('lets playback override a selection made earlier', () => {
-    render(<MorseText message={encode('SOS')} selectedIndex={2} soundingIndex={0} />);
+  it('lets playback override a selection made earlier', async () => {
+    await render(
+      <MorseText message={encode('SOS')} selectedIndex={2} soundingIndex={0} />,
+    );
 
     expect(screen.getAllByRole('button', { selected: true })).toHaveLength(1);
     expect(
@@ -73,8 +75,10 @@ describe('MorseText — playback', () => {
     });
   });
 
-  it('goes back to the selection once playback ends', () => {
-    render(<MorseText message={encode('SOS')} selectedIndex={2} soundingIndex={null} />);
+  it('goes back to the selection once playback ends', async () => {
+    await render(
+      <MorseText message={encode('SOS')} selectedIndex={2} soundingIndex={null} />,
+    );
 
     expect(screen.getAllByTestId('morse-letter')[2]).toHaveStyle({
       backgroundColor: '#12a594',
@@ -92,14 +96,14 @@ describe('MorseText — playback', () => {
     const halos = (): unknown[] =>
       screen.queryAllByTestId('tap-halo', { includeHiddenElements: true });
 
-    it('points at nobody by default — the hint is owed, not permanent', () => {
-      render(<MorseText message={encode('SOS')} />);
+    it('points at nobody by default — the hint is owed, not permanent', async () => {
+      await render(<MorseText message={encode('SOS')} />);
 
       expect(halos()).toHaveLength(0);
     });
 
-    it('rings the chip it was asked to ring, and only that one', () => {
-      render(<MorseText message={encode('SOS')} hintIndex={0} />);
+    it('rings the chip it was asked to ring, and only that one', async () => {
+      await render(<MorseText message={encode('SOS')} hintIndex={0} />);
 
       expect(halos()).toHaveLength(1);
     });
@@ -109,14 +113,14 @@ describe('MorseText — playback', () => {
      * "this one"; a ring around it as well reads as a state the chip has
      * entered rather than as an invitation to press it.
      */
-    it('stays off a chip the playhead is already on', () => {
-      render(<MorseText message={encode('SOS')} hintIndex={0} soundingIndex={0} />);
+    it('stays off a chip the playhead is already on', async () => {
+      await render(<MorseText message={encode('SOS')} hintIndex={0} soundingIndex={0} />);
 
       expect(halos()).toHaveLength(0);
     });
 
-    it('stays off a chip the user has already selected', () => {
-      render(<MorseText message={encode('SOS')} hintIndex={0} selectedIndex={0} />);
+    it('stays off a chip the user has already selected', async () => {
+      await render(<MorseText message={encode('SOS')} hintIndex={0} selectedIndex={0} />);
 
       expect(halos()).toHaveLength(0);
     });
@@ -124,8 +128,8 @@ describe('MorseText — playback', () => {
     // The index counts across words, the same way every other index here
     // does — a hint that landed on the wrong chip would point at a letter the
     // user did not ask about.
-    it('counts across words rather than restarting at each one', () => {
-      render(<MorseText message={encode('A B')} hintIndex={1} />);
+    it('counts across words rather than restarting at each one', async () => {
+      await render(<MorseText message={encode('A B')} hintIndex={1} />);
       const chips = screen.getAllByTestId('morse-letter');
 
       expect(

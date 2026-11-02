@@ -25,6 +25,18 @@ export type FakePorts = Ports &
     };
   }>;
 
+/**
+ * Storage that has not answered yet, and never will.
+ *
+ * ⚠️ For asserting what shows BEFORE storage answers. An awaited render
+ * flushes microtasks, so a store that answers at once has already answered by
+ * the first assertion, and the "not yet" state is never on screen to test.
+ */
+export const unansweredPreferences: Ports['preferences'] = {
+  read: () => new Promise<never>(() => undefined),
+  write: async () => undefined,
+};
+
 /** Builds fake ports. Override any piece per test. */
 export function createFakePorts(
   overrides: Partial<Ports> = {},

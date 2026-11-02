@@ -118,6 +118,11 @@ export const ptBR: TranslationMap = {
   'settings.cutoffHint':
     'Segurar a tecla por mais tempo que isto conta como traço. “Longo” depende da sua velocidade, então ajuste como preferir.',
   'settings.calibrate': 'Calibrar tocando',
+  'settings.calibrateHint': 'Toque três pontos curtos, depois segure três traços longos.',
+  'settings.calibrateCancel': 'Cancelar',
+  'settings.calibrateDone': 'Limite definido em {{ms}} ms',
+  'settings.calibrateRetry':
+    'Os pontos e os traços ficaram parecidos demais. Tente de novo, com os traços mais longos.',
   'settings.language': 'Idioma do app',
   'settings.speechRecognition': 'Reconhecimento de fala',
   'settings.playbackSpeed': 'Velocidade de reprodução',

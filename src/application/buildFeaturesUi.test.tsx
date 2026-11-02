@@ -24,8 +24,8 @@ import { renderWithProviders } from '@/testing/renderWithProviders';
 const NO_SPEECH: BuildFeatures = { ...ALL_BUILD_FEATURES, speechInput: false };
 const FDROID = featuresFor('fdroid');
 
-const settings = (features: BuildFeatures) =>
-  renderWithProviders(
+const settings = async (features: BuildFeatures) =>
+  await renderWithProviders(
     <SettingsScreen
       onBack={jest.fn()}
       onOpenLearn={jest.fn()}
@@ -71,12 +71,12 @@ describe('which destinations a build has', () => {
   it.each([
     ['the tab bar', () => <TabBar active="translate" />],
     ['the tablet rail', () => <NavRail active="translate" />],
-  ])('%s draws Speak only when the build can listen', (_label, ui) => {
-    const view = renderWithProviders(ui(), { features: ALL_BUILD_FEATURES });
+  ])('%s draws Speak only when the build can listen', async (_label, ui) => {
+    const view = await renderWithProviders(ui(), { features: ALL_BUILD_FEATURES });
     expect(screen.getByTestId('tab-speak')).toBeOnTheScreen();
-    view.unmount();
+    await view.unmount();
 
-    renderWithProviders(ui(), { features: NO_SPEECH });
+    await renderWithProviders(ui(), { features: NO_SPEECH });
     // Gone, not greyed: a disabled tab is the shape for "not built yet".
     expect(screen.queryByTestId('tab-speak')).toBeNull();
     expect(screen.getByTestId('tab-translate')).toBeOnTheScreen();
@@ -86,8 +86,8 @@ describe('which destinations a build has', () => {
 });
 
 describe('Settings in each build', () => {
-  it('offers crash reports in the store build', () => {
-    settings(ALL_BUILD_FEATURES);
+  it('offers crash reports in the store build', async () => {
+    await settings(ALL_BUILD_FEATURES);
     expect(screen.getByTestId('settings-privacy')).toBeOnTheScreen();
     expect(screen.getByTestId('settings-crash-reports')).toBeOnTheScreen();
     expect(screen.getByText('Send crash reports')).toBeOnTheScreen();
@@ -95,8 +95,8 @@ describe('Settings in each build', () => {
 
   // The F-Droid build has no crash reporter at all. A switch for one would be
   // a setting that does nothing, and the section heading with it.
-  it('has no privacy section at all in the F-Droid build', () => {
-    settings(FDROID);
+  it('has no privacy section at all in the F-Droid build', async () => {
+    await settings(FDROID);
     expect(screen.queryByTestId('settings-privacy')).toBeNull();
     expect(screen.queryByTestId('settings-crash-reports')).toBeNull();
     expect(screen.queryByText('Send crash reports')).toBeNull();
@@ -107,14 +107,14 @@ describe('Settings in each build', () => {
     expect(screen.getByTestId('settings-version')).toBeOnTheScreen();
   });
 
-  it('keeps the recogniser row while the build can listen', () => {
-    settings(FDROID);
+  it('keeps the recogniser row while the build can listen', async () => {
+    await settings(FDROID);
     expect(screen.getByTestId('settings-speech-locale')).toBeOnTheScreen();
     expect(screen.getByTestId('settings-language')).toBeOnTheScreen();
   });
 
-  it('drops the recogniser row, and keeps the language one, without speech input', () => {
-    settings(NO_SPEECH);
+  it('drops the recogniser row, and keeps the language one, without speech input', async () => {
+    await settings(NO_SPEECH);
     expect(screen.queryByTestId('settings-speech-locale')).toBeNull();
     expect(screen.queryByText('Speech recognition')).toBeNull();
     expect(screen.getByTestId('settings-language')).toBeOnTheScreen();
@@ -122,14 +122,18 @@ describe('Settings in each build', () => {
 });
 
 describe('Language in each build', () => {
-  it('offers the recogniser and its footnote when the build can listen', () => {
-    renderWithProviders(<LanguageScreen onBack={jest.fn()} />, { features: FDROID });
+  it('offers the recogniser and its footnote when the build can listen', async () => {
+    await renderWithProviders(<LanguageScreen onBack={jest.fn()} />, {
+      features: FDROID,
+    });
     expect(screen.getByTestId('language-recogniser')).toBeOnTheScreen();
     expect(screen.getByText('SPEECH RECOGNITION')).toBeOnTheScreen();
   });
 
-  it('has only the interface language without speech input', () => {
-    renderWithProviders(<LanguageScreen onBack={jest.fn()} />, { features: NO_SPEECH });
+  it('has only the interface language without speech input', async () => {
+    await renderWithProviders(<LanguageScreen onBack={jest.fn()} />, {
+      features: NO_SPEECH,
+    });
     expect(screen.queryByTestId('language-recogniser')).toBeNull();
     expect(screen.queryByText('SPEECH RECOGNITION')).toBeNull();
     expect(screen.queryByText(/microphone/u)).toBeNull();
@@ -139,13 +143,13 @@ describe('Language in each build', () => {
 });
 
 describe('the Translator in each build', () => {
-  it('offers Speak when the build can listen', () => {
-    renderWithProviders(<TranslatorScreen />, { features: FDROID });
+  it('offers Speak when the build can listen', async () => {
+    await renderWithProviders(<TranslatorScreen />, { features: FDROID });
     expect(screen.getByTestId('speak-input')).toBeOnTheScreen();
   });
 
-  it('offers no Speak button without speech input, and still translates', () => {
-    renderWithProviders(<TranslatorScreen />, { features: NO_SPEECH });
+  it('offers no Speak button without speech input, and still translates', async () => {
+    await renderWithProviders(<TranslatorScreen />, { features: NO_SPEECH });
     expect(screen.queryByTestId('speak-input')).toBeNull();
     expect(screen.getByTestId('translator-input')).toBeOnTheScreen();
     expect(screen.getByTestId('morse-output')).toBeOnTheScreen();

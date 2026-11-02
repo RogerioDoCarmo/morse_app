@@ -120,6 +120,11 @@ export const en: TranslationMap = {
   'settings.cutoffHint':
     'Hold the key longer than this and it counts as a dash. “Long” depends on your speed, so set it to suit you.',
   'settings.calibrate': 'Calibrate by tapping',
+  'settings.calibrateHint': 'Tap three short dots, then hold three long dashes.',
+  'settings.calibrateCancel': 'Cancel',
+  'settings.calibrateDone': 'Cut-off set to {{ms}} ms',
+  'settings.calibrateRetry':
+    'Those dots and dashes were too close to tell apart. Try again, with the dashes longer.',
   'settings.language': 'App language',
   'settings.speechRecognition': 'Speech recognition',
   'settings.playbackSpeed': 'Playback speed',

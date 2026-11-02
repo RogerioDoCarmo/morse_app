@@ -118,6 +118,11 @@ export const es: TranslationMap = {
   'settings.cutoffHint':
     'Mantener la tecla más tiempo que esto cuenta como raya. «Largo» depende de tu velocidad, así que ajústalo a tu gusto.',
   'settings.calibrate': 'Calibrar pulsando',
+  'settings.calibrateHint': 'Toca tres puntos cortos y luego mantén tres rayas largas.',
+  'settings.calibrateCancel': 'Cancelar',
+  'settings.calibrateDone': 'Umbral fijado en {{ms}} ms',
+  'settings.calibrateRetry':
+    'Los puntos y las rayas se parecían demasiado. Inténtalo de nuevo, con las rayas más largas.',
   'settings.language': 'Idioma de la aplicación',
   'settings.speechRecognition': 'Reconocimiento de voz',
   'settings.playbackSpeed': 'Velocidad de reproducción',

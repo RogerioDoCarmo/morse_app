@@ -3,22 +3,22 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SURFACE_SIZE, SignalSurface, largestSafeDiameter } from './SignalSurface';
 
 describe('SignalSurface', () => {
-  it('is dark when the signal is off', () => {
-    render(<SignalSurface lit={false} />);
+  it('is dark when the signal is off', async () => {
+    await render(<SignalSurface lit={false} />);
     expect(screen.getByTestId('signal-surface')).toHaveStyle({
       backgroundColor: '#101820',
     });
   });
 
-  it('is light when the signal is on', () => {
-    render(<SignalSurface lit />);
+  it('is light when the signal is on', async () => {
+    await render(<SignalSurface lit />);
     expect(screen.getByTestId('signal-surface')).toHaveStyle({
       backgroundColor: '#ffffff',
     });
   });
 
-  it('says which state it is in, for anything not looking at the colour', () => {
-    render(<SignalSurface lit />);
+  it('says which state it is in, for anything not looking at the colour', async () => {
+    await render(<SignalSurface lit />);
     expect(screen.getByTestId('signal-surface')).toBeSelected();
   });
 
@@ -70,9 +70,9 @@ describe('SignalSurface', () => {
     });
   });
 
-  it('takes the full size when there is room for it', () => {
-    render(<SignalSurface lit={false} />);
-    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+  it('takes the full size when there is room for it', async () => {
+    await render(<SignalSurface lit={false} />);
+    await fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
       nativeEvent: { layout: { width: 320, height: 400 } },
     });
 
@@ -84,9 +84,9 @@ describe('SignalSurface', () => {
 
   // The bug this exists for: a fixed 240 inside a shorter card overflowed it
   // and was clipped, so the square that IS the message went half missing.
-  it('shrinks to the room it is given rather than overflowing it', () => {
-    render(<SignalSurface lit={false} />);
-    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+  it('shrinks to the room it is given rather than overflowing it', async () => {
+    await render(<SignalSurface lit={false} />);
+    await fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
       nativeEvent: { layout: { width: 300, height: 150 } },
     });
 
@@ -96,9 +96,9 @@ describe('SignalSurface', () => {
     });
   });
 
-  it('is a circle, at whatever size it ends up', () => {
-    render(<SignalSurface lit={false} />);
-    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+  it('is a circle, at whatever size it ends up', async () => {
+    await render(<SignalSurface lit={false} />);
+    await fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
       nativeEvent: { layout: { width: 300, height: 160 } },
     });
 
@@ -109,9 +109,9 @@ describe('SignalSurface', () => {
     });
   });
 
-  it('stays round when the room it is given is not square', () => {
-    render(<SignalSurface lit={false} />);
-    fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
+  it('stays round when the room it is given is not square', async () => {
+    await render(<SignalSurface lit={false} />);
+    await fireEvent(screen.getByTestId('signal-surface').parent as never, 'layout', {
       nativeEvent: { layout: { width: 90, height: 400 } },
     });
 
@@ -135,8 +135,8 @@ describe('the stage yields to what appears below it', () => {
       unknown
     >;
 
-  it('asks for a floor, not for the diameter it would like', () => {
-    render(<SignalSurface lit={false} />);
+  it('asks for a floor, not for the diameter it would like', async () => {
+    await render(<SignalSurface lit={false} />);
     const floor = flatten(
       screen.getByTestId('signal-surface-stage').props.style,
     ).minHeight;

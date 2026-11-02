@@ -28,13 +28,13 @@ describe('BuildFeaturesProvider', () => {
     });
   });
 
-  it('answers with the bundled features outside any provider', () => {
-    render(<Probe />);
+  it('answers with the bundled features outside any provider', async () => {
+    await render(<Probe />);
     expect(screen.getByTestId('probe')).toHaveTextContent('true,true,true');
   });
 
-  it('answers with the features it is given', () => {
-    render(
+  it('answers with the features it is given', async () => {
+    await render(
       <BuildFeaturesProvider features={featuresFor('fdroid')}>
         <Probe />
       </BuildFeaturesProvider>,

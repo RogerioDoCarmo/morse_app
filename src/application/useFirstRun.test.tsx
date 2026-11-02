@@ -3,7 +3,11 @@ import { Text } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { FIRST_RUN_KEY, FIRST_RUN_VERSION } from '@/core/domain/firstRun';
 import type { Ports } from '@/core/ports';
-import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
+import {
+  createFakePorts,
+  type FakePorts,
+  unansweredPreferences,
+} from '@/testing/fakePorts';
 import { PortsProvider } from './providers/PortsProvider';
 import { useFirstRun } from './useFirstRun';
 
@@ -30,8 +34,8 @@ const withSeen = (seen: string | null): FakePorts => {
   return createFakePorts({ preferences });
 };
 
-const renderProbe = (ports: FakePorts): void => {
-  render(
+const renderProbe = async (ports: FakePorts): Promise<void> => {
+  await render(
     <PortsProvider ports={ports}>
       <Probe />
     </PortsProvider>,
@@ -41,27 +45,27 @@ const renderProbe = (ports: FakePorts): void => {
 describe('useFirstRun', () => {
   // Showing the Translator for a frame and then covering it is worse than a
   // beat of empty ground.
-  it('reports nothing until the stored answer is in', () => {
-    renderProbe(withSeen(null));
+  it('reports nothing until the stored answer is in', async () => {
+    await renderProbe(createFakePorts({ preferences: unansweredPreferences }));
     expect(screen.getByTestId('state')).toHaveTextContent('reading:hide');
   });
 
   it('shows the guide on a fresh install', async () => {
-    renderProbe(withSeen(null));
+    await renderProbe(withSeen(null));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('ready:show');
     });
   });
 
   it('leaves someone alone who has seen this version', async () => {
-    renderProbe(withSeen(String(FIRST_RUN_VERSION)));
+    await renderProbe(withSeen(String(FIRST_RUN_VERSION)));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('ready:hide');
     });
   });
 
   it('shows it again to someone who only saw an older version', async () => {
-    renderProbe(withSeen('0'));
+    await renderProbe(withSeen('0'));
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('ready:show');
     });
@@ -69,7 +73,7 @@ describe('useFirstRun', () => {
 
   it('remembers the version once it is dismissed', async () => {
     const ports = createFakePorts();
-    renderProbe(ports);
+    await renderProbe(ports);
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('ready:show');
     });
@@ -100,35 +104,35 @@ describe('showing the guide again on request', () => {
   // seen it and still want it back.
   it('brings the guide back after it has been dismissed', async () => {
     const ports = seenIt();
-    renderProbe(ports);
+    await renderProbe(ports);
     await settle();
-    fireEvent.press(screen.getByTestId('dismiss'));
+    await fireEvent.press(screen.getByTestId('dismiss'));
     expect(screen.getByTestId('state')).toHaveTextContent('ready:hide');
 
-    fireEvent.press(screen.getByTestId('replay'));
+    await fireEvent.press(screen.getByTestId('replay'));
     expect(screen.getByTestId('state')).toHaveTextContent('ready:show');
   });
 
   // Asking to see it again must not make the app think it was never shown.
   it('stores nothing, so the automatic gate is left as it was', async () => {
     const ports = seenIt();
-    renderProbe(ports);
+    await renderProbe(ports);
     await settle();
-    fireEvent.press(screen.getByTestId('dismiss'));
+    await fireEvent.press(screen.getByTestId('dismiss'));
     const written = ports.calls.stored.length;
 
-    fireEvent.press(screen.getByTestId('replay'));
+    await fireEvent.press(screen.getByTestId('replay'));
     expect(ports.calls.stored).toHaveLength(written);
   });
 
   it('can be put away again the ordinary way', async () => {
     const ports = seenIt();
-    renderProbe(ports);
+    await renderProbe(ports);
     await settle();
-    fireEvent.press(screen.getByTestId('replay'));
+    await fireEvent.press(screen.getByTestId('replay'));
     expect(screen.getByTestId('state')).toHaveTextContent('ready:show');
 
-    fireEvent.press(screen.getByTestId('dismiss'));
+    await fireEvent.press(screen.getByTestId('dismiss'));
     expect(screen.getByTestId('state')).toHaveTextContent('ready:hide');
     await waitFor(() => {
       expect(ports.calls.stored).toContainEqual({

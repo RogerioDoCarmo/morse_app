@@ -51,6 +51,6 @@ export function isLowVolume(level: number | null): boolean {
   //
   // `Number.isFinite` is also doing work `<=` cannot: -Infinity would sail
   // past a comparison as the quietest reading imaginable.
-  const reading = level ?? NaN;
+  const reading = level ?? Number.NaN;
   return Number.isFinite(reading) && reading <= LOW_VOLUME_LEVEL;
 }

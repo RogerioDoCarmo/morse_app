@@ -11,9 +11,9 @@ describe('TapHalo', () => {
    * finished 0.3.4 without discovering them. Movement is the part none of
    * that had. Asserting the loop STARTS is as far as a test can follow it.
    */
-  it('starts a loop', () => {
+  it('starts a loop', async () => {
     const loop = jest.spyOn(Animated, 'loop');
-    render(<TapHalo />);
+    await render(<TapHalo />);
 
     expect(loop).toHaveBeenCalledTimes(1);
     loop.mockRestore();
@@ -26,24 +26,24 @@ describe('TapHalo', () => {
    * that compared the constant with itself would pass on `iterations: -1`,
    * which is exactly the value that caused it.
    */
-  it('breathes four times and then rests', () => {
+  it('breathes four times and then rests', async () => {
     const loop = jest.spyOn(Animated, 'loop');
-    render(<TapHalo />);
+    await render(<TapHalo />);
 
     expect(loop.mock.calls[0]?.[1]).toStrictEqual({ iterations: 4 });
     loop.mockRestore();
   });
 
-  it('stops the loop when it goes away', () => {
+  it('stops the loop when it goes away', async () => {
     const stop = jest.fn();
     const loop = jest
       .spyOn(Animated, 'loop')
       .mockReturnValue({ start: jest.fn(), stop, reset: jest.fn() });
 
-    const view = render(<TapHalo />);
+    const view = await render(<TapHalo />);
     expect(stop).not.toHaveBeenCalled();
 
-    view.unmount();
+    await view.unmount();
 
     expect(stop).toHaveBeenCalledTimes(1);
     loop.mockRestore();
@@ -54,8 +54,8 @@ describe('TapHalo', () => {
    * so a ring that took the touch would swallow the very tap it is asking
    * for — the feature would look, to the user being taught it, broken.
    */
-  it('lets the press through to what it is pointing at', () => {
-    render(<TapHalo />);
+  it('lets the press through to what it is pointing at', async () => {
+    await render(<TapHalo />);
 
     // ⚠️ `includeHiddenElements`, because it IS hidden — from the
     // accessibility tree, which is the next assertion. Without it the query
@@ -71,8 +71,8 @@ describe('TapHalo', () => {
    * as a button; a decorative ring announced beside it would turn one control
    * into two, one of which does nothing.
    */
-  it('is invisible to a screen reader', () => {
-    render(<TapHalo />);
+  it('is invisible to a screen reader', async () => {
+    await render(<TapHalo />);
 
     expect(
       screen.getByTestId('tap-halo', { includeHiddenElements: true }).props
