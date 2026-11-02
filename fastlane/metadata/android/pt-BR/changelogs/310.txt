@@ -1,0 +1,2 @@
+• Os Ajustes agora medem o seu limite de ponto / traço: toque em "Calibrar tocando", tecle três pontos e três traços, e ele se ajusta à sua velocidade.
+• A tela Tocar pode copiar o que você teclou, ou enviar para a tela Traduzir e reproduzir como som, luz ou vibração.
