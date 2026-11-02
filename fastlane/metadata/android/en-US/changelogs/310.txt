@@ -1,0 +1,2 @@
+• Settings can now measure your dot / dash cut-off: tap "Calibrate by tapping", key three dots and three dashes, and it matches your own speed.
+• The Tap screen can copy what you keyed, or send it to the Translate screen to play it back as sound, light or vibration.
