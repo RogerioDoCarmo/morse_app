@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_VERSION_FULL } from '@/appVersion';
@@ -11,6 +11,7 @@ import { SegmentedControl, type Segment } from '@/components/SegmentedControl';
 import { Slider } from '@/components/Slider';
 import type { AppLocale } from '@/core/domain/locale';
 import { enabledPlaybackWpm } from '@/core/domain/featureFlags';
+import { CALIBRATION_MARKS, calibrateUnitMs } from '@/core/domain/calibration';
 import { MAX_UNIT_MS, MIN_UNIT_MS } from '@/core/domain/tapping';
 import { theme } from '@/theme';
 
@@ -75,6 +76,18 @@ export function SettingsScreen({
   const { settings, setTapUnitMs, setPlaybackWpm, setSpeakDecoded, setCrashReports } =
     useSettings();
 
+  // The cut-off measured instead of guessed. It opens in place, under the
+  // slider it sets, so the value it lands on is the one the user sees change.
+  const [calibrating, setCalibrating] = useState(false);
+  const calibrated = useCallback(
+    (ms: number): void => {
+      setTapUnitMs(ms);
+      setCalibrating(false);
+      setConfirmation(t('settings.calibrateDone', { ms: String(ms) }));
+    },
+    [setTapUnitMs, t],
+  );
+
   // Segment values are strings, so the speed round-trips through one.
   // ⚠️ The FLAGGED list, not every speed the app can render. A speed switched
   // off in `featureFlags.ts` must disappear from the picker, or it is still
@@ -129,6 +142,27 @@ export function SettingsScreen({
               <Text style={styles.end}>{String(MIN_UNIT_MS)}</Text>
               <Text style={styles.end}>{String(MAX_UNIT_MS)}</Text>
             </View>
+            {calibrating ? (
+              <Calibration
+                onCalibrated={calibrated}
+                onCancel={() => {
+                  setCalibrating(false);
+                }}
+              />
+            ) : (
+              <Pressable
+                testID="settings-calibrate"
+                accessibilityRole="button"
+                accessibilityLabel="settings-calibrate"
+                onPress={() => {
+                  setCalibrating(true);
+                }}
+                style={({ pressed }) => [styles.link, pressed && styles.pressedLink]}
+              >
+                <Icon name="tap" size={17} color={theme.color.accent} />
+                <Text style={styles.linkLabel}>{t('settings.calibrate')}</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -250,6 +284,106 @@ export function SettingsScreen({
   );
 }
 
+/**
+ * Measures the cut-off from three dots and three dashes.
+ *
+ * ⚠️ The ORDER is the instruction, and it is what makes this possible: a press
+ * cannot be called a dot or a dash before there is a cut-off to judge it by,
+ * so the first three are dots because they come first. Only durations are
+ * kept — the silences between presses say nothing about where the cut-off is.
+ */
+function Calibration({
+  onCalibrated,
+  onCancel,
+}: Readonly<{
+  onCalibrated: (ms: number) => void;
+  onCancel: () => void;
+}>): React.JSX.Element {
+  const { t } = useLocale();
+  const [durations, setDurations] = useState<readonly number[]>([]);
+  const [down, setDown] = useState(false);
+  /** The last attempt could not tell a dot from a dash. */
+  const [unreadable, setUnreadable] = useState(false);
+  const pressedAt = useRef(0);
+  const total = CALIBRATION_MARKS.dots + CALIBRATION_MARKS.dashes;
+
+  const onDown = useCallback((): void => {
+    pressedAt.current = Date.now();
+    setDown(true);
+  }, []);
+
+  const onUp = useCallback((): void => {
+    setDown(false);
+    const next = [...durations, Date.now() - pressedAt.current];
+    if (next.length < total) {
+      setDurations(next);
+      return;
+    }
+    // Starts again from nothing either way: a half-kept attempt would mix the
+    // marks of two different tries.
+    setDurations([]);
+    const ms = calibrateUnitMs(
+      next.slice(0, CALIBRATION_MARKS.dots),
+      next.slice(CALIBRATION_MARKS.dots),
+    );
+    if (ms === null) {
+      setUnreadable(true);
+      return;
+    }
+    onCalibrated(ms);
+  }, [durations, onCalibrated, total]);
+
+  // What is asked for, in order, lit as each one is done.
+  const marks = Array.from({ length: total }, (_, index) => ({
+    dash: index >= CALIBRATION_MARKS.dots,
+    done: index < durations.length,
+  }));
+
+  return (
+    <View style={styles.calibration} testID="settings-calibration">
+      <Text testID="settings-calibrate-hint" style={styles.hint}>
+        {t(unreadable ? 'settings.calibrateRetry' : 'settings.calibrateHint')}
+      </Text>
+      <View style={styles.calibrationMarks}>
+        {marks.map((mark, index) => (
+          <View
+            key={`c${String(index)}`}
+            testID={
+              mark.done ? 'settings-calibrate-mark-done' : 'settings-calibrate-mark'
+            }
+            style={[
+              mark.dash ? styles.calibrationDash : styles.calibrationDot,
+              mark.done ? styles.markDone : styles.markWaiting,
+            ]}
+          />
+        ))}
+      </View>
+      <View style={styles.calibrationControls}>
+        <Pressable
+          testID="settings-calibrate-cancel"
+          accessibilityRole="button"
+          accessibilityLabel="settings-calibrate-cancel"
+          onPress={onCancel}
+          style={({ pressed }) => [styles.link, pressed && styles.pressedLink]}
+        >
+          <Text style={styles.linkLabel}>{t('settings.calibrateCancel')}</Text>
+        </Pressable>
+        <Pressable
+          testID="settings-calibrate-key"
+          accessibilityRole="button"
+          accessibilityLabel="settings-calibrate-key"
+          accessibilityState={{ selected: down }}
+          onPressIn={onDown}
+          onPressOut={onUp}
+          style={[styles.calibrationKey, down && styles.calibrationKeyDown]}
+        >
+          <Text style={styles.calibrationKeyLabel}>{t('tap.key')}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 /** A title, the value it currently holds, and a chevron saying it opens. */
 function NavRow({
   testID,
@@ -352,6 +486,47 @@ const styles = StyleSheet.create({
   hint: { ...theme.type.hint, fontSize: 13, lineHeight: 19, color: theme.color.muted },
   ends: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -12 },
   end: { ...theme.type.mono, fontSize: 11, color: theme.color.faint },
+  link: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: theme.spacing.sm,
+    minHeight: theme.hitTarget,
+  },
+  linkLabel: { ...theme.type.chip, color: theme.color.accent },
+  pressedLink: { opacity: 0.6 },
+  calibration: {
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.color.border,
+  },
+  calibrationMarks: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  calibrationDot: { width: 10, height: 10, borderRadius: 5 },
+  calibrationDash: { width: 26, height: 10, borderRadius: 5 },
+  markDone: { backgroundColor: theme.color.accent },
+  markWaiting: { backgroundColor: theme.color.track },
+  calibrationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  // Smaller than the Tap screen's 186pt key, which is the whole of that
+  // screen; this one is a control inside a card.
+  calibrationKey: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.color.accent,
+  },
+  calibrationKeyDown: { transform: [{ scale: 0.965 }] },
+  calibrationKeyLabel: {
+    ...theme.type.control,
+    color: theme.color.onAccent,
+    textAlign: 'center',
+  },
   rule: { height: 1, backgroundColor: theme.color.border },
   // Rows run to the card's edge, so the card carries no padding of its own.
   cardFlush: {

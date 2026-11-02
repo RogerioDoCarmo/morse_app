@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { SettingsScreen } from './SettingsScreen';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
@@ -273,5 +273,114 @@ describe('confirming what a switch did', () => {
     const toast = await screen.findByTestId('toast');
     expect(within(toast).getByTestId('icon-check')).toBeTruthy();
     expect(within(toast).queryByTestId('icon-volume')).toBeNull();
+  });
+});
+
+/**
+ * Calibrating the cut-off by hand: three dots, then three dashes, and the
+ * cut-off lands between them. The arithmetic is `calibration.test.ts`'s job;
+ * these pin the panel around it.
+ */
+describe('SettingsScreen — calibrating the cut-off by tapping', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const hold = async (ms: number): Promise<void> => {
+    const key = screen.getByTestId('settings-calibrate-key');
+    await fireEvent(key, 'pressIn');
+    await act(() => {
+      jest.advanceTimersByTime(ms);
+    });
+    await fireEvent(key, 'pressOut');
+  };
+
+  const open = async (ports: FakePorts = createFakePorts()): Promise<FakePorts> => {
+    await show(ports);
+    await fireEvent.press(screen.getByTestId('settings-calibrate'));
+    return ports;
+  };
+
+  it('offers calibration under the slider, closed until asked for', async () => {
+    await show();
+    expect(screen.getByText('Calibrate by tapping')).toBeOnTheScreen();
+    expect(screen.queryByTestId('settings-calibration')).toBeNull();
+  });
+
+  it('asks for three dots and then three dashes', async () => {
+    await open();
+    expect(screen.getByTestId('settings-calibrate-hint')).toHaveTextContent(
+      'Tap three short dots, then hold three long dashes.',
+    );
+    expect(screen.getAllByTestId('settings-calibrate-mark')).toHaveLength(6);
+    expect(screen.queryByTestId('settings-calibrate')).toBeNull();
+  });
+
+  it('lights one mark per press', async () => {
+    await open();
+    await hold(100);
+    await hold(100);
+
+    expect(screen.getAllByTestId('settings-calibrate-mark-done')).toHaveLength(2);
+    expect(screen.getAllByTestId('settings-calibrate-mark')).toHaveLength(4);
+  });
+
+  it('sets, stores and announces the measured cut-off', async () => {
+    const ports = await open();
+    for (const ms of [100, 100, 100, 400, 400, 400]) await hold(ms);
+
+    // sqrt(100 * 400) = 200.
+    expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('200 ms');
+    expect(screen.getByTestId('toast')).toHaveTextContent('Cut-off set to 200 ms');
+    expect(screen.queryByTestId('settings-calibration')).toBeNull();
+    await waitFor(() => {
+      expect(ports.calls.stored).toContainEqual({
+        key: 'settings.tapUnitMs',
+        value: '200',
+      });
+    });
+  });
+
+  it('asks again, from the start, when the marks cannot be told apart', async () => {
+    const ports = await open();
+    for (let press = 0; press < 6; press += 1) await hold(200);
+
+    expect(screen.getByTestId('settings-calibrate-hint')).toHaveTextContent(
+      'Those dots and dashes were too close to tell apart. Try again, with the dashes longer.',
+    );
+    expect(screen.getAllByTestId('settings-calibrate-mark')).toHaveLength(6);
+    expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('180 ms');
+    expect(ports.calls.stored).not.toContainEqual(
+      expect.objectContaining({ key: 'settings.tapUnitMs' }),
+    );
+  });
+
+  it('can be left without changing anything', async () => {
+    await open();
+    await hold(100);
+    await fireEvent.press(screen.getByTestId('settings-calibrate-cancel'));
+
+    expect(screen.queryByTestId('settings-calibration')).toBeNull();
+    expect(screen.getByTestId('settings-calibrate')).toBeOnTheScreen();
+    expect(screen.getByTestId('settings-cutoff-value')).toHaveTextContent('180 ms');
+  });
+
+  it('is offered in each language', async () => {
+    await renderWithProviders(
+      <SettingsScreen
+        onBack={jest.fn()}
+        onOpenLearn={jest.fn()}
+        onOpenLanguage={jest.fn()}
+        onShowGuide={jest.fn()}
+      />,
+      { locale: 'pt-BR' },
+    );
+    await fireEvent.press(screen.getByTestId('settings-calibrate'));
+    expect(screen.getByTestId('settings-calibrate-hint')).toHaveTextContent(
+      'Toque três pontos curtos, depois segure três traços longos.',
+    );
   });
 });

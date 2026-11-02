@@ -34,6 +34,31 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'settings-cutoff'
 
+# Calibrating it by hand: three dots, then three dashes. Maestro's tap is
+# short and its long press is seconds long, so the cut-off lands at the top of
+# the range — its VALUE is `calibration.test.ts`'s job. What this pins is that
+# the panel opens, takes six presses and closes on a result.
+- tapOn:
+    id: 'settings-calibrate'
+- assertVisible:
+    id: 'settings-calibration'
+- tapOn:
+    id: 'settings-calibrate-key'
+- tapOn:
+    id: 'settings-calibrate-key'
+- tapOn:
+    id: 'settings-calibrate-key'
+- longPressOn:
+    id: 'settings-calibrate-key'
+- longPressOn:
+    id: 'settings-calibrate-key'
+- longPressOn:
+    id: 'settings-calibrate-key'
+- assertNotVisible:
+    id: 'settings-calibration'
+- assertVisible:
+    id: 'settings-calibrate'
+
 # Speed is the setting with the furthest reach — it changes what the audio
 # renderer is handed — so it is the one worth pressing here.
 - tapOn:
