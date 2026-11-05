@@ -2,8 +2,15 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import type { Ports, SpeechResult } from '@/core/ports';
 import { createFakePorts, type FakePorts } from '@/testing/fakePorts';
+import { holdTheClock } from '@/testing/holdTheClock';
 import { renderWithProviders } from '@/testing/renderWithProviders';
 import { SpeechScreen } from './SpeechScreen';
+
+// A test that held the clock and then failed must not hand the frozen clock
+// to the next one.
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 /** A recogniser the test drives: emit results and errors on demand. */
 function recogniser(available = true): Readonly<{
@@ -136,6 +143,8 @@ describe('SpeechScreen', () => {
     // worked and nothing flashed. Reported from hardware, not caught by any
     // test, because every test here asserted that a control was PRESENT.
     it('flashes a surface when the Screen channel carries the message', async () => {
+      // SOS is about three seconds, and the surface goes with the run.
+      holdTheClock();
       const mic = recogniser();
       await render(mic.port);
       await tapMic();
