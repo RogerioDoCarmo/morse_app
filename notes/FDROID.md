@@ -260,8 +260,14 @@ the scanner flags. Six entries, each matched by the source scan above:
 Miroji's `autolinking_implementation.gradle` entry is gone: the scanner no longer flags it in
 SDK 57, and an unused entry is an error.
 
-`commit:` is `356234d6f5c322f744d63bc053d34846a37a282b`, the mirror commit for `v0.3.8`
-(dispatched 29 October 2026). 0.3.8 changes no app code; it exists because the mirror runs its
+`commit:` is `5880c47675503c986ad5a15255b79c0848ecde9e`, the mirror commit for `v0.3.10`
+(dispatched automatically by `release.yml`, 2 November 2026). Against 0.3.8's mirror commit
+(`356234d…`), it adds app code (calibration, keying speed, copy and send to Translator) and the
+309/310 changelogs. The direct production dependencies in the lockfile resolve to the same versions,
+and the patches and gradle files are unchanged apart from the version. Only dev dependencies and
+pnpm overrides moved, so the recipe's build steps carry over unchanged.
+
+The previous pin, 0.3.8 (`356234d…`, 29 October 2026), changed no app code; it existed because the mirror runs its
 tools from the tag, so only a new tag could carry the F-Droid privacy policy and the mirror's
 `app.json` without its `ios` section. Against the 0.3.7 mirror commit (`52a6b5d…`), it changes `PRIVACY.md`,
 `app.json`, `app.config.js`, `package.json`, the version in `android/app/build.gradle`, the 308
