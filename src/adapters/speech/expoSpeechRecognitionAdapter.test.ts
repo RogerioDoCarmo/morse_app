@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { createRecordingCrashReporter } from '@/testing/recordingCrashReporter';
 import { createExpoSpeechRecognitionAdapter } from './expoSpeechRecognitionAdapter';
 
@@ -11,6 +12,7 @@ const mockStop = jest.fn<void, []>();
 const mockAbort = jest.fn<void, []>();
 const mockLocales = jest.fn<Promise<{ locales: string[] }>, []>();
 const mockPermissions = jest.fn<Promise<{ granted: boolean }>, []>();
+const mockRecognitionAvailable = jest.fn<boolean, []>();
 
 jest.mock('expo-speech-recognition', () => ({
   ExpoSpeechRecognitionModule: {
@@ -19,6 +21,7 @@ jest.mock('expo-speech-recognition', () => ({
     abort: (): void => mockAbort(),
     getSupportedLocales: (): Promise<{ locales: string[] }> => mockLocales(),
     requestPermissionsAsync: (): Promise<{ granted: boolean }> => mockPermissions(),
+    isRecognitionAvailable: (): boolean => mockRecognitionAvailable(),
     addListener: (event: string, listener: Listener) => {
       mockListeners.set(event, listener);
       return {
@@ -37,11 +40,12 @@ const emit = (event: string, payload: unknown): void => {
 const adapter = (): ReturnType<typeof createExpoSpeechRecognitionAdapter> =>
   createExpoSpeechRecognitionAdapter(createRecordingCrashReporter());
 
-describe('expoSpeechRecognitionAdapter — availability', () => {
+describe('expoSpeechRecognitionAdapter — availability on iOS', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockListeners.clear();
     mockRemovals.length = 0;
+    jest.replaceProperty(Platform, 'OS', 'ios');
   });
 
   it('is available when the device recognises the language', async () => {
@@ -75,6 +79,35 @@ describe('expoSpeechRecognitionAdapter — availability', () => {
     expect(crash.reports).toEqual([
       { message: 'no service', context: 'speech: could not list locales' },
     ]);
+  });
+});
+
+/**
+ * Android listens through whichever recogniser the user picked in the system
+ * settings: Google's, Samsung's, Kõnele, anything offering a RecognitionService.
+ * The library's locale list cannot speak for that recogniser: on Android 13+ it
+ * asks the on-device one (absent on a phone without Google's services), and on
+ * 12 and older it is always empty. Gating on it refused working recognisers
+ * before they were ever asked.
+ */
+describe('expoSpeechRecognitionAdapter — availability on Android', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.replaceProperty(Platform, 'OS', 'android');
+  });
+
+  it('is available whenever a recogniser is installed, even with an empty locale list', async () => {
+    mockRecognitionAvailable.mockReturnValue(true);
+    mockLocales.mockResolvedValue({ locales: [] });
+
+    await expect(adapter().isAvailable('pt-BR')).resolves.toBe(true);
+  });
+
+  it('is unavailable when no recogniser is installed at all', async () => {
+    mockRecognitionAvailable.mockReturnValue(false);
+    mockLocales.mockResolvedValue({ locales: ['pt-BR'] });
+
+    await expect(adapter().isAvailable('pt-BR')).resolves.toBe(false);
   });
 });
 
@@ -135,6 +168,17 @@ describe('expoSpeechRecognitionAdapter — listening', () => {
     emit('error', { error: 'no-speech' });
 
     expect(onError).toHaveBeenCalledWith('no-speech');
+  });
+
+  // The library's own code stays in the adapter; the screen only knows the
+  // port's word for it.
+  it('names an unsupported language in the port vocabulary', async () => {
+    const onError = jest.fn();
+    await adapter().start('es', jest.fn(), onError);
+
+    emit('error', { error: 'language-not-supported' });
+
+    expect(onError).toHaveBeenCalledWith('language');
   });
 
   // Refusing the microphone is a normal answer, not a crash.

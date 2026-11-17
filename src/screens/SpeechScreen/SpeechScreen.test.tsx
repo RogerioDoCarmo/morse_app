@@ -217,6 +217,23 @@ describe('SpeechScreen', () => {
     expect(screen.queryByTestId('speech-transcript')).toBeNull();
   });
 
+  // On Android only the recogniser itself knows its languages, so it can say
+  // no after listening started. That is the same dead end as above, not a
+  // stumble worth retrying.
+  it('says so when the recogniser turns the language down once asked', async () => {
+    const mic = recogniser();
+    await render(mic.port);
+    await tapMic();
+
+    await act(() => {
+      mic.fail('language');
+    });
+
+    expect(screen.getByTestId('speech-hint')).toHaveTextContent(
+      'This device cannot recognise this language.',
+    );
+  });
+
   // Refusing the microphone is a normal answer, not a crash.
   it('says so when the microphone is refused', async () => {
     const mic = recogniser();
