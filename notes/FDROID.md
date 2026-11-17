@@ -106,8 +106,9 @@ lacks comes back from listening as `language` and shows the same "cannot recogni
 
 The app also declares a `<queries>` entry for `com.google.android.googlequicksearchbox`, written
 by the library's config plugin. The same entry carries an `<intent>` for
-`android.speech.RecognitionService`, which is what makes a third-party recogniser visible. It is a package-visibility declaration, not code. If a reviewer
-objects, the plugin takes `androidSpeechServicePackages` to change it.
+`android.speech.RecognitionService`, which is what makes a third-party recogniser visible. It is
+a package-visibility declaration, not code. If a reviewer objects, the plugin takes
+`androidSpeechServicePackages` to change it.
 
 ## Native patches
 
