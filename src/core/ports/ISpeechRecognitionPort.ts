@@ -13,7 +13,13 @@ export type SpeechResult = Readonly<{ transcript: string; isFinal: boolean }>;
 export interface ISpeechRecognitionPort {
   /** True when this device can recognise `locale`. */
   isAvailable(locale: AppLocale): Promise<boolean>;
-  /** Starts listening. Returns an unsubscribe that also stops recognition. */
+  /**
+   * Starts listening. Returns an unsubscribe that also stops recognition.
+   *
+   * `onError` reasons: `permission` (microphone refused), `language` (the
+   * recogniser cannot do this locale, which on Android is only known once
+   * asked), `start` (it would not start), or the recogniser's own code.
+   */
   start(
     locale: AppLocale,
     onResult: (result: SpeechResult) => void,

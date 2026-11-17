@@ -1,4 +1,5 @@
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
+import { Platform } from 'react-native';
 import type { AppLocale } from '@/core/domain/locale';
 import type { ICrashReportingPort, ISpeechRecognitionPort } from '@/core/ports';
 
@@ -43,6 +44,15 @@ export function createExpoSpeechRecognitionAdapter(
 ): ISpeechRecognitionPort {
   return {
     async isAvailable(locale) {
+      // ⚠️ Android listens through the recogniser the user picked in the
+      // system settings, and the locale list below cannot speak for it: on 13+
+      // it asks the on-device recogniser (absent without Google's services),
+      // and on 12 and older it is always empty. Whether ANY recogniser exists
+      // is the only question Android can answer up front; a language that one
+      // lacks comes back from start() as `language-not-supported`.
+      if (Platform.OS === 'android') {
+        return ExpoSpeechRecognitionModule.isRecognitionAvailable();
+      }
       try {
         const { locales } = await ExpoSpeechRecognitionModule.getSupportedLocales({});
         return locales.some((available) => covers(available, RECOGNITION_TAG[locale]));
@@ -67,7 +77,7 @@ export function createExpoSpeechRecognitionAdapter(
           onResult({ transcript, isFinal: event.isFinal });
         }),
         ExpoSpeechRecognitionModule.addListener('error', (event) => {
-          onError(event.error);
+          onError(event.error === 'language-not-supported' ? 'language' : event.error);
         }),
       ];
 

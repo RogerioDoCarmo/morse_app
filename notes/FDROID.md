@@ -94,8 +94,19 @@ F-Droid already ships apps that do exactly this. `com.omiyawaki.osrswiki`'s reci
 online". The draft recipe follows that precedent. `NonFreeDep` was considered and rejected:
 the feature does not *require* non-free software, and the app is fully usable without it.
 
+⚠️ **Any recogniser, not only Google's.** Listening uses `SpeechRecognizer.createSpeechRecognizer`
+with no component, so it binds to whichever recogniser the user picked in the system settings
+(Kõnele, Samsung's, Google's). Up to 0.3.10 the availability check did not: it asked the
+library's `getSupportedLocales`, which on Android 13+ queries the *on-device* recogniser (absent
+on a phone without Google's services) and on 12 and older is always empty, so the Speak screen
+said "unavailable" without trying. The F-Droid reviewer of !57837 asked "Can it work with other
+speech recognise apps?" and suggested dropping `NonFreeNet`; that question found the bug. From
+0.3.11 Android asks only whether any recogniser is installed, and a language the chosen one
+lacks comes back from listening as `language` and shows the same "cannot recognise" message.
+
 The app also declares a `<queries>` entry for `com.google.android.googlequicksearchbox`, written
-by the library's config plugin. It is a package-visibility declaration, not code. If a reviewer
+by the library's config plugin. The same entry carries an `<intent>` for
+`android.speech.RecognitionService`, which is what makes a third-party recogniser visible. It is a package-visibility declaration, not code. If a reviewer
 objects, the plugin takes `androidSpeechServicePackages` to change it.
 
 ## Native patches
