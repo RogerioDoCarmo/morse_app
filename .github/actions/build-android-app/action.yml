@@ -114,6 +114,18 @@ runs:
         echo "--- last four lines, each must start a line of its own ---"
         tail -4 android/gradle.properties
 
+    - name: Install CMake 3.31.6
+      # Expo SDK 57 pins the native build to CMake 3.31.6: prebuild writes
+      # `android.cmakeVersion=3.31.6` and ExpoRootProject overrides every module
+      # to it. The Android SDK on ubuntu-latest stopped shipping that version
+      # around 14 November 2026, and AGP then fails expo-modules-core,
+      # expo-updates and :app with "[CXX1300] CMake '3.31.6' was not found in
+      # SDK". Installing that exact version through sdkmanager restores what
+      # the image used to carry; the licences are already accepted there. A no-op
+      # when the image already has it.
+      shell: bash
+      run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.31.6"'
+
     # Release, not debug: a debug APK fetches its JS bundle from the Metro dev
     # server, which is not running in CI, so the app launches to an error
     # screen and every flow fails on "screen is visible". A release build

@@ -40,6 +40,16 @@ const COPY: Readonly<
 });
 
 /**
+ * Recogniser errors that are dead ends rather than a stumble worth retrying.
+ * `language` matters on Android, where only the recogniser the user picked
+ * knows its languages and can only say no once asked.
+ */
+const PHASE_FOR_REASON: ReadonlyMap<string, Phase> = new Map<string, Phase>([
+  ['permission', 'denied'],
+  ['language', 'missing'],
+]);
+
+/**
  * The level bars, as fixed heights rather than a live meter.
  *
  * The recogniser reports words, not amplitude — a meter driven by nothing
@@ -144,7 +154,7 @@ export function SpeechScreen({ onSelectTab, unavailableTabs }: Props): React.JSX
       },
       (reason) => {
         letGo();
-        setPhase(reason === 'permission' ? 'denied' : 'failed');
+        setPhase(PHASE_FOR_REASON.get(reason) ?? 'failed');
       },
     );
   }, [ensure, letGo, speechLocale, speech]);

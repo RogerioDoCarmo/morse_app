@@ -94,9 +94,21 @@ F-Droid already ships apps that do exactly this. `com.omiyawaki.osrswiki`'s reci
 online". The draft recipe follows that precedent. `NonFreeDep` was considered and rejected:
 the feature does not *require* non-free software, and the app is fully usable without it.
 
+⚠️ **Any recogniser, not only Google's.** Listening uses `SpeechRecognizer.createSpeechRecognizer`
+with no component, so it binds to whichever recogniser the user picked in the system settings
+(Kõnele, Samsung's, Google's). Up to 0.3.10 the availability check did not: it asked the
+library's `getSupportedLocales`, which on Android 13+ queries the *on-device* recogniser (absent
+on a phone without Google's services) and on 12 and older is always empty, so the Speak screen
+said "unavailable" without trying. The F-Droid reviewer of !57837 asked "Can it work with other
+speech recognise apps?" and suggested dropping `NonFreeNet`; that question found the bug. From
+0.3.11 Android asks only whether any recogniser is installed, and a language the chosen one
+lacks comes back from listening as `language` and shows the same "cannot recognise" message.
+
 The app also declares a `<queries>` entry for `com.google.android.googlequicksearchbox`, written
-by the library's config plugin. It is a package-visibility declaration, not code. If a reviewer
-objects, the plugin takes `androidSpeechServicePackages` to change it.
+by the library's config plugin. The same entry carries an `<intent>` for
+`android.speech.RecognitionService`, which is what makes a third-party recogniser visible. It is
+a package-visibility declaration, not code. If a reviewer objects, the plugin takes
+`androidSpeechServicePackages` to change it.
 
 ## Native patches
 
@@ -260,8 +272,15 @@ the scanner flags. Six entries, each matched by the source scan above:
 Miroji's `autolinking_implementation.gradle` entry is gone: the scanner no longer flags it in
 SDK 57, and an unused entry is an error.
 
-`commit:` is `356234d6f5c322f744d63bc053d34846a37a282b`, the mirror commit for `v0.3.8`
-(dispatched 29 October 2026). 0.3.8 changes no app code; it exists because the mirror runs its
+`commit:` is `5880c47675503c986ad5a15255b79c0848ecde9e`, the mirror commit for `v0.3.10`
+(dispatched automatically by `release.yml`, 2 November 2026). Against 0.3.8's mirror commit
+(`356234d…`), it adds app code (calibration, keying speed, copy and send to Translator) and the
+309/310 changelogs. The direct production dependencies in the lockfile resolve to the same versions,
+and the patches and gradle files are unchanged apart from the version. Only dev dependencies and
+pnpm overrides moved, so the recipe's build steps carry over unchanged.
+
+The previous pin, 0.3.8 (`356234d…`, 29 October 2026), changed no app code; it existed because
+the mirror runs its
 tools from the tag, so only a new tag could carry the F-Droid privacy policy and the mirror's
 `app.json` without its `ios` section. Against the 0.3.7 mirror commit (`52a6b5d…`), it changes `PRIVACY.md`,
 `app.json`, `app.config.js`, `package.json`, the version in `android/app/build.gradle`, the 308
