@@ -1,8 +1,3 @@
-AntiFeatures:
-  NonFreeNet:
-    en-US: Speech input uses the device's own speech recogniser. On most phones that
-      is Google's, which may send the audio to Google to transcribe. Everything else
-      works offline; the app itself has no internet permission.
 Categories:
   - Science & Education
   - Translation & Dictionary
@@ -19,9 +14,9 @@ RepoType: git
 Repo: https://github.com/RogerioDoCarmo/morse_app-android.git
 
 Builds:
-  - versionName: 0.3.10
-    versionCode: 310
-    commit: 5880c47675503c986ad5a15255b79c0848ecde9e
+  - versionName: 0.3.11
+    versionCode: 311
+    commit: 8216348a5bd1a495711332e521b7b4b42172b53a
     subdir: android/app
     sudo:
       - apt-get update
@@ -55,5 +50,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 0.3.10
-CurrentVersionCode: 310
+CurrentVersion: 0.3.11
+CurrentVersionCode: 311
