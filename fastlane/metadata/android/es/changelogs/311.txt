@@ -1,0 +1,2 @@
+• En Android, la entrada por voz ahora funciona con el reconocedor de voz que use el teléfono, también en Android 12 o anterior, donde decía que el idioma no estaba disponible sin intentarlo.
+• Si el reconocedor no reconoce el idioma elegido, la pantalla Hablar ahora lo dice, en lugar de pedir que lo intentes de nuevo.

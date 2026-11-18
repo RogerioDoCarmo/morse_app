@@ -1,0 +1,2 @@
+• On Android, speech input now works with whichever speech recogniser the phone uses, including on Android 12 and older, where it used to say the language was unavailable without trying.
+• If the recogniser cannot handle the chosen language, the Speak screen now says so instead of asking you to try again.

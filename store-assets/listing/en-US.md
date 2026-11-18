@@ -98,13 +98,13 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.10. Replace for each release; keep the shape.
+For 0.3.11. Replace for each release; keep the shape.
 
-0.3.10 is the second closed-track update after Google's 28 October request for
-more testing. ⚠️ None of its three changes came from a tester either:
-calibration finishes a label the Settings design always had, and copy and
-"send to Translator" close gaps found reading the Tap screen. Do not present
-any of them as tester feedback unless a tester asks for one.
+0.3.11 fixes speech input on Android: the availability check refused any
+recogniser but Google's on-device one, and refused everything on Android 12 and
+older. ⚠️ It came from the F-Droid reviewer's question on fdroiddata!57837, not
+from a tester: do not present it as tester feedback. iOS is unchanged, so
+there is nothing new to submit to App Store Connect for this version.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -122,6 +122,6 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• Settings can now measure your dot / dash cut-off: tap "Calibrate by tapping", key three dots and three dashes, and it matches your own speed.
-• The Tap screen can copy what you keyed, or send it to the Translate screen to play it back as sound, light or vibration.
+• On Android, speech input now works with whichever speech recogniser the phone uses, including on Android 12 and older, where it used to say the language was unavailable without trying.
+• If the recogniser cannot handle the chosen language, the Speak screen now says so instead of asking you to try again.
 ```
