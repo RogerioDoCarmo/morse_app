@@ -100,13 +100,15 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.11. Replace for each release; keep the shape.
+For 0.3.12. Replace for each release; keep the shape.
 
-0.3.11 fixes speech input on Android: the availability check refused any
-recogniser but Google's on-device one, and refused everything on Android 12 and
-older. ⚠️ It came from the F-Droid reviewer's question on fdroiddata!57837, not
-from a tester: do not present it as tester feedback. iOS is unchanged, so
-there is nothing new to submit to App Store Connect for this version.
+0.3.12 declares the portrait screen, the camera and the microphone as optional
+Android hardware. Play Console refused the 0.3.11 (19) closed-test release
+because expo-camera's code scanner implied a required portrait screen; the
+camera and microphone were implied by their permissions. ⚠️ It came from that
+refusal, not from a tester: do not present it as tester feedback. iOS is
+unchanged, so there is nothing new to submit to App Store Connect for this
+version; 0.3.11 (19) went to App Store Connect from Xcode on 22 November.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -124,6 +126,5 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• No Android, a entrada por voz agora funciona com o reconhecedor de fala que o aparelho usar, inclusive no Android 12 ou anterior, onde dizia que o idioma não estava disponível sem nem tentar.
-• Se o reconhecedor não reconhecer o idioma escolhido, a tela Falar agora avisa, em vez de pedir para tentar de novo.
+• O OmniMorse agora pode ser instalado em aparelhos Android sem câmera ou microfone, e em aparelhos que não giram para o modo retrato. A saída por luz precisa do flash da câmera e a entrada por voz precisa de microfone; todo o resto funciona sem eles.
 ```
