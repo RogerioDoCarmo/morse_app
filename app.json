@@ -102,7 +102,7 @@
         }
       ],
       "expo-font",
-      "./plugins/withOptionalPortraitFeature.js",
+      "./plugins/withOptionalHardwareFeatures.js",
       "./plugins/withCleanAndroidPermissions.js"
     ],
     "experiments": {
