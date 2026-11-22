@@ -98,13 +98,15 @@ No account. No advertising. No analytics. Nothing you type, say or key ever leav
 
 ## Release notes
 
-For 0.3.11. Replace for each release; keep the shape.
+For 0.3.12. Replace for each release; keep the shape.
 
-0.3.11 fixes speech input on Android: the availability check refused any
-recogniser but Google's on-device one, and refused everything on Android 12 and
-older. ⚠️ It came from the F-Droid reviewer's question on fdroiddata!57837, not
-from a tester: do not present it as tester feedback. iOS is unchanged, so
-there is nothing new to submit to App Store Connect for this version.
+0.3.12 declares the portrait screen, the camera and the microphone as optional
+Android hardware. Play Console refused the 0.3.11 (19) closed-test release
+because expo-camera's code scanner implied a required portrait screen; the
+camera and microphone were implied by their permissions. ⚠️ It came from that
+refusal, not from a tester: do not present it as tester feedback. iOS is
+unchanged, so there is nothing new to submit to App Store Connect for this
+version; 0.3.11 (19) went to App Store Connect from Xcode on 22 November.
 
 ⚠️ 0.3.6 SHIPPED WITH 0.3.5's NOTES — this block was not replaced, so the
 tablet illustration fix went to both stores unannounced. It is the one part of
@@ -122,6 +124,5 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• On Android, speech input now works with whichever speech recogniser the phone uses, including on Android 12 and older, where it used to say the language was unavailable without trying.
-• If the recogniser cannot handle the chosen language, the Speak screen now says so instead of asking you to try again.
+• OmniMorse can now be installed on Android devices without a camera or a microphone, and on ones that cannot turn to portrait. Light output needs a camera flash and speech input needs a microphone; everything else works without them.
 ```

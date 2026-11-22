@@ -1,0 +1,1 @@
+• OmniMorse ahora se puede instalar en dispositivos Android sin cámara ni micrófono, y en los que no pueden girar a vertical. La salida por luz necesita el flash de la cámara y la entrada por voz necesita un micrófono; todo lo demás funciona sin ellos.
