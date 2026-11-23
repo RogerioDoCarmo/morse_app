@@ -70,7 +70,7 @@ meant to be turned back on. Build features are permanent and per build.
 | Volume check | **kept** | Local module `modules/morse-volume`. Platform `AudioManager`. |
 | Tap decoder | **kept** | Pure JavaScript. |
 | Text-to-speech | **kept** | `expo-speech` → platform `TextToSpeech`. Whatever engine the user installed, no network permission needed. |
-| Speech input | **kept**, with `NonFreeNet` | `expo-speech-recognition` (MIT) → platform `SpeechRecognizer`. See below. |
+| Speech input | **kept**, no anti-feature | `expo-speech-recognition` (MIT) → platform `SpeechRecognizer`. See below. |
 | Learn, Tips, first-run guide | **kept** | Content. |
 | Interface in EN / pt-BR / es | **kept** | |
 | Crash reporting | **disabled** | Firebase Crashlytics is proprietary and named by the inclusion policy. |
@@ -82,7 +82,13 @@ reviewer asks for it to go, it is a one-word edit in both tables; the Speak tab,
 Speak button, the recogniser rows in Settings and Language, the module and `RECORD_AUDIO` all
 follow, and the tests already cover that state.
 
-### Speech input and `NonFreeNet`
+### Speech input, and why it carries no anti-feature
+
+⚠️ **From 0.3.12 the recipe declares no anti-feature.** Up to 0.3.11 it declared `NonFreeNet`.
+The reviewer of !57837 suggested dropping it, and once 0.3.11 made speech input work with any
+recogniser (below), that was right: the app depends on no particular service, and the user picks
+the recogniser in the system settings. The rest of this section is how the first decision was
+reached, kept because the question will come up again.
 
 The library is MIT and contains no Google code. It calls `android.speech.SpeechRecognizer`, a
 platform API. On most phones the service behind it is Google's, which may send audio to Google;
@@ -91,7 +97,7 @@ on others it is on-device or a FOSS recogniser the user chose.
 F-Droid already ships apps that do exactly this. `com.omiyawaki.osrswiki`'s recipe says
 "SpeechRecognizer is optional platform API; not a proprietary dependency" and declares
 `NonFreeNet` with the text "Voice search uses the platform SpeechRecognizer, often Google
-online". The draft recipe follows that precedent. `NonFreeDep` was considered and rejected:
+online". The first recipes followed that precedent. `NonFreeDep` was considered and rejected:
 the feature does not *require* non-free software, and the app is fully usable without it.
 
 ⚠️ **Any recogniser, not only Google's.** Listening uses `SpeechRecognizer.createSpeechRecognizer`
@@ -317,7 +323,8 @@ In order:
    `metadata/com.rogeriodocarmo.morse.yml`.
 6. **Open an RFP** at `gitlab.com/fdroid/rfp`, as for Miroji (#4133).
 7. **Open the merge request**, saying in its description that Firebase and expo-updates are
-   removed from this build and why speech input carries `NonFreeNet`.
+   removed from this build. The first attempts also explained `NonFreeNet`, which was dropped at
+   review (see "Speech input" above).
 
 ## Risks and open questions
 

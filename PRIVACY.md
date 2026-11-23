@@ -1,6 +1,6 @@
 # Privacy Policy — OmniMorse
 
-Last updated: 28 October 2026.
+Last updated: 23 November 2026.
 
 OmniMorse is a Morse code translator. It has no accounts, no advertising, no
 analytics, and no way to identify you.
@@ -113,7 +113,8 @@ device's own speech-recognition service to turn what you say into text.
 Depending on which service is installed, it may send your audio to its provider
 to be transcribed; on most phones that service is Google's. OmniMorse receives
 only the resulting text, holds it in memory, and discards it when you leave the
-screen. This is why F-Droid lists the app with the NonFreeNet anti-feature.
+screen. It uses whichever service is selected in your device's settings, so you
+choose who, if anyone, receives the audio.
 
 Reading decoded text aloud uses your device's own text-to-speech engine.
 
