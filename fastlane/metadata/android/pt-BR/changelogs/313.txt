@@ -1,0 +1,1 @@
+• Compartilhe uma mensagem como som: o novo botão de compartilhar, ao lado do de copiar, envia a mensagem como arquivo de áudio para o app que você escolher, na sua velocidade de reprodução.

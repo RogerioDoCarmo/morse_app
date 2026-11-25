@@ -28,6 +28,9 @@ export const en: TranslationMap = {
   'translator.unsupported': 'No code for: {{chars}}',
   'translator.stop': 'Stop',
   'translator.volumeLow': 'Turn the volume up',
+  // The share sheet's title on Android, and the button's spoken hint.
+  'translator.share': 'Share as sound',
+  'translator.shareFailed': 'Could not share',
   'firstRun.skip': 'Skip',
   'firstRun.next': 'Next',
   'firstRun.start': 'Start',

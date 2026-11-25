@@ -29,6 +29,7 @@ import { useLetterHint } from '@/application/useLetterHint';
 import { useOutputChannels } from '@/application/useOutputChannels';
 import { usePorts } from '@/application/providers/PortsProvider';
 import { useCopyConfirmation } from '@/application/useCopyConfirmation';
+import { useShareSound } from '@/application/useShareSound';
 import { unitMsForWpm } from '@/core/domain/timeline';
 import { localeBadge } from '@/i18n/localeNames';
 import { theme } from '@/theme';
@@ -274,6 +275,14 @@ export function TranslatorScreen({
     lightDenied,
     dismissLightDenied,
   } = useOutputChannels(message, unitMsForWpm(settings.playbackWpm));
+  // The same message at the same speed as Emit, so the recipient hears what
+  // the sender heard. Independent of the channels: muting Sound here does not
+  // stop anyone sending it.
+  const shared = useShareSound(
+    message,
+    unitMsForWpm(settings.playbackWpm),
+    t('translator.share'),
+  );
   // One decimal is enough to look continuous and keeps the style object stable.
   const progressPercent = Math.round(playback.progress * 1000) / 10;
 
@@ -732,6 +741,12 @@ export function TranslatorScreen({
             message={t('translator.copied')}
             onDismiss={copied.dismissToast}
           />
+          <Toast
+            visible={shared.failed}
+            icon="info"
+            message={t('translator.shareFailed')}
+            onDismiss={shared.dismissFailed}
+          />
           {/* ⚠️ Beside the strip that raised it. Light is the only channel
               behind a permission, and a refusal used to leave the chip dark
               with nothing said. */}
@@ -764,6 +779,15 @@ export function TranslatorScreen({
               name={copied.ticked ? 'check' : 'copy'}
               label="copy-morse"
               onPress={onCopy}
+            />
+            {/* The message as a sound file, for apps where Morse is better
+                heard than read. Greyed out with nothing to hear, and while a
+                sheet is already open. */}
+            <IconButton
+              name="share"
+              label="share-sound"
+              onPress={shared.share}
+              disabled={!shared.canShare || shared.sharing}
             />
           </View>
         </View>

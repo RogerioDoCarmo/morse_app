@@ -84,6 +84,36 @@ appId: com.rogeriodocarmo.morse
 - assertVisible:
     id: 'signal-button'
 
+# ── Share as sound ──────────────────────────────────────────────────────────
+# New in 0.3.13: the message as OmniMorse.wav, through the system share sheet.
+#
+# Before Copy on purpose: Copy raises a toast that lingers six seconds, and the
+# proof here is that NO toast appears, because the only toast sharing can
+# raise is the one saying it failed.
+#
+# A flow cannot read the share sheet itself. Its contents are the OS's,
+# localised and different per version, and this suite selects by id only. What
+# it CAN prove is that the button is wired, the sheet opened without a crash or
+# a failure, and the app is still there afterwards.
+#
+# ⚠️ Android only for the tap. `back` dismisses the chooser there; the iOS
+# sheet has no id-addressable close and cannot be verified from this machine,
+# so iOS checks only that the button is live with a message in the field.
+- assertVisible:
+    id: 'share-sound'
+    enabled: true
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: 'share-sound'
+      - back
+      - assertVisible:
+          id: 'translator-screen'
+      - assertNotVisible:
+          id: 'toast'
+
 # ⚠️ The copy button did NOTHING until 0.3.2 — `onPress={() => undefined}`,
 # drawn on the artboard and never wired. That is the same defect a tester
 # reported against Speak in 0.2.1, and it is invisible from the outside: a

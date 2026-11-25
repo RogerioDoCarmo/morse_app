@@ -27,6 +27,8 @@ export const es: TranslationMap = {
   'translator.unsupported': 'Sin código: {{chars}}',
   'translator.stop': 'Detener',
   'translator.volumeLow': 'Sube el volumen',
+  'translator.share': 'Compartir como sonido',
+  'translator.shareFailed': 'No se pudo compartir',
   'firstRun.skip': 'Saltar',
   'firstRun.next': 'Siguiente',
   'firstRun.start': 'Empezar',

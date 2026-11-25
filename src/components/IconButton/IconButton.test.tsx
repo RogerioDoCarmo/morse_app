@@ -27,6 +27,22 @@ describe('IconButton', () => {
     expect(screen.getByTestId('custom-id')).toBeOnTheScreen();
   });
 
+  it('ignores presses and says so when disabled', async () => {
+    const onPress = jest.fn();
+    await render(
+      <IconButton name="share" label="share-sound" disabled onPress={onPress} />,
+    );
+    const button = screen.getByLabelText('share-sound');
+    await fireEvent.press(button);
+    expect(onPress).not.toHaveBeenCalled();
+    expect(button).toBeDisabled();
+  });
+
+  it('is enabled unless told otherwise', async () => {
+    await render(<IconButton name="share" label="share-sound" onPress={jest.fn()} />);
+    expect(screen.getByLabelText('share-sound')).toBeEnabled();
+  });
+
   it('renders the requested glyph', async () => {
     await render(<IconButton name="zap" label="flash" onPress={jest.fn()} />);
     expect(screen.getByTestId('icon-zap')).toBeOnTheScreen();

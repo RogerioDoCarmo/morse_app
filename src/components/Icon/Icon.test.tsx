@@ -8,6 +8,7 @@ const NAMES: readonly IconName[] = [
   'zap',
   'volume',
   'copy',
+  'share',
   'book',
   'translate',
   'tap',

@@ -15,6 +15,11 @@ type Props = Readonly<{
    * `accessibilityState` the way the flash button carries its own.
    */
   active?: boolean;
+  /**
+   * Greys the button out and ignores presses, for an action with nothing to
+   * act on yet. Announced through `accessibilityState`, as the Emit button does.
+   */
+  disabled?: boolean;
   testID?: string;
 }>;
 
@@ -24,6 +29,7 @@ export function IconButton({
   onPress,
   label,
   active = false,
+  disabled = false,
   testID,
 }: Props): React.JSX.Element {
   return (
@@ -31,7 +37,8 @@ export function IconButton({
       testID={testID ?? label}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected: active }}
+      accessibilityState={{ selected: active, disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
@@ -39,13 +46,15 @@ export function IconButton({
         pressed && styles.pressed,
       ]}
     >
-      <Icon
-        name={name}
-        size={19}
-        color={active ? theme.color.onAccent : theme.color.ink}
-      />
+      <Icon name={name} size={19} color={iconColor(active, disabled)} />
     </Pressable>
   );
+}
+
+/** The glyph's colour: on the accent when active, faint when there is nothing to do. */
+function iconColor(active: boolean, disabled: boolean): string {
+  if (disabled) return theme.color.faint;
+  return active ? theme.color.onAccent : theme.color.ink;
 }
 
 const styles = StyleSheet.create({
