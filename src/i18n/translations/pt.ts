@@ -27,6 +27,8 @@ export const ptBR: TranslationMap = {
   'translator.unsupported': 'Sem código: {{chars}}',
   'translator.stop': 'Parar',
   'translator.volumeLow': 'Aumente o volume',
+  'translator.share': 'Compartilhar como som',
+  'translator.shareFailed': 'Não deu para compartilhar',
   'firstRun.skip': 'Pular',
   'firstRun.next': 'Avançar',
   'firstRun.start': 'Começar',

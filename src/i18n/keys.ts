@@ -32,6 +32,8 @@ export type TranslationKey =
   | 'translator.unsupported'
   | 'translator.stop'
   | 'translator.volumeLow'
+  | 'translator.share'
+  | 'translator.shareFailed'
   | 'firstRun.skip'
   | 'firstRun.next'
   | 'firstRun.start'

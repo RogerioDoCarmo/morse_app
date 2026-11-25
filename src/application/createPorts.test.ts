@@ -28,6 +28,13 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(),
 }));
 
+const mockSharingAvailable = jest.fn<Promise<boolean>, []>();
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: (): Promise<boolean> => mockSharingAvailable(),
+  shareAsync: jest.fn(),
+}));
+
 const mockIsEnabled = jest.fn<boolean, []>();
 const mockCreateFirebase = jest.fn();
 
@@ -99,6 +106,21 @@ describe('createPorts — what a build leaves out', () => {
       recognition.ExpoSpeechRecognitionModule.getSupportedLocales,
     ).not.toHaveBeenCalled();
     expect(recognition.ExpoSpeechRecognitionModule.start).not.toHaveBeenCalled();
+  });
+
+  // Sharing as sound is in BOTH builds: expo-sharing is FOSS, and nothing
+  // leaves the device until the user picks a destination.
+  it.each([
+    ['store', ALL_BUILD_FEATURES],
+    ['fdroid', featuresFor('fdroid')],
+  ])('wires the real share sheet in the %s build', async (_name, features) => {
+    mockSharingAvailable.mockResolvedValue(false);
+    const { shareSound } = createPorts(features).ports;
+
+    await expect(shareSound.share(new Uint8Array(), 'Share')).resolves.toBe(
+      'unavailable',
+    );
+    expect(mockSharingAvailable).toHaveBeenCalledTimes(1);
   });
 
   // Speech is kept in the F-Droid build: the platform recogniser is not

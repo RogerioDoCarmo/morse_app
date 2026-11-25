@@ -2115,3 +2115,60 @@ describe('TranslatorScreen — opening with text from another screen', () => {
     expect(inputProps().value).toBe('E');
   });
 });
+
+describe('TranslatorScreen — sharing the message as sound', () => {
+  /** The bytes the domain would render for `text` at the default speed. */
+  const wavFor = (text: string): Uint8Array =>
+    renderWav(toTimeline(encode(text)), { unitMs: DEFAULT_PLAYBACK_UNIT_MS });
+
+  it('offers the message as the sound Emit would play, titled in the interface language', async () => {
+    const ports = createFakePorts();
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await fireEvent.changeText(screen.getByTestId('translator-input'), 'HI');
+
+    await fireEvent.press(screen.getByLabelText('share-sound'));
+    await waitFor(() => expect(ports.calls.shared).toHaveLength(1));
+
+    expect(Array.from(ports.calls.shared[0]?.wav ?? [])).toEqual(
+      Array.from(wavFor('HI')),
+    );
+    expect(ports.calls.shared[0]?.title).toBe('Share as sound');
+  });
+
+  it('is greyed out with nothing to hear', async () => {
+    const ports = createFakePorts();
+    await renderWithProviders(<TranslatorScreen seedSample={false} />, { ports });
+
+    expect(screen.getByLabelText('share-sound')).toBeDisabled();
+    await fireEvent.press(screen.getByLabelText('share-sound'));
+    expect(ports.calls.shared).toEqual([]);
+  });
+
+  // Muting Sound decides what THIS phone plays, not what may be sent.
+  it('shares with the Sound channel switched off', async () => {
+    const ports = createFakePorts();
+    await renderWithProviders(<TranslatorScreen />, { ports });
+    await fireEvent.press(screen.getByTestId('channel-sound'));
+    await waitFor(() => expect(screen.getByTestId('channel-sound')).not.toBeSelected());
+
+    await fireEvent.press(screen.getByLabelText('share-sound'));
+    await waitFor(() => expect(ports.calls.shared).toHaveLength(1));
+  });
+
+  it('says so when the sound could not be shared', async () => {
+    const ports = createFakePorts();
+    ports.shareSound.share = async () => 'failed';
+    await renderWithProviders(<TranslatorScreen />, { ports });
+
+    await fireEvent.press(screen.getByLabelText('share-sound'));
+
+    expect(await screen.findByText('Could not share')).toBeOnTheScreen();
+  });
+
+  it('shows nothing extra when the share sheet opened', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    await fireEvent.press(screen.getByLabelText('share-sound'));
+    await waitFor(() => expect(screen.getByLabelText('share-sound')).toBeEnabled());
+    expect(screen.queryByText('Could not share')).toBeNull();
+  });
+});

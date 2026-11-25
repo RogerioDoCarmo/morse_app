@@ -30,6 +30,13 @@ describe('the Translator on a tablet', () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
+  // The action row is shared by both layouts; the tablet must not lose it.
+  it('keeps Copy and Share beside Emit', async () => {
+    await renderWithProviders(<TranslatorScreen />);
+    expect(screen.getByLabelText('copy-morse')).toBeOnTheScreen();
+    expect(screen.getByLabelText('share-sound')).toBeEnabled();
+  });
+
   it('keeps the gear in the header on a phone', async () => {
     mockWidth = 402;
     const onOpenSettings = jest.fn();

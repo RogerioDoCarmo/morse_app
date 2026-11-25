@@ -100,9 +100,15 @@ Sem conta. Sem anúncios. Sem analytics. Nada do que você digita, fala ou toca 
 
 ## Release notes
 
-For 0.3.12. Replace for each release; keep the shape.
+For 0.3.13. Replace for each release; keep the shape.
 
-0.3.12 declares the portrait screen, the camera and the microphone as optional
+0.3.13 adds Share on the Translator: the message goes to the system share
+sheet as OmniMorse.wav, the same tones at the same speed as Emit. It adds the
+expo-sharing native module, so it needs a new binary on both platforms; an
+over-the-air update cannot deliver it. ⚠️ It was not requested by a tester:
+do not present it as tester feedback.
+
+Earlier: 0.3.12 declares the portrait screen, the camera and the microphone as optional
 Android hardware. Play Console refused the 0.3.11 (19) closed-test release
 because expo-camera's code scanner implied a required portrait screen; the
 camera and microphone were implied by their permissions. ⚠️ It came from that
@@ -126,5 +132,5 @@ directions: copy left over from the last release, and copy written before
 this one finished. Re-read this block against the log on the day you submit.
 
 ```text
-• O OmniMorse agora pode ser instalado em aparelhos Android sem câmera ou microfone, e em aparelhos que não giram para o modo retrato. A saída por luz precisa do flash da câmera e a entrada por voz precisa de microfone; todo o resto funciona sem eles.
+• Compartilhe uma mensagem como som: o novo botão de compartilhar, ao lado do de copiar, envia a mensagem como arquivo de áudio para o app que você escolher, na sua velocidade de reprodução.
 ```

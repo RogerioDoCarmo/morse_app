@@ -1,6 +1,6 @@
 {
   "name": "morse-app",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "private": true,
   "packageManager": "pnpm@10.4.1",
   "main": "index.ts",
@@ -55,6 +55,7 @@
     "expo-haptics": "~57.0.2",
     "expo-keep-awake": "~57.0.1",
     "expo-localization": "~57.0.1",
+    "expo-sharing": "~57.0.27",
     "expo-speech": "~57.0.1",
     "expo-speech-recognition": "^57.0.0",
     "expo-splash-screen": "~57.0.7",

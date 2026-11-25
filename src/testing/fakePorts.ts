@@ -13,6 +13,8 @@ export type FakePorts = Ports &
       volumeReads: number;
       spoken: { text: string; locale: AppLocale }[];
       played: Uint8Array[];
+      /** Every sound offered to the share sheet, with the sheet's title. */
+      shared: { wav: Uint8Array; title: string }[];
       awake: boolean[];
       vibrated: { atMs: number; durationMs: number; long: boolean }[][];
       vibrationStops: number;
@@ -48,6 +50,7 @@ export function createFakePorts(
     volumeReads: 0,
     spoken: [],
     played: [],
+    shared: [],
     awake: [],
     vibrated: [],
     vibrationStops: 0,
@@ -78,6 +81,14 @@ export function createFakePorts(
     clipboard: {
       read: async (): Promise<string | null> => null,
       write: async (): Promise<boolean> => true,
+    },
+    // 'shared' so the success path is the default; a test that wants a
+    // failure overrides it.
+    shareSound: {
+      share: async (wav, title) => {
+        calls.shared.push({ wav, title });
+        return 'shared';
+      },
     },
     volume: {
       // Loud, so nothing warns unless a test says otherwise.

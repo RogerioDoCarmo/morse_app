@@ -6,6 +6,7 @@ import { createNoopCrashReportingAdapter } from '@/adapters/crash/noopCrashRepor
 import { createExpoLocalizationAdapter } from '@/adapters/locale/expoLocalizationAdapter';
 import { createExpoPermissionAdapter } from '@/adapters/permission/expoPermissionAdapter';
 import { createAsyncStoragePreferencesAdapter } from '@/adapters/preferences/asyncStoragePreferencesAdapter';
+import { createExpoShareSoundAdapter } from '@/adapters/share/expoShareSoundAdapter';
 import { createExpoSpeechRecognitionAdapter } from '@/adapters/speech/expoSpeechRecognitionAdapter';
 import { createUnavailableSpeechRecognitionAdapter } from '@/adapters/speech/unavailableSpeechRecognitionAdapter';
 import { BUNDLED_FEATURES } from '@/application/providers/BuildFeaturesProvider';
@@ -71,6 +72,9 @@ export function createPorts(
       volume: createNativeVolumeAdapter(crash),
       preferences: createAsyncStoragePreferencesAdapter(crash),
       clipboard: createExpoClipboardAdapter(),
+      // In both builds: expo-sharing is FOSS, and nothing leaves the device
+      // until the user picks where it goes.
+      shareSound: createExpoShareSoundAdapter(crash),
       tts: createExpoSpeechAdapter(crash),
       speech: features.speechInput
         ? createExpoSpeechRecognitionAdapter(crash)

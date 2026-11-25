@@ -39,6 +39,7 @@ const BUDGETS: Partial<Record<TranslationKey, number>> = {
   'translator.clearAll': 16,
   'translator.paste': 10,
   'translator.volumeLow': 26,
+  'translator.shareFailed': 26,
   'translator.copied': 12,
   'translator.typeHint': 22,
   'translator.stop': 14,

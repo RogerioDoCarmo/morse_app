@@ -1,6 +1,6 @@
 # Privacy Policy — OmniMorse
 
-Last updated: 23 November 2026.
+Last updated: 25 November 2026.
 
 OmniMorse is a Morse code translator. It has no accounts, no advertising, no
 analytics, and no way to identify you.
@@ -69,6 +69,15 @@ The app checks for over-the-air updates when it starts. That request goes to
 Expo's update service and carries the app version, platform, and an
 installation identifier. It carries nothing about you or your messages.
 
+### Sharing a message as sound
+
+When you press Share on the Translator, the app saves the current message as a
+sound file, `OmniMorse.wav`, in its own temporary storage and opens your
+device's share sheet. The file goes only to the app you pick there, and only if
+you pick one; OmniMorse sends it nowhere itself. It holds the Morse tones of the
+message and nothing else. The next share replaces it, and your device clears
+the app's temporary storage on its own.
+
 ## What the app asks permission for, and why
 
 **Camera** — used only to switch the torch on and off, so a message can be
@@ -115,6 +124,10 @@ to be transcribed; on most phones that service is Google's. OmniMorse receives
 only the resulting text, holds it in memory, and discards it when you leave the
 screen. It uses whichever service is selected in your device's settings, so you
 choose who, if anyone, receives the audio.
+
+**Sharing is up to you.** Share on the Translator saves the message as a sound
+file, `OmniMorse.wav`, and opens your device's share sheet. The file goes only
+to the app you pick there.
 
 Reading decoded text aloud uses your device's own text-to-speech engine.
 
